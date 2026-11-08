@@ -11,6 +11,7 @@ export const entries = [
     unreleased: true,
     items: [
       { type: 'fixed', text: 'The canvas keeps your last chosen light or dark mode after a refresh.' },
+      { type: 'fixed', text: 'Dark mode no longer flashes light when you open or refresh the canvas.' },
       { type: 'fixed', text: 'The Check for update button is now always in the More menu.' },
     ],
   },

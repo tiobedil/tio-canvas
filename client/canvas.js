@@ -994,14 +994,15 @@ $('#zoom').addEventListener('keydown',event=>{
 let themeTimer;
 const themeKey=`${key}:theme`;
 function setThemeLabel(dark){$('#theme-label').textContent=dark?'Light mode':'Dark mode';}
-try{if(localStorage.getItem(themeKey)==='dark'){document.documentElement.setAttribute('data-dark','');setThemeLabel(true);}}catch{}
+// index.html reads `canvas:theme` in <head> so a saved dark mode paints dark from the first frame.
+try{const saved=localStorage.getItem(themeKey);if(saved)localStorage.setItem('canvas:theme',saved);if(saved==='dark'){document.documentElement.setAttribute('data-dark','');setThemeLabel(true);}}catch{}
 $('#theme').onclick=()=>{
   // The theme fades through the root tokens; controls must not add their own transitions on top.
   const root=document.documentElement;root.setAttribute('data-theming','');
   clearTimeout(themeTimer);themeTimer=setTimeout(()=>root.removeAttribute('data-theming'),300);
   const dark=document.documentElement.toggleAttribute('data-dark');
   setThemeLabel(dark);
-  try{localStorage.setItem(themeKey,dark?'dark':'light');}catch{}
+  try{localStorage.setItem(themeKey,dark?'dark':'light');localStorage.setItem('canvas:theme',dark?'dark':'light');}catch{}
 };
 const moreMenu=$('#layers-menu'),moreButton=$('#layers-more');
 moreMenu.addEventListener('beforetoggle',event=>{
