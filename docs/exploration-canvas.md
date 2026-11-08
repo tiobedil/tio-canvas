@@ -1,5 +1,7 @@
 # Private exploration canvas and future interactive gallery
 
+> **Note for the package.** This document was written inside `tio-web`, where the canvas files lived in `dev/canvas/`. In this package they are in `client/`, and the page list (`screens.js`) and thumbnails belong to the project that installs it. Project-specific details (the tioputrad.com pages, Worker gate, prototypes) describe `tio-web`, the reference project.
+
 ## Agreed scope
 
 The canvas is a private workspace at `/canvas`, accessible only by typing its URL, in development and in production. It is not a portfolio page, has no site navigation link, carries `noindex`, and is not in the sitemap. `build/build.mjs` copies `dev/canvas/` to `dist/canvas/` with a generated `screens.js`. Prototype pages ship to `dist/prototypes/` too, but the Worker (`src/worker-gate.js`) serves them only to a frame inside the site: they open in the canvas, and a typed address is a 404. A command-line client can forge the headers, so this is not authentication. Interface Kit is injected by the dev server alone and never ships. The production canvas adds its own bridge script to the same-origin screens it frames (the dev server does that for development), and `public/_headers` allows same-origin framing (`X-Frame-Options: SAMEORIGIN`). `pnpm preview` serves `dist/canvas` exactly as a visitor gets it.
