@@ -1022,6 +1022,14 @@ moreMenu.addEventListener('keydown',event=>{
   const buttons=[...moreMenu.querySelectorAll('button')].filter(button=>!button.hidden),index=buttons.indexOf(document.activeElement);
   buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:index<0?(event.key==='ArrowDown'?0:buttons.length-1):(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
 });
+// Every modal opens at the top: scrolling is reset on open, not on close, so a dialog fading out keeps its place.
+{
+  const showModal=HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal=function(){
+    showModal.call(this);
+    for(const node of [this,...this.querySelectorAll('*')])if(node.scrollTop)node.scrollTop=0;
+  };
+}
 // ---- Version and updates ----------------------------------------------------
 // The version row in the More menu. A canvas on the developer's machine asks npm
 // for the newest version now, again when the tab is shown, and every half hour,
