@@ -1,6 +1,7 @@
 import './tooltip.js';
 import './shortcuts.js';
 import {renderChangelog} from './changelog.js';
+import {renderInstallGuide} from './install-guide.js';
 import './device-gate.js';
 import './onboarding.js';
 import { setupSelectFields, closeSelectMenus, positionSelectMenus } from './select-field.js';
@@ -955,6 +956,15 @@ changelog.addEventListener('click',event=>{
   if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)changelog.close();
 });
 changelog.addEventListener('close',()=>$('#layers-more').focus());
+const installGuide=$('#install');
+$('#install-open').onclick=()=>{closeContext();stop();clearContact();delete document.body.dataset.space;renderInstallGuide(installGuide.querySelector('.install-body'));installGuide.showModal();};
+$('#install-close').onclick=()=>installGuide.close();
+installGuide.addEventListener('click',event=>{
+  if(event.target!==installGuide)return;
+  const rect=installGuide.getBoundingClientRect();
+  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)installGuide.close();
+});
+installGuide.addEventListener('close',()=>$('#layers-more').focus());
 $('#undo').onclick=()=>runHistory('undo');
 $('#redo').onclick=()=>runHistory('redo');
 $('#fit').onclick=()=>fitEntries(fitAll());
@@ -996,7 +1006,7 @@ moreMenu.addEventListener('beforetoggle',event=>{
   moreMenu.style.left=`${Math.max(inset,Math.min(anchor.left+(anchor.width-width)/2,innerWidth-width-inset))}px`;
 });
 moreMenu.addEventListener('toggle',event=>{if(event.newState==='open')moreMenu.focus({preventScroll:true});moreButton.setAttribute('aria-expanded',String(event.newState==='open'));});
-moreMenu.addEventListener('click',event=>{if(event.target.closest('#shortcuts-open,#onboarding-open,#changelog-open'))moreMenu.hidePopover();});
+moreMenu.addEventListener('click',event=>{if(event.target.closest('#shortcuts-open,#onboarding-open,#changelog-open,#install-open'))moreMenu.hidePopover();});
 moreMenu.addEventListener('keydown',event=>{
   event.stopPropagation();
   if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
