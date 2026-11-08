@@ -42,6 +42,8 @@ const smartHandles=createSmartHandles({selection,viewport,onDrag:startReorder});
 // A host overlay paints above every iframe layer, including native popovers.
 const contact=document.createElement('div');contact.id='canvas-contact';contact.hidden=true;contact.setAttribute('aria-hidden','true');document.body.append(contact);
 let contactState=null;
+// A screen's theme is its own: it sets the frame's colour scheme, which is what the page inside sees as prefers-color-scheme. It is not saved.
+function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';}
 function clearContact(){contactState=null;contact.hidden=true;}
 window.addEventListener('pointermove',clearContact);
 function renderContact(){
@@ -68,13 +70,19 @@ function createEntry(definition, loadSaved = true) {
   const refresh=document.createElement('button');refresh.className='screen-refresh';refresh.type='button';
   refresh.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7a6.5 6.5 0 1 0 .3 5M16 3v4h-4"/></svg>';
   refresh.setAttribute('aria-label',`Refresh ${model.title}`);refresh.title=`Refresh ${model.title}`;
+  const theme=document.createElement('button');theme.className='screen-theme';theme.type='button';
+  theme.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" style="fill:currentColor;stroke:none"/></svg>';
+  theme.setAttribute('aria-label',`Toggle dark mode for ${model.title}`);theme.title='Toggle screen theme';theme.setAttribute('aria-pressed','false');
+  const more=document.createElement('button');more.className='screen-more';more.type='button';
+  more.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1" style="fill:currentColor;stroke:none"/><circle cx="10" cy="10" r="1" style="fill:currentColor;stroke:none"/><circle cx="15.5" cy="10" r="1" style="fill:currentColor;stroke:none"/></svg>';
+  more.setAttribute('aria-label',`More actions for ${model.title}`);more.title='More';
   const fullscreen=document.createElement('button');fullscreen.className='screen-fullscreen';fullscreen.type='button';
   fullscreen.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4"/></svg>';
   fullscreen.setAttribute('aria-label',`Open ${model.title} fullscreen`);fullscreen.title='Open fullscreen';
   const orientation=document.createElement('button');orientation.className='screen-orientation';orientation.type='button';
   orientation.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="2" width="10" height="16" rx="2"/></svg>';
-  element.append(title,orientation,refresh,fullscreen); world.append(element);
-  const entry = { model, element, title, orientation, refresh, fullscreen, iframe: null, visible: false };
+  element.append(title,orientation,theme,refresh,fullscreen,more); world.append(element);
+  const entry = { model, element, title, orientation, theme, more, refresh, fullscreen, iframe: null, visible: false };
   orientation.addEventListener('click',()=>{
     stop();const before=history.checkpoint();
     [model.width,model.height]=[model.height,model.width];
@@ -82,6 +90,15 @@ function createEntry(definition, loadSaved = true) {
     updateSelection();schedule();commitEdit(before);
   });
   fullscreen.addEventListener('click',()=>preview.enter(entry));
+  // When the icon row is wider than the screen it folds into one ... button and opens while the pointer is on it.
+  const actions=[orientation,theme,refresh,fullscreen,more];
+  const expand=open=>element.toggleAttribute('data-expanded',open);
+  more.addEventListener('pointerenter',()=>expand(true));more.addEventListener('click',()=>expand(true));
+  for(const b of actions)b.addEventListener('pointerleave',event=>{if(!actions.includes(event.relatedTarget))expand(false);});
+  theme.addEventListener('click',()=>{
+    entry.dark=!entry.dark;theme.setAttribute('aria-pressed',String(entry.dark));
+    applyScreenTheme(entry);
+  });
   title.title = model.title;
   refresh.addEventListener('click',()=>{
     stop();
@@ -347,13 +364,20 @@ function render(now) {
     entry.orientation.title=`Switch to ${landscape?'portrait':'landscape'}`;
     entry.orientation.setAttribute('aria-pressed',String(landscape));
     entry.orientation.querySelector('svg').style.rotate=landscape?'0deg':'90deg';
-    if(entry.paintScale!==camera.scale || entry.paintWidth!==m.width || entry.paintCanRotate!==canRotate){
-      entry.paintCanRotate=canRotate;
+    // Icons that fit stay in the row; the rest fold behind a ... button and slide in on hover.
+    const row=[entry.fullscreen,entry.refresh,entry.theme,...(canRotate?[entry.orientation]:[])];
+    const fit=Math.floor(m.width*camera.scale/28),folded=fit>=row.length?0:row.length-Math.max(0,fit-1),shown=row.length-folded;
+    if(entry.paintScale!==camera.scale || entry.paintWidth!==m.width || entry.paintCanRotate!==canRotate || entry.paintShown!==shown){
+      entry.paintCanRotate=canRotate;entry.paintShown=shown;
+      if(!folded)element.removeAttribute('data-expanded');
+      element.toggleAttribute('data-folded',folded>0);
+      row.forEach((b,i)=>{
+        b.style.transform=`translateX(${-i*28/camera.scale}px) scale(${1/camera.scale})`;
+        b.toggleAttribute('data-fold',i>=shown);b.style.setProperty('--i',Math.max(0,i-shown));
+      });
+      entry.more.style.transform=`translateX(${-shown*28/camera.scale}px) scale(${1/camera.scale})`;
       title.style.transform = `scale(${1/camera.scale})`;
-      title.style.maxWidth = `${Math.max(0,m.width*camera.scale-(canRotate?92:64))}px`;
-      entry.orientation.style.transform=`translateX(${-56/camera.scale}px) scale(${1/camera.scale})`;
-      entry.refresh.style.transform=`translateX(${-28/camera.scale}px) scale(${1/camera.scale})`;
-      entry.fullscreen.style.transform=`scale(${1/camera.scale})`;
+      title.style.maxWidth = `${Math.max(0,m.width*camera.scale-(shown+(folded?1:0))*28-4)}px`;
       element.style.setProperty('--screen-outline', `${1/camera.scale}px`);
       entry.paintScale=camera.scale;entry.paintWidth=m.width;
     }
@@ -398,7 +422,7 @@ function notify(entry) {
   entry.iframe?.contentWindow.postMessage({type:'tio-canvas:visibility', visible:entry.visible && !document.hidden}, location.origin);
 }
 const loader=createScreenLoader({
-  onReady(entry){notify(entry);notifyInput(entry,true);entry.refresh.title=`Refresh ${entry.model.title}`;$('#canvas-status').textContent='';},
+  onReady(entry){if(entry.dark!==undefined)applyScreenTheme(entry);notify(entry);notifyInput(entry,true);entry.refresh.title=`Refresh ${entry.model.title}`;$('#canvas-status').textContent='';},
   onError(entry,message){entry.refresh.title=message;$('#canvas-status').textContent=message;}
 });
 function mount(entry,replacing=false){loader.mount(entry,replacing);}

@@ -9,7 +9,10 @@
 export const entries = [
   {
     unreleased: true,
-    items: [],
+    items: [
+      { type: 'new', text: 'Each screen has a theme button next to refresh to preview it in dark or light mode.' },
+      { type: 'improved', text: 'Icons that do not fit a narrow screen fold behind a ... button and slide in when you hover it.' },
+    ],
   },
   {
     version: '0.1.2',

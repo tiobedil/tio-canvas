@@ -86,10 +86,10 @@ body[data-space] #viewport { cursor: grab; } body[data-gesture="pan"] #viewport 
 .guide.gap[data-axis="vertical"]::before,.guide.gap[data-axis="vertical"]::after { width: var(--canvas-tick); height: var(--canvas-border); top: 0; left: 50%; transform: translateX(-50%); }
 .guide.gap[data-axis="vertical"]::after { top: 100%; }
 
-:is(.screen-refresh,.screen-orientation) { position: absolute; right: 0; bottom: 100%; width: 28px; height: 32px; display: grid; place-items: center; padding: 0; transform-origin: right bottom; border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-muted); cursor: pointer; }
-:is(.screen-refresh,.screen-orientation):hover { color: var(--canvas-text); background: var(--canvas-button-hover); }
-:is(.screen-refresh,.screen-orientation):focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); }
-:is(.screen-refresh,.screen-orientation) svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more) { position: absolute; right: 0; bottom: 100%; width: 28px; height: 32px; display: grid; place-items: center; padding: 0; transform-origin: right bottom; border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-muted); cursor: pointer; }
+:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more):hover { color: var(--canvas-text); background: var(--canvas-button-hover); }
+:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more):focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); }
+:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more) svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 #canvas-contact { position: fixed; left: 0; top: 0; width: calc(var(--canvas-contact-size) * var(--contact-scale,1)); height: calc(var(--canvas-contact-size) * var(--contact-scale,1)); border-radius: 50%; background: var(--canvas-contact-fill); border: var(--canvas-border) solid var(--canvas-contact-line); pointer-events: none; z-index: var(--canvas-contact-layer); }
 
@@ -167,7 +167,7 @@ body[data-layer-drag] iframe { pointer-events: none; }
 .screen-fullscreen svg,#fullscreen-toggle svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 body[data-fullscreen] #viewport { background: var(--canvas-surface); }
 body[data-fullscreen] #world { position: fixed; inset: 0; transform: none !important; will-change: auto; }
-body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status),body[data-fullscreen] .screen:not([data-fullscreen]),.screen[data-fullscreen] :is(.screen-title,.screen-orientation,.screen-refresh,.screen-fullscreen) { display: none; }
+body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status),body[data-fullscreen] .screen:not([data-fullscreen]),.screen[data-fullscreen] :is(.screen-title,.screen-orientation,.screen-theme,.screen-more,.screen-refresh,.screen-fullscreen) { display: none; }
 .screen[data-fullscreen] { position: absolute; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; outline: none; }
 .screen[data-fullscreen] iframe { box-shadow: none; }
 #fullscreen-tools { position: fixed; left: 0; top: 0; width: var(--canvas-control); height: var(--canvas-control); z-index: var(--canvas-preview-layer); transition: transform var(--canvas-snap-duration) var(--canvas-snap-ease); }
@@ -424,12 +424,12 @@ input:disabled { background: var(--canvas-well); }
 :root[data-dark] { --canvas-inset: inset 0 1px 2px 0 oklch(0 0 0 / .5); }
 .layers-drawer .layer-row[aria-pressed="true"],.page-option[data-checked="true"] { box-shadow: var(--canvas-inset); }
 .icon-options button[aria-checked="true"],#edit-tools button[aria-pressed="true"],#text-inspector button[aria-pressed="true"] { box-shadow: var(--canvas-inset); }
-.layers-drawer .layer-row,.page-option,:is(#screen-context,#layers-menu) button,#fullscreen-back,:is(.screen-refresh,.screen-orientation,.screen-fullscreen) {
+.layers-drawer .layer-row,.page-option,:is(#screen-context,#layers-menu) button,#fullscreen-back,:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen) {
   transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease), transform var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease);
 }
 .layers-drawer .layer-row:active,.page-option:active,:is(#screen-context,#layers-menu) button:active,#fullscreen-back:active { background-color: var(--canvas-button-pressed); }
 .layers-drawer .layer-row[aria-pressed="true"]:active,.page-option[data-checked="true"]:active { background-color: var(--canvas-selected); }
-:is(.screen-refresh,.screen-orientation,.screen-fullscreen):active { transform: scale(.92); background: var(--canvas-button-pressed); color: var(--canvas-text); }
+:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen):active { transform: scale(.92); background: var(--canvas-button-pressed); color: var(--canvas-text); }
 .icon-options button:active { transform: scale(.97); background: var(--canvas-button-pressed); }
 .icon-options button[aria-checked="true"]:active { background: var(--canvas-selected); }
 .page-checkbox-target:active .page-checkbox { transform: scale(.92); }
@@ -438,7 +438,7 @@ input:disabled { background: var(--canvas-well); }
 .handle:not([data-side]),.arrow-snap,.smart-handle::before { box-shadow: var(--canvas-shadow-button); }
 .layers-header h2,.shortcut-section h3 { font-weight: 500; }
 @media (prefers-reduced-motion: reduce) {
-  :is(.screen-refresh,.screen-orientation,.screen-fullscreen,.icon-options button):active { transform: none; }
+  :is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen,.icon-options button):active { transform: none; }
 }
 
 /* Motion. One curve (ease-out-quint) for everything, kept short so it reads as
@@ -491,7 +491,7 @@ nav button,.layers-header button,.secondary-button,.select-field,.icon-options b
   transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease),
     box-shadow var(--tactile-press) var(--tactile-ease), opacity var(--tactile-press) var(--tactile-ease);
 }
-.layers-drawer .layer-row,.page-option,:is(#screen-context,#layers-menu) button,#fullscreen-back,:is(.screen-refresh,.screen-orientation,.screen-fullscreen),.page-checkbox,.page-checkbox-target {
+.layers-drawer .layer-row,.page-option,:is(#screen-context,#layers-menu) button,#fullscreen-back,:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen),.page-checkbox,.page-checkbox-target {
   transition-duration: var(--tactile-press);
 }
 .select-field .chevron { transition-duration: var(--tactile-in); }
@@ -745,3 +745,13 @@ body[data-gesture="reorder"] #selection #handles { visibility: hidden; }
 .changelog-tag[data-type="improved"] { --tag-hue: 250; }
 .changelog-tag[data-type="fixed"] { --tag-hue: 60; }
 .changelog-tag[data-type="faster"] { --tag-hue: 330; }
+
+/* Icons that do not fit the screen width fold behind a ... button and slide in on hover. */
+.screen-more { display: none; transition: opacity .12s ease-out; }
+.screen[data-folded] .screen-more { display: grid; }
+.screen[data-expanded] .screen-more { opacity: 0; pointer-events: none; }
+.screen [data-fold] { opacity: 0; visibility: hidden; pointer-events: none; translate: calc(var(--screen-outline) * 10) 0;
+  transition: opacity .12s ease-out, translate .12s ease-out, visibility 0s .12s; }
+.screen[data-expanded] [data-fold] { opacity: 1; visibility: visible; pointer-events: auto; translate: 0 0;
+  background: var(--canvas-surface); transition: opacity .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), translate .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), visibility 0s; }
+@media (prefers-reduced-motion: reduce) { .screen [data-fold],.screen[data-expanded] [data-fold],.screen-more { transition: none; } }
