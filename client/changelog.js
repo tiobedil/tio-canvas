@@ -9,6 +9,11 @@
 export const entries = [
   {
     unreleased: true,
+    items: [],
+  },
+  {
+    version: '0.2.0',
+    date: '2026-11-08',
     items: [
       { type: 'new', text: 'The More menu shows your version and tells you with a red dot when a new one is out, with steps and a prompt to update.' },
       { type: 'new', text: 'The More menu has an Install in a project guide with beginner-friendly steps, ready-to-download files and a prompt to copy for your agent.' },
