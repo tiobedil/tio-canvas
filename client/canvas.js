@@ -2,6 +2,9 @@ import './tooltip.js';
 import './shortcuts.js';
 import {renderChangelog} from './changelog.js';
 import {renderInstallGuide} from './install-guide.js';
+import {version} from './version.js';
+import {compareVersions,fetchLatestVersion,isLocalHost} from './update-check.js';
+import {renderUpdate,renderUpdateMessage} from './update-guide.js';
 import './device-gate.js';
 import './onboarding.js';
 import { setupSelectFields, closeSelectMenus, positionSelectMenus } from './select-field.js';
@@ -1011,9 +1014,58 @@ moreMenu.addEventListener('keydown',event=>{
   event.stopPropagation();
   if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
   event.preventDefault();
-  const buttons=[...moreMenu.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);
+  const buttons=[...moreMenu.querySelectorAll('button')].filter(button=>!button.hidden),index=buttons.indexOf(document.activeElement);
   buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:index<0?(event.key==='ArrowDown'?0:buttons.length-1):(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
 });
+// ---- Version and updates ----------------------------------------------------
+// The version row in the More menu. A canvas on the developer's machine asks npm
+// for the newest version now, again when the tab is shown, and every half hour,
+// so an update that lands while the canvas stays open still shows up.
+const updateDialog=$('#update'),updateBody=updateDialog.querySelector('.update-body'),updateButton=$('#update-open');
+const canCheckUpdates=isLocalHost(location.hostname);
+let latestVersion=null,updateChecking=null,lastCheck=0;
+const updateAvailable=()=>latestVersion!==null && compareVersions(latestVersion,version)>0;
+$('#version-label').textContent=`v${version}`;
+function showUpdateState(){
+  const available=updateAvailable();
+  $('#version-dot').hidden=!available;
+  moreButton.querySelector('.update-dot').hidden=!available;
+  updateButton.textContent=available?'Update':'Check for update';
+  updateButton.hidden=!canCheckUpdates;
+}
+function checkForUpdate(){
+  updateChecking??=fetchLatestVersion().then(found=>{latestVersion=found;lastCheck=Date.now();}).finally(()=>{updateChecking=null;showUpdateState();});
+  return updateChecking;
+}
+function renderUpdateDialog(failed=false){
+  if(failed)return renderUpdateMessage(updateBody,{title:'Could not check for updates',text:'Check your internet connection and try again.',action:{label:'Try again',run:()=>runUpdateCheck()}});
+  if(updateAvailable())return renderUpdate(updateBody,{current:version,latest:latestVersion});
+  renderUpdateMessage(updateBody,{title:'No updates available',text:`You have the latest version, v${version}.`});
+}
+async function runUpdateCheck(){
+  renderUpdateMessage(updateBody,{title:'Checking for updates…',text:'This takes a moment.'});
+  try{await checkForUpdate();renderUpdateDialog();}catch{renderUpdateDialog(true);}
+}
+updateButton.onclick=()=>{
+  closeContext();stop();clearContact();delete document.body.dataset.space;
+  moreMenu.hidePopover();
+  updateDialog.showModal();
+  if(updateAvailable())renderUpdateDialog();else runUpdateCheck();
+};
+$('#update-close').onclick=()=>updateDialog.close();
+updateDialog.addEventListener('click',event=>{
+  if(event.target!==updateDialog)return;
+  const rect=updateDialog.getBoundingClientRect();
+  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)updateDialog.close();
+});
+updateDialog.addEventListener('close',()=>moreButton.focus());
+showUpdateState();
+if(canCheckUpdates){
+  const quietCheck=()=>{if(Date.now()-lastCheck>10*60*1000)checkForUpdate().catch(()=>{});};
+  quietCheck();
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)quietCheck();});
+  setInterval(quietCheck,30*60*1000);
+}
 window.addEventListener('resize',()=>{cameraMotion=null;cachedWorkArea=null;schedule();});
 document.addEventListener('visibilitychange',()=>{release();entries.forEach(notify);});
 const preview=createFullscreen({

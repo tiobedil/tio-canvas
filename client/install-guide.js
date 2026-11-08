@@ -1,6 +1,6 @@
 // Content of the "Install in a project" dialog: manual steps plus a prompt
 // the person can copy and hand to a coding agent.
-const el = (tag, className = '', text = '') => { const node = document.createElement(tag); if (className) node.className = className; if (text) node.textContent = text; return node; };
+export const el = (tag, className = '', text = '') => { const node = document.createElement(tag); if (className) node.className = className; if (text) node.textContent = text; return node; };
 
 const template = name => new URL(`./templates/${name}`, import.meta.url).href;
 
@@ -29,11 +29,11 @@ export const agentPrompt = `Install the @tio-canvas/canvas package in this proje
 5. Do not link /canvas from any public page, and do not publish it unless I ask.
 6. Start the dev server, open /canvas, and confirm every screen loads. Tell me the URL and anything you could not verify.`;
 
-function codeBlock(code) {
+export function codeBlock(code) {
   const pre = el('pre', 'install-code'); pre.append(el('code', '', code)); return pre;
 }
 
-function copyButton(label, text) {
+export function copyButton(label, text) {
   const button = el('button', 'install-copy', label); button.type = 'button';
   button.onclick = async () => {
     try { await navigator.clipboard.writeText(text); button.textContent = 'Copied'; } catch { button.textContent = 'Copy failed'; }
@@ -42,7 +42,7 @@ function copyButton(label, text) {
   return button;
 }
 
-function commandRow(command) {
+export function commandRow(command) {
   const row = el('div', 'install-command'); row.append(el('code', '', command), copyButton('Copy', command)); return row;
 }
 

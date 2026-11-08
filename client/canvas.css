@@ -767,3 +767,20 @@ body[data-gesture="reorder"] #selection #handles { visibility: hidden; }
 .screen[data-expanded] [data-fold] { opacity: 1; visibility: visible; pointer-events: auto; translate: 0 0;
   background: var(--canvas-surface); transition: opacity .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), translate .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), visibility 0s; }
 @media (prefers-reduced-motion: reduce) { .screen [data-fold],.screen[data-expanded] [data-fold],.screen-more { transition: none; } }
+
+/* Version row at the top of the More menu, and the update dialog. */
+#layers-more { position: relative; }
+.update-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--canvas-danger); flex: none; }
+.update-dot[hidden] { display: none; }
+#layers-more .update-dot { position: absolute; top: 6px; right: 6px; box-shadow: 0 0 0 2px var(--canvas-panel); }
+.menu-version { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-padding); min-height: var(--canvas-control); padding-inline: var(--canvas-padding); }
+.menu-version-label { display: flex; align-items: center; gap: var(--canvas-padding); }
+#version-label { color: var(--canvas-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#layers-menu #update-open { height: 28px; padding-inline: var(--canvas-padding); background: var(--canvas-button); border: var(--canvas-border) solid var(--canvas-line); }
+#layers-menu #update-open:hover { background: var(--canvas-button-hover); }
+#update { height: fit-content; max-height: min(var(--canvas-picker-height),calc(100dvh - 2 * var(--canvas-panel-inset))); }
+.update-summary { margin: 0 0 var(--canvas-layers-heading-inset); color: var(--canvas-text); }
+.update-summary + .install-section { margin-top: 0; padding-top: 0; border-top: 0; }
+.update-state { display: grid; justify-items: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset) 0; text-align: center; }
+.update-state p { margin: 0; }
+.update-state strong { color: var(--canvas-text); }
