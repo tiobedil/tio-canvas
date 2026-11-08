@@ -1035,7 +1035,6 @@ function showUpdateState(){
   moreButton.querySelector('.update-dot').hidden=!available;
   updateButton.textContent=available?'Update':'Check for update';
   updateButton.toggleAttribute('data-primary',available);
-  updateButton.hidden=!canCheckUpdates;
 }
 function checkForUpdate(){
   updateChecking??=fetchLatestVersion().then(found=>{latestVersion=found;lastCheck=Date.now();}).finally(()=>{updateChecking=null;showUpdateState();});
