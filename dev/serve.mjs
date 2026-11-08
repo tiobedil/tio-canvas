@@ -3,12 +3,26 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
 import { createCanvasHost } from "../src/server.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const canvas = createCanvasHost({ root, config: "dev/canvas/screens.js" });
 const SITE = path.join(root, "dev", "site");
+const PROTOTYPES = path.join(root, "dev", "prototypes");
 const port = Number(process.env.PORT ?? 4400);
+// /prototypes/<name>.js and .css are built on request from dev/prototypes/<name>.jsx.
+async function prototypeAsset(file) {
+  const stem = file.replace(/\.(js|css)$/, "");
+  const result = await build({
+    entryPoints: [path.join(PROTOTYPES, `${stem}.jsx`)], bundle: true, write: false, outdir: path.join(PROTOTYPES, "out"),
+    format: "esm", jsx: "automatic", nodePaths: [path.join(PROTOTYPES, "node_modules")], logLevel: "silent",
+    define: { "process.env.NODE_ENV": '"development"' }
+  });
+  const output = result.outputFiles.find((item) => path.basename(item.path) === file);
+  if (!output) throw new Error("no such prototype asset");
+  return output.text;
+}
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".webp": "image/webp", ".svg": "image/svg+xml" };
 
 createServer(async (request, response) => {
@@ -25,6 +39,11 @@ createServer(async (request, response) => {
       if ((await stat(file)).isDirectory()) file = path.join(file, "index.html");
       const body = await readFile(file);
       response.writeHead(200, { "content-type": TYPES[path.extname(file)] ?? "application/octet-stream" }).end(body);
+      return;
+    }
+    if (pathname.startsWith("/prototypes/")) {
+      const name = path.basename(pathname);
+      response.writeHead(200, { "content-type": TYPES[path.extname(name)] }).end(await prototypeAsset(name));
       return;
     }
     const file = path.join(SITE, pathname);

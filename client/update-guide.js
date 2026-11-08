@@ -13,7 +13,7 @@ const manualSteps = latest => [
   { title: 'Open the Terminal in your project folder', text: 'The Terminal is a window where you type commands. On a Mac: right-click your project folder in Finder and choose "New Terminal at Folder". On Windows: open the folder, click the address bar at the top, type cmd, and press Enter.' },
   { title: 'Install the new version', text: 'Type this and press Enter. Wait until the cursor comes back. If you set the project up with pnpm or yarn instead of npm, ask an agent with the prompt above.', command: `npm install --save-dev ${PACKAGE_NAME}@${latest}` },
   { title: 'Start the canvas again', text: 'Type this and press Enter. Leave the window open.', command: 'node canvas-server.mjs' },
-  { title: 'Reload the canvas', text: 'In your browser, reload the canvas page. Open More, and the version at the top should now be the new one.' },
+  { title: 'Reload the canvas', text: 'In your browser, reload the canvas page. Open More, and the version at the bottom should now be the new one.' },
 ];
 
 export function renderUpdate(body, { current, latest }) {

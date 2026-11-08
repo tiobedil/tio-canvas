@@ -1,0 +1,12 @@
+{
+  "name": "tio-canvas-prototypes",
+  "private": true,
+  "description": "Throwaway prototypes for the canvas itself. Not part of the published package.",
+  "type": "module",
+  "dependencies": {
+    "dialkit": "^2.2.0",
+    "motion": "^14.10.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

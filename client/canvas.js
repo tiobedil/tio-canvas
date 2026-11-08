@@ -1028,9 +1028,9 @@ const updateAvailable=()=>latestVersion!==null && compareVersions(latestVersion,
 $('#version-label').textContent=`v${version}`;
 function showUpdateState(){
   const available=updateAvailable();
-  $('#version-dot').hidden=!available;
   moreButton.querySelector('.update-dot').hidden=!available;
   updateButton.textContent=available?'Update':'Check for update';
+  updateButton.toggleAttribute('data-primary',available);
   updateButton.hidden=!canCheckUpdates;
 }
 function checkForUpdate(){
