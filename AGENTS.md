@@ -14,3 +14,15 @@ The in-app Change log (More menu → Change log) reads `client/changelog.js`.
   the code did ("Zoom stays smooth with 100+ screens", not "refactor render loop").
 - Never add build, CI, release, refactor, test or docs work. If the user cannot
   see or feel it, it does not belong.
+
+## Commit messages
+
+Every commit that lands on `main` publishes a new npm version (see
+`.releaserc.json`: patch by default, `feat:` minor, `feat!:` or a
+`BREAKING CHANGE` footer major).
+
+- Never write the phrase `[skip ci]` (or `[ci skip]`, `[skip actions]`) anywhere in
+  a commit message, subject or body, not even to describe it. GitHub then skips
+  the whole workflow and nothing is released. Only the release commit that
+  semantic-release makes itself carries it. Write "the skip marker" instead.
+- Do not push to `main` unless a release is intended.
