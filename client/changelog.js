@@ -9,7 +9,9 @@
 export const entries = [
   {
     unreleased: true,
-    items: [],
+    items: [
+      { type: 'fixed', text: 'The canvas keeps your last chosen light or dark mode after a refresh.' },
+    ],
   },
   {
     version: '0.2.0',

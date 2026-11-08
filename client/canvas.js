@@ -992,12 +992,16 @@ $('#zoom').addEventListener('keydown',event=>{
   if(event.key==='Escape'){$('#zoom').value=`${Math.round(camera.scale*100)}%`;$('#zoom').blur();}
 });
 let themeTimer;
+const themeKey=`${key}:theme`;
+function setThemeLabel(dark){$('#theme-label').textContent=dark?'Light mode':'Dark mode';}
+try{if(localStorage.getItem(themeKey)==='dark'){document.documentElement.setAttribute('data-dark','');setThemeLabel(true);}}catch{}
 $('#theme').onclick=()=>{
   // The theme fades through the root tokens; controls must not add their own transitions on top.
   const root=document.documentElement;root.setAttribute('data-theming','');
   clearTimeout(themeTimer);themeTimer=setTimeout(()=>root.removeAttribute('data-theming'),300);
   const dark=document.documentElement.toggleAttribute('data-dark');
-  $('#theme-label').textContent=dark?'Light mode':'Dark mode';
+  setThemeLabel(dark);
+  try{localStorage.setItem(themeKey,dark?'dark':'light');}catch{}
 };
 const moreMenu=$('#layers-menu'),moreButton=$('#layers-more');
 moreMenu.addEventListener('beforetoggle',event=>{
