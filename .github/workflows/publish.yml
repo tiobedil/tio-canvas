@@ -1,9 +1,10 @@
 name: Publish
 
 # Runs on every push to main. semantic-release reads the commit messages since
-# the last tag and, only if a release is due (feat:, fix:, or a breaking change),
-# bumps the version, tags it, creates a GitHub release, and publishes to npm.
-# Commits like docs:, ci:, chore:, or refactor: publish nothing.
+# the last tag. Every commit that lands on main is a release: patch by default,
+# minor for feat:, major for a breaking change (feat!: or a BREAKING CHANGE footer).
+# It bumps the version, tags it, creates a GitHub release, and publishes to npm.
+# The release commit itself carries [skip ci], so it does not trigger another run.
 # Config: .releaserc.json. npm publish uses trusted publishing (no npm token).
 on:
   push:
