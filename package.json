@@ -5,10 +5,17 @@
   "type": "module",
   "license": "MIT",
   "author": "Tio Putra",
-  "repository": { "type": "git", "url": "git+https://github.com/tiobedil/tio-canvas.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiobedil/tio-canvas.git"
+  },
   "homepage": "https://github.com/tiobedil/tio-canvas#readme",
-  "bugs": { "url": "https://github.com/tiobedil/tio-canvas/issues" },
-  "bin": { "tio-canvas": "./bin/tio-canvas.mjs" },
+  "bugs": {
+    "url": "https://github.com/tiobedil/tio-canvas/issues"
+  },
+  "bin": {
+    "tio-canvas": "./bin/tio-canvas.mjs"
+  },
   "exports": {
     ".": "./src/index.js",
     "./server": "./src/server.js",
@@ -18,10 +25,22 @@
     "./client/*": "./client/*",
     "./package.json": "./package.json"
   },
-  "files": ["bin", "client", "src", "docs", "LICENSE", "README.md"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=22" },
+  "files": [
+    "bin",
+    "client",
+    "src",
+    "docs",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
+    "dev": "node dev/serve.mjs",
     "test": "node tests/run.mjs"
   },
   "dependencies": {

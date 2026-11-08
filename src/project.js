@@ -20,9 +20,12 @@ export function resolveProject({ root = process.cwd(), config = DEFAULT_CONFIG, 
   };
 }
 
+let loadCount = 0;
+
 /** Import the project's config afresh and refuse a screen the canvas cannot show. */
 export async function loadProject(project) {
-  const module = await import(`${pathToFileURL(project.configFile).href}?load=${Date.now()}`);
+  // A unique query per call defeats the module cache; Date.now() alone can repeat within one millisecond.
+  const module = await import(`${pathToFileURL(project.configFile).href}?load=${Date.now()}-${++loadCount}`);
   if (!Array.isArray(module.screens)) throw new Error(`${project.configFile} must export "screens", an array.`);
   validateScreens(module.screens);
   return { screens: module.screens, storageKey: module.storageKey ?? DEFAULT_STORAGE_KEY, presets, screenKinds };
