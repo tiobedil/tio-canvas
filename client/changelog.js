@@ -9,6 +9,11 @@
 export const entries = [
   {
     unreleased: true,
+    items: [],
+  },
+  {
+    version: '0.1.2',
+    date: '2026-11-08',
     items: [
       { type: 'new', text: 'A Change log in the More menu lists what changed in each release.' },
     ],
