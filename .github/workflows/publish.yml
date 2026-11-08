@@ -1,37 +1,41 @@
 name: Publish
 
-# Publishes to npm when a version tag like v0.1.1 is pushed.
+# Runs on every push to main. semantic-release reads the commit messages since
+# the last tag and, only if a release is due (feat:, fix:, or a breaking change),
+# bumps the version, tags it, creates a GitHub release, and publishes to npm.
+# Commits like docs:, ci:, chore:, or refactor: publish nothing.
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 permissions:
-  contents: read
-  id-token: write # lets npm verify this workflow (trusted publishing) and add provenance
+  contents: write # push the version tag and create the GitHub release
+  issues: write # semantic-release comments on linked issues
+  pull-requests: write # semantic-release comments on linked pull requests
+  id-token: write # npm trusted publishing and provenance
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # semantic-release needs the full tag history
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Check tag matches package.json version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          PKG=$(node -p "require('./package.json').version")
-          if [ "$TAG" != "$PKG" ]; then
-            echo "Tag v$TAG does not match package.json version $PKG"
-            exit 1
-          fi
-
       - name: Upgrade npm (trusted publishing needs npm 11.5.1+)
         run: npm install -g npm@latest
 
-      - name: Publish
-        run: npm publish --provenance --access public
+      - name: Release
+        run: npx -y semantic-release@24
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
