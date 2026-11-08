@@ -1,5 +1,6 @@
 import './tooltip.js';
 import './shortcuts.js';
+import {renderChangelog} from './changelog.js';
 import './device-gate.js';
 import './onboarding.js';
 import { setupSelectFields, closeSelectMenus, positionSelectMenus } from './select-field.js';
@@ -921,6 +922,15 @@ shortcuts.addEventListener('click',event=>{
   if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)shortcuts.close();
 });
 shortcuts.addEventListener('close',()=>$('#layers-more').focus());
+const changelog=$('#changelog');
+$('#changelog-open').onclick=()=>{closeContext();stop();clearContact();delete document.body.dataset.space;renderChangelog(changelog.querySelector('.changelog-body'));changelog.showModal();};
+$('#changelog-close').onclick=()=>changelog.close();
+changelog.addEventListener('click',event=>{
+  if(event.target!==changelog)return;
+  const rect=changelog.getBoundingClientRect();
+  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)changelog.close();
+});
+changelog.addEventListener('close',()=>$('#layers-more').focus());
 $('#undo').onclick=()=>runHistory('undo');
 $('#redo').onclick=()=>runHistory('redo');
 $('#fit').onclick=()=>fitEntries(fitAll());
@@ -962,7 +972,7 @@ moreMenu.addEventListener('beforetoggle',event=>{
   moreMenu.style.left=`${Math.max(inset,Math.min(anchor.left+(anchor.width-width)/2,innerWidth-width-inset))}px`;
 });
 moreMenu.addEventListener('toggle',event=>{if(event.newState==='open')moreMenu.focus({preventScroll:true});moreButton.setAttribute('aria-expanded',String(event.newState==='open'));});
-moreMenu.addEventListener('click',event=>{if(event.target.closest('#shortcuts-open,#onboarding-open'))moreMenu.hidePopover();});
+moreMenu.addEventListener('click',event=>{if(event.target.closest('#shortcuts-open,#onboarding-open,#changelog-open'))moreMenu.hidePopover();});
 moreMenu.addEventListener('keydown',event=>{
   event.stopPropagation();
   if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;

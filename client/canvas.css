@@ -731,3 +731,17 @@ body[data-text-select],body[data-text-select] * { cursor: text !important; }
 /* The group box steps aside while screens are being reordered. */
 body[data-gesture="reorder"] #selection { border-color: transparent; }
 body[data-gesture="reorder"] #selection #handles { visibility: hidden; }
+
+/* Change log dialog: reuses the shortcuts dialog body; one block per release.
+   The dialog is as tall as its content, up to the picker height. */
+#changelog { height: fit-content; max-height: min(var(--canvas-picker-height),calc(100dvh - 2 * var(--canvas-panel-inset))); }
+.changelog-entry + .changelog-entry { margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-border) solid var(--canvas-line); }
+.changelog-entry h3 { display: flex; align-items: baseline; gap: var(--canvas-padding); margin: 0 0 var(--canvas-padding); font-size: inherit; font-weight: 600; color: var(--canvas-text); }
+.changelog-entry time { color: var(--canvas-muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.changelog-items { display: grid; grid-template-columns: 4.5rem minmax(0,1fr); column-gap: var(--canvas-gap); row-gap: var(--canvas-padding); margin: 0; padding: 0; list-style: none; }
+.changelog-items li { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: baseline; text-wrap: pretty; }
+.changelog-tag { --tag-hue: 265; justify-self: start; padding: 1px var(--canvas-padding); border-radius: 999px; background: oklch(0.7 0.12 var(--tag-hue) / .16); color: color-mix(in oklch, oklch(0.5 0.15 var(--tag-hue)) 70%, var(--canvas-text)); font-size: 11px; font-weight: 600; line-height: 18px; }
+.changelog-tag[data-type="new"] { --tag-hue: 150; }
+.changelog-tag[data-type="improved"] { --tag-hue: 250; }
+.changelog-tag[data-type="fixed"] { --tag-hue: 60; }
+.changelog-tag[data-type="faster"] { --tag-hue: 330; }
