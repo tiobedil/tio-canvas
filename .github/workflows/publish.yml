@@ -4,6 +4,7 @@ name: Publish
 # the last tag and, only if a release is due (feat:, fix:, or a breaking change),
 # bumps the version, tags it, creates a GitHub release, and publishes to npm.
 # Commits like docs:, ci:, chore:, or refactor: publish nothing.
+# Config: .releaserc.json. npm publish uses trusted publishing (no npm token).
 on:
   push:
     branches:
@@ -27,15 +28,22 @@ jobs:
         with:
           fetch-depth: 0 # semantic-release needs the full tag history
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Upgrade npm (trusted publishing needs npm 11.5.1+)
         run: npm install -g npm@latest
 
       - name: Release
-        run: npx -y semantic-release@24
+        run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
