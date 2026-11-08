@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import { smartLayout, reorderSmartLayout, nearestSmartSlot } from '../../client/smart-selection.js';
+const row=[{id:'a',x:100,y:100,width:100,height:200},{id:'b',x:250,y:100,width:200,height:200},{id:'c',x:500,y:100,width:300,height:200}];
+const original=structuredClone(row),layout=smartLayout(row);
+assert.equal(layout.columns,3);assert.equal(layout.rows,1);
+const moved=reorderSmartLayout(layout,0,2);
+assert.deepEqual(moved.map(r=>[r.id,r.x,r.width]),[['a',700,100],['b',100,200],['c',350,300]],'Insertion shifts intervening screens and preserves 50px gaps with mixed sizes');
+assert.deepEqual(row,original,'Snapshots are immutable');
+const column=row.map(r=>({...r,x:r.y,y:r.x,width:r.height,height:r.width}));
+assert.deepEqual(reorderSmartLayout(smartLayout(column),0,2).map(r=>r.y),[700,100,350]);
+const grid=Array.from({length:6},(_,i)=>({id:String(i),x:100+(i%3)*300,y:100+Math.floor(i/3)*300,width:200,height:200}));
+const gridLayout=smartLayout([...grid].reverse());
+const result=reorderSmartLayout(gridLayout,0,4);
+assert.deepEqual(result.map(r=>[r.id,r.x,r.y]).sort(),[['0',400,400],['1',100,100],['2',400,100],['3',700,100],['4',100,400],['5',700,400]],'Grid insertion is spatial and independent of layer order');
+assert.equal(nearestSmartSlot(smartLayout(grid),400+100,400+100),4);
+assert.equal(smartLayout(row.slice(0,1)),null);
+assert.equal(smartLayout([{...row[0]},{...row[1],x:150}]),null,'Overlaps have no reorder handles');
+assert.equal(smartLayout([{...row[0]},{...row[1],y:120}]),null,'Unaligned scattered screens are not silently tidied');
+assert.equal(smartLayout([grid[0],grid[1],grid[3],grid[4],grid[5]]),null,'A hole before the last row has no unambiguous slots');
+{const three=smartLayout(grid.slice(0,2).concat(grid.slice(3,4)));assert.ok(three,'Three screens in a two-by-two can be reordered');
+const moved=reorderSmartLayout(three,2,0);assert.ok(moved&&moved[2].x===three.x&&moved[2].y===three.y,'Last screen moves to the first slot');}
+assert.equal(reorderSmartLayout(layout,0,-1),null);
+assert.equal(reorderSmartLayout(layout,0,3),null);
+assert.equal(reorderSmartLayout(smartLayout([{x:0,y:0,width:100,height:100},{x:150,y:0,width:100,height:300},{x:0,y:150,width:100,height:100},{x:150,y:350,width:100,height:100}]),0,1),null);
+const boundary=smartLayout([{x:19700,y:0,width:100,height:100},{x:19850,y:0,width:150,height:100},{x:19700,y:200,width:100,height:100},{x:19850,y:200,width:150,height:100}]);
+assert.equal(reorderSmartLayout(boundary,0,1),null,'An order widening grid columns cannot overflow the workspace');
+console.log('PASS smart selection: row/column/grid insertion, mixed sizes, gaps, stacking independence, invalid layouts and workspace boundary');
