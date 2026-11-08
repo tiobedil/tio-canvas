@@ -16,14 +16,14 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version && node scripts/stamp-changelog.mjs ${nextRelease.version}",
+        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version && node scripts/stamp-changelog.mjs ${nextRelease.version} && node scripts/stamp-version.mjs ${nextRelease.version}",
         "publishCmd": "npm publish --provenance --access public"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["client/changelog.js", "package.json"],
+        "assets": ["client/changelog.js", "client/version.js", "package.json"],
         "message": "chore(release): ${nextRelease.version} [skip ci]"
       }
     ],

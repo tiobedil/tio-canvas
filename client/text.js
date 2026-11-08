@@ -104,7 +104,7 @@ export function createTexts({ viewport, world, camera, extent, saved, checkpoint
     text.width = text.fitWidth ? Math.min(max, extent.width - text.x) : Math.min(text.width, max);
     if (text.width >= max) text.fitWidth = true;
     const height = contentHeight(text, text.width);
-    if (text.fit || text.height >= height) { text.fit = true; text.height = height; } else text.height = Math.max(minHeight(text), text.height);
+    text.fit = true; text.height = height;
   }
 
   // ---- Editing ------------------------------------------------------------
@@ -297,8 +297,8 @@ export function createTexts({ viewport, world, camera, extent, saved, checkpoint
       let height = base.fit ? content : Math.min(base.height, content), fit = base.fit, rawHeight = height;
       if (vertical) {
         rawHeight = base.height + (part.includes('s') ? dy : -dy);
-        height = clamp(rawHeight, minHeight(text), Math.max(minHeight(text), content));
-        fit = height >= content;
+        height = content;
+        fit = true;
       }
       drag.over = { w: horizontal ? rawWidth - width : 0, h: vertical ? rawHeight - height : 0 };
       text.fitWidth = horizontal ? width >= drag.maxW : base.fitWidth;

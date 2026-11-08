@@ -1,6 +1,10 @@
 import './tooltip.js';
 import './shortcuts.js';
 import {renderChangelog} from './changelog.js';
+import {renderInstallGuide} from './install-guide.js';
+import {version} from './version.js';
+import {compareVersions,fetchLatestVersion,isLocalHost} from './update-check.js';
+import {renderUpdate,renderUpdateMessage} from './update-guide.js';
 import './device-gate.js';
 import './onboarding.js';
 import { setupSelectFields, closeSelectMenus, positionSelectMenus } from './select-field.js';
@@ -42,6 +46,8 @@ const smartHandles=createSmartHandles({selection,viewport,onDrag:startReorder});
 // A host overlay paints above every iframe layer, including native popovers.
 const contact=document.createElement('div');contact.id='canvas-contact';contact.hidden=true;contact.setAttribute('aria-hidden','true');document.body.append(contact);
 let contactState=null;
+// A screen's theme is its own: it sets the frame's colour scheme, which is what the page inside sees as prefers-color-scheme. It is not saved.
+function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';}
 function clearContact(){contactState=null;contact.hidden=true;}
 window.addEventListener('pointermove',clearContact);
 function renderContact(){
@@ -68,13 +74,19 @@ function createEntry(definition, loadSaved = true) {
   const refresh=document.createElement('button');refresh.className='screen-refresh';refresh.type='button';
   refresh.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7a6.5 6.5 0 1 0 .3 5M16 3v4h-4"/></svg>';
   refresh.setAttribute('aria-label',`Refresh ${model.title}`);refresh.title=`Refresh ${model.title}`;
+  const theme=document.createElement('button');theme.className='screen-theme';theme.type='button';
+  theme.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" style="fill:currentColor;stroke:none"/></svg>';
+  theme.setAttribute('aria-label',`Toggle dark mode for ${model.title}`);theme.title='Toggle screen theme';theme.setAttribute('aria-pressed','false');
+  const more=document.createElement('button');more.className='screen-more';more.type='button';
+  more.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1" style="fill:currentColor;stroke:none"/><circle cx="10" cy="10" r="1" style="fill:currentColor;stroke:none"/><circle cx="15.5" cy="10" r="1" style="fill:currentColor;stroke:none"/></svg>';
+  more.setAttribute('aria-label',`More actions for ${model.title}`);more.title='More';
   const fullscreen=document.createElement('button');fullscreen.className='screen-fullscreen';fullscreen.type='button';
   fullscreen.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4"/></svg>';
   fullscreen.setAttribute('aria-label',`Open ${model.title} fullscreen`);fullscreen.title='Open fullscreen';
   const orientation=document.createElement('button');orientation.className='screen-orientation';orientation.type='button';
   orientation.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="2" width="10" height="16" rx="2"/></svg>';
-  element.append(title,orientation,refresh,fullscreen); world.append(element);
-  const entry = { model, element, title, orientation, refresh, fullscreen, iframe: null, visible: false };
+  element.append(title,orientation,theme,refresh,fullscreen,more); world.append(element);
+  const entry = { model, element, title, orientation, theme, more, refresh, fullscreen, iframe: null, visible: false };
   orientation.addEventListener('click',()=>{
     stop();const before=history.checkpoint();
     [model.width,model.height]=[model.height,model.width];
@@ -82,6 +94,15 @@ function createEntry(definition, loadSaved = true) {
     updateSelection();schedule();commitEdit(before);
   });
   fullscreen.addEventListener('click',()=>preview.enter(entry));
+  // When the icon row is wider than the screen it folds into one ... button and opens while the pointer is on it.
+  const actions=[orientation,theme,refresh,fullscreen,more];
+  const expand=open=>element.toggleAttribute('data-expanded',open);
+  more.addEventListener('pointerenter',()=>expand(true));more.addEventListener('click',()=>expand(true));
+  for(const b of actions)b.addEventListener('pointerleave',event=>{if(!actions.includes(event.relatedTarget))expand(false);});
+  theme.addEventListener('click',()=>{
+    entry.dark=!entry.dark;theme.setAttribute('aria-pressed',String(entry.dark));
+    applyScreenTheme(entry);
+  });
   title.title = model.title;
   refresh.addEventListener('click',()=>{
     stop();
@@ -347,13 +368,20 @@ function render(now) {
     entry.orientation.title=`Switch to ${landscape?'portrait':'landscape'}`;
     entry.orientation.setAttribute('aria-pressed',String(landscape));
     entry.orientation.querySelector('svg').style.rotate=landscape?'0deg':'90deg';
-    if(entry.paintScale!==camera.scale || entry.paintWidth!==m.width || entry.paintCanRotate!==canRotate){
-      entry.paintCanRotate=canRotate;
+    // Icons that fit stay in the row; the rest fold behind a ... button and slide in on hover.
+    const row=[entry.fullscreen,entry.refresh,entry.theme,...(canRotate?[entry.orientation]:[])];
+    const fit=Math.floor(m.width*camera.scale/28),folded=fit>=row.length?0:row.length-Math.max(0,fit-1),shown=row.length-folded;
+    if(entry.paintScale!==camera.scale || entry.paintWidth!==m.width || entry.paintCanRotate!==canRotate || entry.paintShown!==shown){
+      entry.paintCanRotate=canRotate;entry.paintShown=shown;
+      if(!folded)element.removeAttribute('data-expanded');
+      element.toggleAttribute('data-folded',folded>0);
+      row.forEach((b,i)=>{
+        b.style.transform=`translateX(${-i*28/camera.scale}px) scale(${1/camera.scale})`;
+        b.toggleAttribute('data-fold',i>=shown);b.style.setProperty('--i',Math.max(0,i-shown));
+      });
+      entry.more.style.transform=`translateX(${-shown*28/camera.scale}px) scale(${1/camera.scale})`;
       title.style.transform = `scale(${1/camera.scale})`;
-      title.style.maxWidth = `${Math.max(0,m.width*camera.scale-(canRotate?92:64))}px`;
-      entry.orientation.style.transform=`translateX(${-56/camera.scale}px) scale(${1/camera.scale})`;
-      entry.refresh.style.transform=`translateX(${-28/camera.scale}px) scale(${1/camera.scale})`;
-      entry.fullscreen.style.transform=`scale(${1/camera.scale})`;
+      title.style.maxWidth = `${Math.max(0,m.width*camera.scale-(shown+(folded?1:0))*28-4)}px`;
       element.style.setProperty('--screen-outline', `${1/camera.scale}px`);
       entry.paintScale=camera.scale;entry.paintWidth=m.width;
     }
@@ -398,7 +426,7 @@ function notify(entry) {
   entry.iframe?.contentWindow.postMessage({type:'tio-canvas:visibility', visible:entry.visible && !document.hidden}, location.origin);
 }
 const loader=createScreenLoader({
-  onReady(entry){notify(entry);notifyInput(entry,true);entry.refresh.title=`Refresh ${entry.model.title}`;$('#canvas-status').textContent='';},
+  onReady(entry){if(entry.dark!==undefined)applyScreenTheme(entry);notify(entry);notifyInput(entry,true);entry.refresh.title=`Refresh ${entry.model.title}`;$('#canvas-status').textContent='';},
   onError(entry,message){entry.refresh.title=message;$('#canvas-status').textContent=message;}
 });
 function mount(entry,replacing=false){loader.mount(entry,replacing);}
@@ -931,6 +959,15 @@ changelog.addEventListener('click',event=>{
   if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)changelog.close();
 });
 changelog.addEventListener('close',()=>$('#layers-more').focus());
+const installGuide=$('#install');
+$('#install-open').onclick=()=>{closeContext();stop();clearContact();delete document.body.dataset.space;renderInstallGuide(installGuide.querySelector('.install-body'));installGuide.showModal();};
+$('#install-close').onclick=()=>installGuide.close();
+installGuide.addEventListener('click',event=>{
+  if(event.target!==installGuide)return;
+  const rect=installGuide.getBoundingClientRect();
+  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)installGuide.close();
+});
+installGuide.addEventListener('close',()=>$('#layers-more').focus());
 $('#undo').onclick=()=>runHistory('undo');
 $('#redo').onclick=()=>runHistory('redo');
 $('#fit').onclick=()=>fitEntries(fitAll());
@@ -972,14 +1009,63 @@ moreMenu.addEventListener('beforetoggle',event=>{
   moreMenu.style.left=`${Math.max(inset,Math.min(anchor.left+(anchor.width-width)/2,innerWidth-width-inset))}px`;
 });
 moreMenu.addEventListener('toggle',event=>{if(event.newState==='open')moreMenu.focus({preventScroll:true});moreButton.setAttribute('aria-expanded',String(event.newState==='open'));});
-moreMenu.addEventListener('click',event=>{if(event.target.closest('#shortcuts-open,#onboarding-open,#changelog-open'))moreMenu.hidePopover();});
+moreMenu.addEventListener('click',event=>{if(event.target.closest('#shortcuts-open,#onboarding-open,#changelog-open,#install-open'))moreMenu.hidePopover();});
 moreMenu.addEventListener('keydown',event=>{
   event.stopPropagation();
   if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
   event.preventDefault();
-  const buttons=[...moreMenu.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);
+  const buttons=[...moreMenu.querySelectorAll('button')].filter(button=>!button.hidden),index=buttons.indexOf(document.activeElement);
   buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:index<0?(event.key==='ArrowDown'?0:buttons.length-1):(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
 });
+// ---- Version and updates ----------------------------------------------------
+// The version row in the More menu. A canvas on the developer's machine asks npm
+// for the newest version now, again when the tab is shown, and every half hour,
+// so an update that lands while the canvas stays open still shows up.
+const updateDialog=$('#update'),updateBody=updateDialog.querySelector('.update-body'),updateButton=$('#update-open');
+const canCheckUpdates=isLocalHost(location.hostname);
+let latestVersion=null,updateChecking=null,lastCheck=0;
+const updateAvailable=()=>latestVersion!==null && compareVersions(latestVersion,version)>0;
+$('#version-label').textContent=`v${version}`;
+function showUpdateState(){
+  const available=updateAvailable();
+  moreButton.querySelector('.update-dot').hidden=!available;
+  updateButton.textContent=available?'Update':'Check for update';
+  updateButton.toggleAttribute('data-primary',available);
+  updateButton.hidden=!canCheckUpdates;
+}
+function checkForUpdate(){
+  updateChecking??=fetchLatestVersion().then(found=>{latestVersion=found;lastCheck=Date.now();}).finally(()=>{updateChecking=null;showUpdateState();});
+  return updateChecking;
+}
+function renderUpdateDialog(failed=false){
+  if(failed)return renderUpdateMessage(updateBody,{title:'Could not check for updates',text:'Check your internet connection and try again.',action:{label:'Try again',run:()=>runUpdateCheck()}});
+  if(updateAvailable())return renderUpdate(updateBody,{current:version,latest:latestVersion});
+  renderUpdateMessage(updateBody,{title:'No updates available',text:`You have the latest version, v${version}.`});
+}
+async function runUpdateCheck(){
+  renderUpdateMessage(updateBody,{title:'Checking for updates…',text:'This takes a moment.'});
+  try{await checkForUpdate();renderUpdateDialog();}catch{renderUpdateDialog(true);}
+}
+updateButton.onclick=()=>{
+  closeContext();stop();clearContact();delete document.body.dataset.space;
+  moreMenu.hidePopover();
+  updateDialog.showModal();
+  if(updateAvailable())renderUpdateDialog();else runUpdateCheck();
+};
+$('#update-close').onclick=()=>updateDialog.close();
+updateDialog.addEventListener('click',event=>{
+  if(event.target!==updateDialog)return;
+  const rect=updateDialog.getBoundingClientRect();
+  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)updateDialog.close();
+});
+updateDialog.addEventListener('close',()=>moreButton.focus());
+showUpdateState();
+if(canCheckUpdates){
+  const quietCheck=()=>{if(Date.now()-lastCheck>10*60*1000)checkForUpdate().catch(()=>{});};
+  quietCheck();
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)quietCheck();});
+  setInterval(quietCheck,30*60*1000);
+}
 window.addEventListener('resize',()=>{cameraMotion=null;cachedWorkArea=null;schedule();});
 document.addEventListener('visibilitychange',()=>{release();entries.forEach(notify);});
 const preview=createFullscreen({
