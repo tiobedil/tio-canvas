@@ -10,6 +10,7 @@ export const entries = [
   {
     unreleased: true,
     items: [
+      { type: 'fixed', text: 'A text box can no longer be dragged shorter than its lines, and its text is never clipped.' },
       { type: 'new', text: 'Each screen has a theme button next to refresh to preview it in dark or light mode.' },
       { type: 'improved', text: 'Icons that do not fit a narrow screen fold behind a ... button and slide in when you hover it.' },
     ],

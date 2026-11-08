@@ -707,7 +707,7 @@ body:not([data-ready]) :is(#layers,#edit-tools,#history-tools,#zoom-tools,#arrow
 
 /* Text objects. Font and colour are fixed: the canvas face, the canvas ink. */
 #text-layer { display: contents; }
-.text-object { position: absolute; box-sizing: border-box; margin: 0; padding: 2px; min-height: 1.25em; overflow: hidden; line-height: 1.25; font-weight: 400; color: var(--canvas-text);
+.text-object { position: absolute; box-sizing: border-box; margin: 0; padding: 2px; min-height: 1.25em; overflow: visible; line-height: 1.25; font-weight: 400; color: var(--canvas-text);
   white-space: pre-wrap; overflow-wrap: break-word; outline: none; cursor: default; user-select: none; -webkit-user-select: none; }
 .text-object[data-editing] { cursor: text; user-select: text; -webkit-user-select: text; }
 body[data-text-drag] { user-select: none; }
