@@ -11,12 +11,19 @@ document.querySelector('#layers-menu').showPopover();
 
 function Controls() {
   // Offsets are measured from the button's top-right corner, in pixels.
-  const { x, y } = useDialKit('More button dot', { x: [-2, -16, 16, 1], y: [2, -16, 16, 1] });
+  const { x, y, theme } = useDialKit('More button dot', {
+    x: [-2, -16, 16, 1],
+    y: [2, -16, 16, 1],
+    theme: { type: 'select', options: ['light', 'dark'], default: 'light' },
+  });
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-dark', theme === 'dark');
+  }, [theme]);
   useEffect(() => {
     const dot = document.querySelector('#layers-more .update-dot');
     dot.style.translate = `calc(50% + ${x}px) calc(-50% + ${y}px)`;
   }, [x, y]);
-  return <DialRoot />;
+  return <DialRoot theme={theme} />;
 }
 
 createRoot(document.body.appendChild(document.createElement('div'))).render(<Controls />);

@@ -777,7 +777,7 @@ body[data-gesture="reorder"] #selection #handles { visibility: hidden; }
 /* A popover clips its children to the padding box by default; the footer has to paint over the border. */
 #layers-menu { --menu-bleed: calc(var(--canvas-padding) + var(--canvas-border)); overflow: visible; }
 #layers-menu hr:has(+ .menu-version) { width: auto; margin: calc(var(--canvas-menu-gap) / 2) calc(-1 * var(--menu-bleed)) 0; }
-.menu-version { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-padding); margin: calc(-1 * var(--canvas-menu-gap)) calc(-1 * var(--menu-bleed)) calc(-1 * var(--menu-bleed)); padding: 13px 13px 13px calc(2 * var(--canvas-padding) + var(--canvas-border)); border-radius: 0 0 var(--canvas-panel-radius) var(--canvas-panel-radius); background: color-mix(in oklch, var(--canvas-text) 4%, transparent); }
+.menu-version { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-padding); margin: calc(-1 * var(--canvas-menu-gap)) calc(-1 * var(--menu-bleed)) calc(-1 * var(--menu-bleed)); padding: 12px 13px 13px calc(2 * var(--canvas-padding) + var(--canvas-border)); border-radius: 0 0 var(--canvas-panel-radius) var(--canvas-panel-radius); background: color-mix(in oklch, var(--canvas-text) 4%, transparent); }
 #version-label { color: var(--canvas-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 #layers-menu #update-open { height: 28px; padding-inline: var(--canvas-padding); background: var(--canvas-button); border: var(--canvas-border) solid var(--canvas-line); }
 #layers-menu #update-open:hover { background: var(--canvas-button-hover); }
@@ -791,3 +791,6 @@ body[data-gesture="reorder"] #selection #handles { visibility: hidden; }
 .update-state { display: grid; justify-items: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset) 0; text-align: center; }
 .update-state p { margin: 0; }
 .update-state strong { color: var(--canvas-text); }
+
+/* Modal content scrolls up and down only: no sideways scrolling or rubber-banding. */
+.page-picker,.shortcuts-body,#page-options,.install-code { overflow-x: hidden; overscroll-behavior-x: none; }
