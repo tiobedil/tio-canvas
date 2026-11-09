@@ -43,7 +43,8 @@ createServer(async (request, response) => {
     }
     if (pathname.startsWith("/prototypes/")) {
       const name = path.basename(pathname);
-      response.writeHead(200, { "content-type": TYPES[path.extname(name)] }).end(await prototypeAsset(name));
+      const text = await prototypeAsset(name);
+      response.writeHead(200, { "content-type": TYPES[path.extname(name)] ?? "text/javascript; charset=utf-8" }).end(text);
       return;
     }
     const file = path.join(SITE, pathname);
@@ -51,6 +52,10 @@ createServer(async (request, response) => {
     const body = await readFile(file);
     response.writeHead(200, { "content-type": TYPES[path.extname(file)] ?? "application/octet-stream" }).end(body);
   } catch {
+    if (response.headersSent) {
+      response.end();
+      return;
+    }
     response.writeHead(404, { "content-type": "text/plain" }).end("Not found");
   }
 }).listen(port, () => console.log(`http://localhost:${port}/canvas/`));
