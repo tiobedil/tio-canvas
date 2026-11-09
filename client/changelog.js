@@ -9,6 +9,11 @@
 export const entries = [
   {
     unreleased: true,
+    items: [],
+  },
+  {
+    version: '0.2.1',
+    date: '2026-11-09T17:28:39.331Z',
     items: [
       { type: 'fixed', text: 'In Add pages, once you have checked a page, clicking another page checks it instead of adding it right away.' },
       { type: 'fixed', text: 'The canvas keeps your last chosen light or dark mode after a refresh.' },
