@@ -50,7 +50,9 @@ export function createPagePicker({dialog,trigger,sources,groups,count,onOpen,onA
       const checkbox=document.createElement('button');checkbox.type='button';checkbox.className='page-checkbox-target';checkbox.setAttribute('role','checkbox');checkbox.setAttribute('aria-label',`Select ${source.title}`);
       const mark=document.createElement('span');mark.className='page-checkbox';mark.setAttribute('aria-hidden','true');checkbox.append(mark);
       const action=document.createElement('button');action.type='button';action.className='page-option-add';action.setAttribute('aria-label',`Add ${source.title}`);
-      row.addEventListener('click',event=>{if(!event.target.closest('.page-checkbox-target'))add([source.id]);});
+      row.addEventListener('click',event=>{if(event.target.closest('.page-checkbox-target'))return;
+        if(selection.size){const next=new Set(selection);if(!next.delete(source.id))next.add(source.id);ranges.reset();update([...next]);}
+        else add([source.id]);});
       const thumbnail=document.createElement('span');thumbnail.className='page-thumbnail';thumbnail.setAttribute('aria-hidden','true');
       const image=document.createElement('img');image.src=`/canvas/thumbnails/${encodeURIComponent(source.id)}.webp`;image.alt='';image.loading='lazy';image.decoding='async';image.draggable=false;
       image.addEventListener('error',()=>image.remove(),{once:true});thumbnail.append(image);

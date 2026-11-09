@@ -9,7 +9,14 @@
 export const entries = [
   {
     unreleased: true,
-    items: [],
+    items: [
+      { type: 'fixed', text: 'In Add pages, once you have checked a page, clicking another page checks it instead of adding it right away.' },
+      { type: 'fixed', text: 'The canvas keeps your last chosen light or dark mode after a refresh.' },
+      { type: 'improved', text: 'Change log dates follow your device\'s time zone.' },
+      { type: 'fixed', text: 'Dialogs always open scrolled to the top instead of where you left them.' },
+      { type: 'fixed', text: 'Dark mode no longer flashes light when you open or refresh the canvas.' },
+      { type: 'fixed', text: 'The Check for update button is now always in the More menu.' },
+    ],
   },
   {
     version: '0.2.0',
@@ -41,7 +48,13 @@ export const entries = [
 
 export const labels = { new: 'Feature', improved: 'Improved', fixed: 'Fixed', faster: 'Faster' };
 
-const formatDate = iso => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+// A release is stamped with its exact time (UTC), shown here in the device's own time zone. Older entries only have a calendar date, which is shown as written.
+const formatDate = value => {
+  const options = { day: 'numeric', month: 'short', year: 'numeric' };
+  return value.includes('T')
+    ? new Date(value).toLocaleDateString('en-GB', options)
+    : new Date(`${value}T00:00:00Z`).toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' });
+};
 const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node; };
 
 export function renderChangelog(body, list = entries) {

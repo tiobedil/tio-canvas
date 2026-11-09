@@ -2,11 +2,11 @@
 // client/changelog.js into a real release (version + date) and leaves a fresh
 // empty "unreleased" entry on top for the next change.
 //
-//   node scripts/stamp-changelog.mjs <version> [YYYY-MM-DD]
+//   node scripts/stamp-changelog.mjs <version> [ISO date or timestamp]
 import { readFile, writeFile } from "node:fs/promises";
 
 const file = new URL("../client/changelog.js", import.meta.url);
-const [version, date = new Date().toISOString().slice(0, 10)] = process.argv.slice(2);
+const [version, date = new Date().toISOString()] = process.argv.slice(2);
 if (!version) { console.error("usage: stamp-changelog.mjs <version> [date]"); process.exit(1); }
 
 const { entries } = await import(file.href);

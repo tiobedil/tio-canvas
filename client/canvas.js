@@ -992,12 +992,17 @@ $('#zoom').addEventListener('keydown',event=>{
   if(event.key==='Escape'){$('#zoom').value=`${Math.round(camera.scale*100)}%`;$('#zoom').blur();}
 });
 let themeTimer;
+const themeKey=`${key}:theme`;
+function setThemeLabel(dark){$('#theme-label').textContent=dark?'Light mode':'Dark mode';}
+// index.html reads `canvas:theme` in <head> so a saved dark mode paints dark from the first frame.
+try{const saved=localStorage.getItem(themeKey);if(saved)localStorage.setItem('canvas:theme',saved);if(saved==='dark'){document.documentElement.setAttribute('data-dark','');setThemeLabel(true);}}catch{}
 $('#theme').onclick=()=>{
   // The theme fades through the root tokens; controls must not add their own transitions on top.
   const root=document.documentElement;root.setAttribute('data-theming','');
   clearTimeout(themeTimer);themeTimer=setTimeout(()=>root.removeAttribute('data-theming'),300);
   const dark=document.documentElement.toggleAttribute('data-dark');
-  $('#theme-label').textContent=dark?'Light mode':'Dark mode';
+  setThemeLabel(dark);
+  try{localStorage.setItem(themeKey,dark?'dark':'light');localStorage.setItem('canvas:theme',dark?'dark':'light');}catch{}
 };
 const moreMenu=$('#layers-menu'),moreButton=$('#layers-more');
 moreMenu.addEventListener('beforetoggle',event=>{
@@ -1017,6 +1022,14 @@ moreMenu.addEventListener('keydown',event=>{
   const buttons=[...moreMenu.querySelectorAll('button')].filter(button=>!button.hidden),index=buttons.indexOf(document.activeElement);
   buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:index<0?(event.key==='ArrowDown'?0:buttons.length-1):(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
 });
+// Every modal opens at the top: scrolling is reset on open, not on close, so a dialog fading out keeps its place.
+{
+  const showModal=HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal=function(){
+    showModal.call(this);
+    for(const node of [this,...this.querySelectorAll('*')])if(node.scrollTop)node.scrollTop=0;
+  };
+}
 // ---- Version and updates ----------------------------------------------------
 // The version row in the More menu. A canvas on the developer's machine asks npm
 // for the newest version now, again when the tab is shown, and every half hour,
@@ -1031,7 +1044,6 @@ function showUpdateState(){
   moreButton.querySelector('.update-dot').hidden=!available;
   updateButton.textContent=available?'Update':'Check for update';
   updateButton.toggleAttribute('data-primary',available);
-  updateButton.hidden=!canCheckUpdates;
 }
 function checkForUpdate(){
   updateChecking??=fetchLatestVersion().then(found=>{latestVersion=found;lastCheck=Date.now();}).finally(()=>{updateChecking=null;showUpdateState();});
