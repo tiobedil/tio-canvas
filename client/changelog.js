@@ -10,6 +10,7 @@ export const entries = [
   {
     unreleased: true,
     items: [
+      { type: 'fixed', text: 'In Add pages, once you have checked a page, clicking another page checks it instead of adding it right away.' },
       { type: 'fixed', text: 'The canvas keeps your last chosen light or dark mode after a refresh.' },
       { type: 'improved', text: 'Change log dates follow your device\'s time zone.' },
       { type: 'fixed', text: 'Dialogs always open scrolled to the top instead of where you left them.' },
