@@ -4,9 +4,9 @@ This page is for developers who want to wire the canvas into an existing dev
 server, or who work on the package itself. If you just want to try the canvas,
 the [README](../README.md) has a beginner path.
 
-The canvas is plain HTML, CSS and JavaScript. The only dependencies
-(`interface-kit`, `react`, `react-dom`, `esbuild`) exist to build the optional
-development-only Interface Kit overlay. The behaviour of the canvas is described
+The canvas is plain HTML, CSS and JavaScript. Its dependencies (`interface-kit`,
+`react`, `react-dom`, `esbuild`) exist to build the optional development-only
+Interface Kit overlay; `esbuild` also builds the frames of your components. The behaviour of the canvas is described
 in [`exploration-canvas.md`](exploration-canvas.md).
 
 ## Install
@@ -48,8 +48,9 @@ import { createCanvasHost } from '@tio-canvas/canvas/server';
 const canvas = createCanvasHost({ root, config: 'dev/canvas/screens.js' });
 
 // For a request under /canvas:
-const { directory, localPath, project } = canvas.locate(pathname);   // which file to read
+const { directory, localPath, project, component } = canvas.locate(pathname);   // which file to read
 //   if (project) send `await canvas.projectModule()` as text/javascript instead of the file
+//   if (component) send `await canvas.componentModule(component)` as text/javascript instead of the file
 // For an HTML page in development:
 const { bridge, tools } = canvas.pageScripts(url, request.headers); // scripts to add before </body>
 // For GET /__dev/interface-kit.js:
@@ -67,13 +68,14 @@ import { copyCanvas } from '@tio-canvas/canvas/build';
 const screens = await copyCanvas({ root, config: 'dev/canvas/screens.js', target: 'dist/canvas' });
 ```
 
-This writes the canvas, your screens as `project.js`, only the thumbnails of
-screens that exist, and a `noindex` tag. Do not link to it from a public page.
+This writes the canvas, your screens and components as `project.js`, one script
+per component, only the thumbnails of screens and components that exist, and a
+`noindex` tag. Do not link to it from a public page.
 
 ### 4. Thumbnails
 
-The Add pages panel shows a small picture of each page (about 1 KB, 96px on the
-short side). The dev server makes a missing one by itself the first time the
+The Add pages panel shows a small picture of each page and each component (about
+1 KB, 96px on the short side; a component's file is `component-<id>.webp`). The dev server makes a missing one by itself the first time the
 canvas asks for it, so a page you add to `screens.js` gets its thumbnail on the
 next load. Pass the request to the host before you serve a file under `/canvas`:
 
@@ -94,6 +96,98 @@ npx tio-canvas thumbnails --check          # fails when a screen has no thumbnai
 ```
 
 Options: `--config <file>`, `--out <dir>`.
+
+## Components
+
+The canvas can also show one component alone in a frame. The frame is resized by
+hand (it has no device presets), opens fullscreen and has its own dark mode,
+like a page. On its right sit the dials: one control for every prop, variant and
+state you list. They are added from the same panel as pages (Cmd+K), in the
+Components tab.
+
+Only the components your project lists are shown. The canvas never shows its own.
+
+### 1. List your components
+
+Add `components` to the same config file as `screens`. The file still imports
+nothing: you name the file that exports the component, and the canvas does the
+importing when it builds the frame.
+
+```js
+export const components = [
+  {
+    id: 'button',                          // stable; lowercase letters, digits and dashes
+    title: 'Button',
+    group: 'Actions',                      // the heading it is listed under (default: Components)
+    module: '../../src/components/Button.jsx',   // relative to this config file, or any path your project resolves
+    export: 'Button',                      // the export to draw (default: the default export)
+    controls: {
+      variant: ['primary', 'secondary', 'ghost'],   // one of these; the first is the default
+      size: ['md', 'sm'],
+      disabled: false,                     // a switch
+      children: 'Save changes',            // a text field
+      radius: { type: 'number', min: 0, max: 24, step: 1, value: 8 },   // a slider
+    },
+  },
+];
+```
+
+- **Controls are the component's real props.** Each key of `controls` is passed
+  to the component under that name. List what the component actually accepts:
+  its props, its variants and its states (`disabled`, `open`, `loading`, …).
+  Add a control when you want one more thing to try.
+- Short forms: an array is a choice, `true`/`false` a switch, a string a text
+  field, a number a number field. The long form is
+  `{ type: 'select' | 'boolean' | 'text' | 'number', value, label, options, min, max, step }`;
+  a number with both `min` and `max` is a slider. Options may be strings, numbers
+  or booleans, or `{ value, label }`.
+- `width` and `height` set the size a new frame starts with (480 × 320).
+- `fill: true` stretches the component to the frame's width (a navigation bar,
+  say). Without it the component keeps its own size and is centred.
+- `framework` is `'react'` (the default) or `'dom'`. A `dom` component is a
+  function that returns a DOM node.
+- `render` replaces the default drawing, for a component that needs more than
+  its props: `render: (exports, props, createElement) => createElement(exports.Card, props, createElement(exports.CardTitle, null, props.title))`.
+  `exports` is everything `module` exports. Return a React element, or a DOM node.
+  There is no JSX here, because the browser also loads this file as it stands.
+
+What a frame shows is saved with the layout, per frame, so the same component can
+be on the canvas several times with different props.
+
+### 2. Styles and theme
+
+A frame is an empty page, so it needs your styles. Styles a component imports
+(`import './button.css'`, CSS modules) come along by themselves. For global
+styles, name the stylesheets your dev server already serves:
+
+```js
+export const componentPreview = {
+  styles: ['/assets/site.css'],            // loaded into every component frame
+  background: 'var(--page-background)',    // optional: the frame's background
+  theme(dark, document) {                  // optional: how your site turns dark
+    document.documentElement.classList.toggle('dark', dark);
+  },
+};
+```
+
+Without `theme`, the frame's theme button sets `color-scheme`, toggles the
+`dark` class and sets `data-theme="dark" | "light"` on `<html>`.
+
+### 3. Serve them
+
+One more branch in your dev server (see the snippet in "Serve it from your dev
+server"): a request for `/canvas/components/<id>.js` is answered with
+`await canvas.componentModule(id)`. `locate()` names the id as `component`.
+
+The script is built on request with esbuild, from your project: JSX and
+TypeScript work, and `react` and `react-dom` are taken from your project, so the
+component and the frame share one copy of React. A component that cannot be
+built shows the error in its frame. `copyCanvas` writes one script per component
+into `<target>/components/`.
+
+Limits: the frame is not your app. A component that needs your framework's
+runtime (a router, a server component, `next/image`) or a context provider needs
+a `render` function that supplies it, or will not draw.
 
 ## Updating
 

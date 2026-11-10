@@ -15,7 +15,9 @@ assert.deepEqual(ids(searchGroups(groups, items, '')), ['home', 'page-test', 'la
 assert.deepEqual(ids(searchGroups(groups, items, 'TEST')), ['page-test'], 'an uppercase word finds a lowercase title');
 assert.deepEqual(ids(searchGroups(groups, items, 'h')), ['home'], 'one letter is enough');
 assert.deepEqual(ids(searchGroups(groups, items, 'production')), ['home', 'page-test'], 'a group name brings its whole group');
-assert.deepEqual(searchGroups(groups, items, 'proto').map(group => group.group.id), ['prototype'], 'a partial group name works');
+assert.deepEqual(searchGroups(groups, items, 'prototy').map(group => group.group.id), ['prototype'], 'a partial group name works');
+for (const [text, query, found] of [['update', 'updte', true], ['update', 'updaa', false], ['run', 'r', true], ['run', 'rn', true], ['run', 'ru', true], ['run', 'rum', false], ['run', 'ra', false], ['run', 'rnu', false], ['Home', 'hoe', true]])
+  assert.equal(matchRange(text, query) !== null, found, `"${query}" ${found ? 'finds' : 'misses'} "${text}": letters in order, skips allowed`);
 assert.deepEqual(ids(searchGroups(groups, items, 'zzz')), [], 'no match gives nothing');
 assert.deepEqual(between(['a', 'b', 'c', 'd'], 'c', 'a'), ['a', 'b', 'c'], 'a range runs either way');
 

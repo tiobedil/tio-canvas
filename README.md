@@ -5,6 +5,10 @@ as real, working pages, so you can look at them together, compare them, move
 them around, and add notes. It runs only on your own computer while you work.
 Visitors of your site never see it.
 
+It can also show a single component (a button, a card) alone in a frame, with a
+control beside it for every option the component has, so you can try them all
+without touching code. See [Components](docs/integration.md#components).
+
 ## Install it
 
 Pick one way.

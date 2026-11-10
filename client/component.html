@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Component</title>
+  <!-- One component, alone, centred. The canvas frames this page; the script it
+       loads is built from the project's config (src/component-bundle.js). -->
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: grid; place-items: center; padding: 24px; box-sizing: border-box; overflow: auto; background: Canvas; color: CanvasText; font-family: system-ui, sans-serif; }
+    /* A grid, so a component is laid out as a block whatever its own display is. `fill` on a component stretches it to the frame's width. */
+    #component-root { display: grid; justify-items: center; min-width: 0; max-width: 100%; }
+    #component-root[data-fill] { width: 100%; justify-items: stretch; }
+  </style>
+</head>
+<body>
+  <div id="component-root"></div>
+  <script type="module" src="/canvas/bridge.js"></script>
+  <script>
+    // A plain script, so the promise exists before the page counts as loaded: the thumbnail maker waits for it.
+    window.__canvasComponentReady = import(`/canvas/components/${encodeURIComponent(new URLSearchParams(location.search).get('component') ?? '')}.js`).catch(error => {
+      const box = document.createElement('pre');
+      box.setAttribute('role', 'alert');
+      box.style.cssText = 'margin:0;padding:16px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#b42318;';
+      box.textContent = `This component could not be loaded.\n\n${error?.message ?? error}\n\nThe dev server must answer /canvas/components/<id>.js with canvas.componentModule(id). See docs/integration.md, "Components".`;
+      document.getElementById('component-root').replaceChildren(box);
+    });
+  </script>
+</body>
+</html>

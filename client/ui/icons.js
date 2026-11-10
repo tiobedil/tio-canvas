@@ -35,6 +35,8 @@ const shapes = {
   document: '<path d="M5.5 3h9a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM7.5 7h5M7.5 10h5M7.5 13h3"/>',
   download: '<path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2"/>',
   grabber: '<path d="M7 5h0m6 0h0M7 10h0m6 0h0M7 15h0m6 0h0"/>',
+  minus: '<path d="M4 10h12"/>',
+  sliders: '<path d="M3 6h8m4 0h2M3 14h2m4 0h8"/><circle cx="13" cy="6" r="2"/><circle cx="7" cy="14" r="2"/>',
   mouse: '<rect x="5" y="2" width="10" height="16" rx="5"/><path d="M10 2v6"/>',
   // Devices
   phone: '<rect x="6" y="2" width="8" height="16" rx="2"/><path d="M9 15h2"/>',
@@ -43,6 +45,7 @@ const shapes = {
   laptop: '<rect x="4" y="3" width="12" height="10" rx="1"/><path d="M2 15h16l-1 2H3Z"/>',
   desktop: '<rect x="3" y="3" width="14" height="10" rx="1"/><path d="M10 13v4m-4 0h8"/>',
   custom: '<path d="M4 10V4h6M4 4l12 12m0-6v6h-6"/>',
+  component: '<path d="M10 2.5 12.5 5 10 7.5 7.5 5ZM15 7.5l2.5 2.5-2.5 2.5-2.5-2.5ZM5 7.5 7.5 10 5 12.5 2.5 10ZM10 12.5l2.5 2.5-2.5 2.5L7.5 15Z"/>',
   portrait: '<rect x="5" y="2" width="10" height="16" rx="2"/>',
 };
 // The small caret that marks a control which opens something.

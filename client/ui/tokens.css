@@ -89,12 +89,13 @@
   --canvas-layers-width: 260px; --canvas-layer-height: 38px; --canvas-layer-gap: 4px;
   --canvas-layers-heading-inset: 18px; --canvas-layer-indent: 10px; --canvas-grabber-stroke: 3px;
   --canvas-picker-width: 500px; --canvas-picker-height: 700px;
-  --canvas-spotlight-width: 520px; --canvas-spotlight-height: 320px; --canvas-spotlight-thumb: 28px; --canvas-spotlight-row: 40px;
+  --canvas-spotlight-width: 520px; --canvas-spotlight-height: 420px; --canvas-spotlight-thumb: 28px; --canvas-spotlight-row: 40px;
   --canvas-checkbox-size: 16px; --canvas-checkbox-target: 44px; --canvas-checkbox-radius: 4px;
   --canvas-check-width: 5px; --canvas-check-height: 9px; --canvas-check-stroke: 2px;
   --canvas-preview-inset: var(--canvas-panel-inset); --canvas-preview-gap: var(--canvas-menu-offset); --canvas-preview-menu: 232px;
   --canvas-float-size: 44px; --canvas-float-icon: 20px;
   --canvas-contact-size: 24px; --canvas-tick: 6px;
+  --canvas-dial-width: 280px; --canvas-dial-gap: 16px;
   --canvas-shortcut-key-size: 24px; --canvas-shortcut-key-radius: 4px;
   --canvas-smart-dot: 10px; --canvas-smart-target: 24px;
   --canvas-arrow-fade: .55;

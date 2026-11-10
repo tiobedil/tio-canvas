@@ -1,14 +1,14 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { validateScreens, presets, screenKinds } from "../client/registry.js";
+import { validateScreens, validateComponents, presets, screenKinds } from "../client/registry.js";
 
 export const DEFAULT_CONFIG = "dev/canvas/screens.js";
 export const DEFAULT_STORAGE_KEY = "tio-canvas:v1";
 
 /**
- * Where a project keeps what is its own: the list of screens (a standalone ES
- * module the browser loads as it stands, so it must import nothing) and the page
- * thumbnails beside it.
+ * Where a project keeps what is its own: the list of screens and of components
+ * (a standalone ES module the browser loads as it stands, so it must import
+ * nothing) and the thumbnails beside it.
  */
 export function resolveProject({ root = process.cwd(), config = DEFAULT_CONFIG, thumbnails } = {}) {
   const configFile = path.resolve(root, config);
@@ -22,11 +22,13 @@ export function resolveProject({ root = process.cwd(), config = DEFAULT_CONFIG, 
 
 let loadCount = 0;
 
-/** Import the project's config afresh and refuse a screen the canvas cannot show. */
+/** Import the project's config afresh and refuse a screen or component the canvas cannot show. */
 export async function loadProject(project) {
   // A unique query per call defeats the module cache; Date.now() alone can repeat within one millisecond.
   const module = await import(`${pathToFileURL(project.configFile).href}?load=${Date.now()}-${++loadCount}`);
   if (!Array.isArray(module.screens)) throw new Error(`${project.configFile} must export "screens", an array.`);
   validateScreens(module.screens);
-  return { screens: module.screens, storageKey: module.storageKey ?? DEFAULT_STORAGE_KEY, presets, screenKinds };
+  const components = module.components ?? [];
+  validateComponents(components);
+  return { screens: module.screens, components, storageKey: module.storageKey ?? DEFAULT_STORAGE_KEY, presets, screenKinds };
 }

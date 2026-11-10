@@ -27,7 +27,7 @@ export function createLayerDrawer({root,presets,collapsed=false,onSelect,onDrop,
   }
   toggle.addEventListener('click',()=>{cancel();const value=!root.hasAttribute('data-collapsed');animateCollapse(value);onCollapse(value);});
   setCollapsed(collapsed);
-  // Items run bottom to top: { id, kind: 'screen' | 'text', title, preset }. A text layer is named by
+  // Items run bottom to top: { id, kind: 'screen' | 'text', title, preset, component }. A component frame has its own icon. A text layer is named by
   // its content and cannot be renamed; `selection` is a set of layer ids.
   function update(items,selection){
     count.textContent=String(items.length);root.toggleAttribute('data-empty',!items.length);document.getElementById('fit').hidden=!items.length;
@@ -44,10 +44,10 @@ export function createLayerDrawer({root,presets,collapsed=false,onSelect,onDrop,
           h('span',{class:'layer-label'}));
         row=h('li',{},button);rows.set(id,row);
       }
-      const button=row.firstElementChild,kind=itemKind==='text'?'text':deviceKind(preset,presets);button.dataset.kind=itemKind;
+      const button=row.firstElementChild,kind=itemKind==='text'?'text':item.component?'component':deviceKind(preset,presets);button.dataset.kind=itemKind;
       if(button.dataset.device!==kind){setIcon(button.querySelector('.layer-device'),kind);button.dataset.device=kind;}
       if(!button.querySelector('.layer-label').isContentEditable && button.querySelector('.layer-label').textContent!==title)button.querySelector('.layer-label').textContent=title;button.dataset.tooltip='Drag to select, or drag the grip to reorder';
-      button.setAttribute('aria-label',`${title}, ${itemKind==='text'?'Text':presets[preset]?.label??'Custom'}`);button.setAttribute('aria-pressed',String(selected.has(id)));
+      button.setAttribute('aria-label',`${title}, ${itemKind==='text'?'Text':item.component?'Component':presets[preset]?.label??'Custom'}`);button.setAttribute('aria-pressed',String(selected.has(id)));
       const next=previous?previous.nextElementSibling:list.firstElementChild;
       if(next!==row)list.insertBefore(row,next);previous=row;
     }

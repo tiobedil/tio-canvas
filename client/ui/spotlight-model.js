@@ -3,12 +3,26 @@
 
 const fold = text => String(text).toLowerCase();
 
-/** Where `query` sits in `text`, as [start, end], or null. Case does not matter. */
+/**
+ * Where `query` sits in `text`, as [start, end], or null. Case does not matter.
+ * Every letter of the query must appear in the text, in the same order, but letters
+ * may be skipped: "updte" finds "update", "rn" finds "run"; "rum", "ra" and "rnu" do not.
+ * The range runs from the first matched letter to the last.
+ */
 export function matchRange(text, query) {
   const needle = fold(query.trim());
   if (!needle) return null;
-  const start = fold(text).indexOf(needle);
-  return start < 0 ? null : [start, start + needle.length];
+  const hay = fold(text);
+  const whole = hay.indexOf(needle);
+  if (whole >= 0) return [whole, whole + needle.length];
+  const start = hay.indexOf(needle[0]);
+  if (start < 0) return null;
+  let at = start;
+  for (let i = 1; i < needle.length; i++) {
+    at = hay.indexOf(needle[i], at + 1);
+    if (at < 0) return null;
+  }
+  return [start, at + 1];
 }
 
 /**

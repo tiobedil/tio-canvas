@@ -310,6 +310,18 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
   .ui-spotlight { --spotlight-bottom: calc(var(--canvas-spotlight-bottom) + var(--canvas-panel-inset) + var(--canvas-toolbar-height)); }
 }
 
+/* The tabs: small, above the search field. The one in view is raised; a count marks a tab that holds a selection. */
+.ui-spotlight-tabs { display: flex; align-items: center; gap: 2px; flex: none; padding: var(--canvas-padding) var(--canvas-padding) 0; }
+.ui-spotlight-tab {
+  display: inline-flex; align-items: center; gap: var(--canvas-chevron-gap); height: 24px; padding: 0 var(--canvas-padding);
+  border: 0; border-radius: 6px; background: transparent; color: var(--canvas-muted); font: inherit; font-weight: 500; cursor: pointer;
+  transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease);
+}
+.ui-spotlight-tab:hover { background: var(--canvas-button-hover); color: var(--canvas-text); }
+.ui-spotlight-tab:active { background: var(--canvas-button-pressed); }
+.ui-spotlight-tab[aria-selected="true"] { background: var(--canvas-selected); color: var(--canvas-text); box-shadow: var(--canvas-inset); }
+.ui-spotlight-tab-count { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--canvas-primary); color: var(--canvas-on-primary); font-size: var(--canvas-guide-label); font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
+
 .ui-spotlight-search { display: flex; align-items: center; gap: var(--canvas-gap); flex: none; padding-inline: var(--canvas-layers-heading-inset); color: var(--canvas-muted); }
 .ui-spotlight-search .ui-input { flex: 1; min-width: 0; height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--canvas-text); font-size: 15px; text-align: left; }
 .ui-spotlight-search .ui-input:focus-visible { outline: 0; }
@@ -349,7 +361,74 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
 .ui-spotlight-empty > div { display: flex; flex-direction: column; align-items: center; gap: var(--canvas-padding); }
 
 
+/* ---- Dials ----------------------------------------------------------------------
+   The controls that drive a component in its frame. Each is usable alone.
+   Switch({ checked }): on or off; the thumb slides, the track fills. */
+.ui-switch {
+  position: relative; flex: none; width: 32px; height: 20px; padding: 0; border: 0; border-radius: 10px;
+  background: color-mix(in oklch, var(--canvas-muted) 28%, var(--canvas-well)); box-shadow: var(--canvas-inset); cursor: pointer;
+  transition: background-color var(--tactile-press) var(--tactile-ease);
+}
+.ui-switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: oklch(1 0 0); box-shadow: 0 1px 2px 0 var(--canvas-drop); transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease); }
+.ui-switch:active .ui-switch-thumb { transform: scale(.92); }
+.ui-switch[aria-checked="true"] { background: var(--canvas-primary); }
+.ui-switch[aria-checked="true"] .ui-switch-thumb { transform: translateX(12px); background: var(--canvas-on-primary); }
+.ui-switch[aria-checked="true"]:active .ui-switch-thumb { transform: translateX(12px) scale(.92); }
+.ui-switch:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
+.ui-switch:disabled { opacity: .6; cursor: default; }
+
+/* Slider({ min, max, step, value }): a number between two ends, its value beside it. */
+.ui-slider { --fill: 0%; display: flex; align-items: center; gap: var(--canvas-padding); flex: 1; min-width: 0; }
+.ui-slider-range { appearance: none; -webkit-appearance: none; flex: 1; min-width: 0; height: 20px; margin: 0; padding: 0; background: transparent; cursor: pointer; }
+.ui-slider-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--canvas-primary) var(--fill), color-mix(in oklch, var(--canvas-muted) 28%, var(--canvas-well)) var(--fill)); }
+.ui-slider-range::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--canvas-primary) var(--fill), color-mix(in oklch, var(--canvas-muted) 28%, var(--canvas-well)) var(--fill)); }
+.ui-slider-range::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border: 0; border-radius: 50%; background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); transition: transform var(--tactile-press) var(--tactile-ease); }
+.ui-slider-range::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); }
+.ui-slider-range:active::-webkit-slider-thumb { transform: scale(1.12); }
+.ui-slider-range:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); border-radius: 4px; }
+.ui-slider-value { flex: none; min-width: 3ch; color: var(--canvas-text); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* OptionChips({ options, value }): one of several, all in view, wrapping. The chosen chip takes the primary colours. */
+.ui-chips { display: flex; flex-wrap: wrap; gap: var(--canvas-menu-gap); min-width: 0; }
+.ui-chip {
+  max-width: 100%; height: 24px; padding: 0 var(--canvas-padding); border: 0; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--canvas-well); color: var(--canvas-muted); font: inherit; cursor: pointer;
+  transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease);
+}
+.ui-chip:hover { background: var(--canvas-button-pressed); color: var(--canvas-text); }
+.ui-chip:active { transform: scale(.97); }
+.ui-chip[aria-checked="true"] { background: var(--canvas-primary); color: var(--canvas-on-primary); }
+.ui-chip:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: 1px; }
+
+/* DialPanel({ title, controls, values }): a card with one row per control. A
+   switch, a slider or a field sits beside its name; a choice goes under it.
+   Minimised, the card gives way to a round floating button (the same as the
+   fullscreen menu button). Where the panel sits belongs to canvas.css. */
+.ui-dial-panel { width: var(--canvas-dial-width); color: var(--canvas-text); }
+.ui-dial-panel[data-minimized] { width: var(--canvas-float-size); }
+.ui-dial-card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-radius: var(--canvas-panel-radius); background: var(--canvas-panel); box-shadow: var(--canvas-shadow); }
+.ui-dial-header { display: flex; align-items: center; gap: 2px; flex: none; padding: 6px 6px 6px 14px; border-bottom: var(--canvas-hairline) solid var(--canvas-line); }
+.ui-dial-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.ui-dial-header .ui-button { width: 28px; height: 28px; padding: 0; }
+.ui-dial-body { display: flex; flex-direction: column; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 4px 14px 8px; }
+.ui-dial-row { display: flex; align-items: center; gap: var(--canvas-gap); flex: none; min-height: 36px; }
+.ui-dial-row[data-layout="stacked"] { flex-direction: column; align-items: stretch; gap: 6px; padding-block: 8px; }
+.ui-dial-name { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--canvas-muted); }
+.ui-dial-row[data-layout="stacked"] .ui-dial-name { max-width: 100%; }
+.ui-dial-row[data-layout="inline"] > :last-child { margin-left: auto; }
+.ui-dial-row .ui-dial-input { flex: 1; min-width: 0; width: auto; height: 28px; border-radius: 6px; text-align: left; }
+.ui-dial-row[data-type="number"] .ui-dial-input { flex: none; width: 72px; text-align: right; }
+.ui-dial-empty { margin: 0; padding: var(--canvas-padding) 0; color: var(--canvas-muted); }
+.ui-dial-button { display: grid; place-items: center; width: var(--canvas-float-size); height: var(--canvas-float-size); padding: 0; border: 0; border-radius: 50%; background: var(--canvas-float-surface); color: var(--canvas-float-ink); cursor: pointer; touch-action: none; user-select: none; transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease); }
+.ui-dial-button .ui-icon { width: var(--canvas-float-icon); height: var(--canvas-float-icon); }
+.ui-dial-button:active { transform: scale(.97); }
+.ui-dial-button:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
+@media (hover: hover) and (pointer: fine) { .ui-dial-button:hover { background: color-mix(in srgb, var(--canvas-float-surface) 90%, var(--canvas-float-ink)); } }
+
 @media (prefers-reduced-motion: reduce) {
+  .ui-switch, .ui-switch-thumb, .ui-chip, .ui-dial-button, .ui-spotlight-tab, .ui-slider-range::-webkit-slider-thumb { transition: none; }
+  .ui-chip:active, .ui-dial-button:active, .ui-switch:active .ui-switch-thumb { transform: none; }
+  .ui-switch[aria-checked="true"]:active .ui-switch-thumb { transform: translateX(12px); }
   .ui-button:active:not(:disabled), .ui-select:active, .ui-segment:active { transform: none; }
   .ui-button, .ui-select, .ui-segment { transition-duration: 150ms; }
   .ui-tooltip, .ui-menu, .ui-spotlight, .ui-dialog, .ui-dialog::backdrop, .ui-select .ui-chevron, .ui-disclosure-panel, .ui-disclosure-toggle .ui-chevron, .ui-disclosure-toggle, .ui-input { transition: none; }

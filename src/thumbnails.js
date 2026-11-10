@@ -6,12 +6,15 @@ import { access, mkdir, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { resolveProject, loadProject } from './project.js';
 import { createCapturer } from './capture.js';
+import { componentFrames } from './server.js';
 
 const args = process.argv.slice(2);
 const option = (name) => { const at = args.indexOf(name); return at < 0 ? undefined : args.splice(at, 2)[1]; };
 const config = option('--config'), out = option('--out');
 const project = resolveProject({ config, thumbnails: out });
-const { screens } = await loadProject(project);
+const loaded = await loadProject(project);
+// Components get a picture too: each one in its frame, with its default props.
+const screens = [...loaded.screens, ...componentFrames(loaded.components)];
 const mode = args.includes('--check') ? 'check' : args.includes('--missing') ? 'missing' : 'all';
 const base = args.find(arg => !arg.startsWith('--')) ?? 'http://localhost:4321';
 const destination = pathToFileURL(project.thumbnailsDir + '/');

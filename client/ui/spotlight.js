@@ -25,6 +25,13 @@ function marked(text, range) {
  *     onAdd: ids => true | false, empty: node })
  *   document.body.append(spotlight)
  *
+ * Several lists share one panel as tabs: pass `tabs` in place of groups and items.
+ *   tabs: [{ id: 'pages', label: 'Pages', noun: ['page', 'pages'], groups, items, thumbnail, count, empty }]
+ * Small tabs sit above the search field and Tab moves between them. Each tab keeps
+ * its own highlight and its own selection: a selection never follows you to
+ * another tab, and it is still there when you come back. Enter adds from the tab
+ * in view only, and onAdd gets that tab's id as its second argument.
+ *
  * A query matches an item's title or a group's name. There is no footer: the keys are in the Guide. Up and Down move the
  * highlight, Shift with them selects a range, Enter adds the selection (or the
  * highlighted row), Escape clears the selection, then the query, then closes.
@@ -32,56 +39,72 @@ function marked(text, range) {
  *   trigger     the button that opens it; it shows aria-expanded
  *   enabled     () => boolean; false stops the shortcut (a dialog is open, say)
  *   empty       what to show when `items` is empty
+ *   noun        [one, many] of what the list holds, for its messages; ['page', 'pages'] by default
  *   onOpen, onClose
  * The returned element has open(), close() and toggle().
  */
-export function Spotlight({ id, label, placeholder = 'Search', groups, items, thumbnail, count = () => 0, remaining = () => Infinity, onAdd, empty, trigger, enabled = () => true, onOpen, onClose }) {
-  const state = createSpotlightState();
-  const order = groups.flatMap(group => items.filter(item => item.group === group.id)).map(item => item.id);
+export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, items, thumbnail, count, empty, noun, remaining = () => Infinity, onAdd, trigger, enabled = () => true, onOpen, onClose }) {
+  // One pane per tab: its list, its rows, its own highlight and selection.
+  const panes = (tabs ?? [{ id: 'items', label, groups, items, thumbnail, count, empty, noun }]).map(tab => ({
+    count: () => 0, noun: ['page', 'pages'], ...tab, state: createSpotlightState(), rows: new Map(), unfolded: false,
+    order: tab.groups.flatMap(group => tab.items.filter(item => item.group === group.id)).map(item => item.id),
+  }));
+  const tabbed = panes.length > 1;
+  let current = panes[0];
   let reachable = [], error = '', opened = false;
 
-  const input = Input({ id: `${id}-search`, role: 'combobox', 'aria-label': label, 'aria-controls': `${id}-list`, 'aria-expanded': 'true', 'aria-autocomplete': 'list', autocomplete: 'off', spellcheck: 'false', placeholder, disabled: !items.length });
+  const input = Input({ id: `${id}-search`, role: 'combobox', 'aria-label': label, 'aria-controls': `${id}-list`, 'aria-expanded': 'true', 'aria-autocomplete': 'list', autocomplete: 'off', spellcheck: 'false', placeholder, disabled: !tabbed && !current.items.length });
   const notice = h('p', { class: 'ui-spotlight-notice', role: 'status', hidden: true });
   // Shown while a search hides some selected pages: counts the ones the results do not show and unfolds to list them.
-  const chosenBox = Checkbox({ label: 'Unselect the other selected pages', checked: true, tabIndex: -1 });
+  const chosenBox = Checkbox({ label: 'Unselect the other selected items', checked: true, tabIndex: -1 });
   const chosenText = h('span', {});
   const chosenToggle = h('button', { type: 'button', class: 'ui-spotlight-chosen-toggle', tabIndex: -1, 'aria-expanded': 'false', 'aria-controls': `${id}-chosen` }, chosenText, Chevron());
   const chosenList = h('div', { id: `${id}-chosen`, class: 'ui-spotlight-chosen-list', hidden: true });
   const hiddenBar = h('div', { class: 'ui-spotlight-hidden', hidden: true }, h('div', { class: 'ui-spotlight-chosen-head' }, chosenBox, chosenToggle), chosenList);
-  let unfolded = false;
   const list = h('div', { id: `${id}-list`, class: 'ui-spotlight-list', role: 'listbox', 'aria-multiselectable': 'true', 'aria-label': label });
   const emptyEl = h('div', { class: 'ui-spotlight-empty', role: 'status', hidden: true });
+  // The tabs never take focus (it stays in the search field); each shows how many of its rows are selected.
+  for (const pane of panes) {
+    pane.tabCount = h('span', { class: 'ui-spotlight-tab-count', hidden: true });
+    pane.tab = h('button', { type: 'button', role: 'tab', class: 'ui-spotlight-tab', id: `${id}-tab-${pane.id}`, tabIndex: -1, 'aria-selected': 'false', 'aria-controls': `${id}-list`, dataset: { tab: pane.id } }, pane.label, pane.tabCount);
+  }
+  const tabBar = h('div', { class: 'ui-spotlight-tabs', role: 'tablist', 'aria-label': label, hidden: !tabbed }, ...panes.map(pane => pane.tab));
   const root = h('div', { id, class: 'ui-spotlight', popover: 'manual', role: 'dialog', 'aria-label': label },
-    h('div', { class: 'ui-spotlight-search' }, Icon('search'), input), notice, hiddenBar, list, emptyEl);
+    tabBar, h('div', { class: 'ui-spotlight-search' }, Icon('search'), input), notice, hiddenBar, list, emptyEl);
 
   // One row per item, built once and moved as the query changes (so thumbnails do not reload).
-  const rows = new Map();
-  items.forEach((item, index) => {
-    const url = thumbnail?.(item);
-    const image = url ? h('img', { src: url, alt: '', decoding: 'async', draggable: false }) : null;
+  // A thumbnail is asked for only when its row is first shown.
+  for (const pane of panes) pane.items.forEach((item, index) => {
+    const url = pane.thumbnail?.(item);
+    const image = url ? h('img', { src: url, alt: '', loading: 'lazy', decoding: 'async', draggable: false }) : null;
     image?.addEventListener('error', () => image.remove(), { once: true });
     const row = {
       item, title: h('span', { class: 'ui-spotlight-title' }), pill: Pill({ hidden: true }),
       check: Checkbox({ label: `Select ${item.title}`, tabIndex: -1, 'aria-hidden': 'true' }),
     };
-    row.el = h('div', { class: 'ui-row ui-spotlight-row', role: 'option', id: `${id}-option-${index}`, dataset: { id: item.id } },
+    row.el = h('div', { class: 'ui-row ui-spotlight-row', role: 'option', id: `${id}-option-${pane.id}-${index}`, dataset: { id: item.id } },
       row.check, h('span', { class: 'ui-spotlight-thumb', 'aria-hidden': 'true' }, image),
       h('span', { class: 'ui-spotlight-label' }, row.title), row.pill);
-    rows.set(item.id, row);
+    pane.rows.set(item.id, row);
   });
 
   function message() {
     const left = remaining();
     if (error) return error;
-    if (left <= 0) return 'The canvas is full. Remove screens to add more pages.';
-    if (state.size > left) return `Only ${plural(left, 'more page fits', 'more pages fit')}. Select fewer pages.`;
+    const [one, many] = current.noun;
+    if (left <= 0) return `The canvas is full. Remove screens to add more ${many}.`;
+    if (current.state.size > left) return `Only ${plural(left, `more ${one} fits`, `more ${many} fit`)}. Select fewer ${many}.`;
     return '';
   }
 
-  /** Build the list for the current query. */
+  /** Build the list of the tab in view for the current query. */
   function render() {
+    const { groups, items, rows, count, empty, noun } = current;
     const query = input.value;
     const results = searchGroups(groups, items, query);
+    root.dataset.tab = current.id;
+    for (const pane of panes) pane.tab.setAttribute('aria-selected', String(pane === current));
+    list.setAttribute('aria-labelledby', current.tab.id);
     const full = remaining() <= 0;
     reachable = full ? [] : results.flatMap(group => group.items.map(entry => entry.item.id));
     list.replaceChildren(...results.map(({ group, range, items: found }) => h('div', { class: 'ui-spotlight-group', role: 'group', 'aria-labelledby': `${id}-group-${group.id}` },
@@ -102,15 +125,17 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     root.dataset.state = !items.length ? 'empty' : none ? 'none' : 'results';
     list.hidden = !results.length;
     emptyEl.hidden = !(none || !items.length);
-    if (!items.length) emptyEl.replaceChildren(empty ?? 'No pages');
-    else if (none) emptyEl.replaceChildren(h('strong', {}, 'No results'), h('p', {}, 'Try a page or group name.'));
+    if (!items.length) emptyEl.replaceChildren(empty ?? `No ${noun[1]}`);
+    else if (none) emptyEl.replaceChildren(h('strong', {}, 'No results'), h('p', {}, `Try a ${noun[0]} or group name.`));
     sync();
   }
 
-  const visibleIds = () => [...rows.keys()].filter(key => list.contains(rows.get(key).el));
+  const visibleIds = () => [...current.rows.keys()].filter(key => list.contains(current.rows.get(key).el));
 
   /** Reflect the highlight and the selection on screen. */
   function sync(scroll = false) {
+    const { state, rows, order, noun } = current;
+    for (const pane of panes) { pane.tabCount.hidden = !pane.state.size; pane.tabCount.textContent = String(pane.state.size); }
     for (const [rowId, row] of rows) {
       const active = rowId === state.active && reachable.includes(rowId), chosen = state.selected.has(rowId);
       row.el.toggleAttribute('data-active', active);
@@ -122,10 +147,10 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     if (!reachable.includes(state.active)) input.removeAttribute('aria-activedescendant');
     const hiddenIds = state.hidden(visibleIds());
     hiddenBar.hidden = !hiddenIds.length;
-    chosenText.textContent = plural(hiddenIds.length, 'more selected page', 'more selected pages');
-    chosenToggle.setAttribute('aria-expanded', String(unfolded));
-    hiddenBar.dataset.open = String(unfolded);
-    chosenList.hidden = !unfolded || !hiddenIds.length;
+    chosenText.textContent = plural(hiddenIds.length, `more selected ${noun[0]}`, `more selected ${noun[1]}`);
+    chosenToggle.setAttribute('aria-expanded', String(current.unfolded));
+    hiddenBar.dataset.open = String(current.unfolded);
+    chosenList.hidden = !current.unfolded || !hiddenIds.length;
     if (!chosenList.hidden) {
       chosenList.replaceChildren(...order.filter(key => hiddenIds.includes(key)).map(key => h('div', { class: 'ui-spotlight-chosen-row', dataset: { id: key } },
         Checkbox({ label: `Unselect ${rows.get(key).item.title}`, checked: true, tabIndex: -1, 'aria-hidden': 'true' }), h('span', {}, rows.get(key).item.title))));
@@ -135,9 +160,10 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
   }
 
   function commit(ids) {
+    const { state, order } = current;
     const chosen = ids ?? (state.size ? order.filter(key => state.selected.has(key)) : state.active && reachable.includes(state.active) ? [state.active] : []);
     if (!chosen.length || remaining() <= 0 || chosen.length > remaining()) { sync(); return; }
-    if (onAdd(chosen) === false) { error = 'Cannot add these pages. Remove screens or select fewer pages.'; sync(); return; }
+    if (onAdd(chosen, current.id) === false) { error = `Cannot add these ${current.noun[1]}. Remove screens or select fewer ${current.noun[1]}.`; sync(); return; }
     input.value = ''; state.clear();
     close();
   }
@@ -149,26 +175,45 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     for (const menu of document.querySelectorAll('.ui-menu:popover-open')) menu.hidePopover();
     root.showPopover();
     trigger?.setAttribute('aria-expanded', 'true');
-    render(); state.reset(reachable); sync(true);
+    render(); current.state.reset(reachable); sync(true);
     input.focus({ preventScroll: true }); input.select();
+  }
+  /** Show another tab. Its selection is as it was left; the query is shared. */
+  function show(pane) {
+    if (pane === current) return;
+    current = pane; error = '';
+    render(); current.state.keep(reachable); sync(true);
+    list.scrollTop = 0;
+    const active = current.rows.get(current.state.active);
+    if (active && reachable.includes(current.state.active)) active.el.scrollIntoView({ block: 'nearest' });
   }
   function close() {
     if (!opened) return;
     opened = false; error = '';
-    state.clear();
+    for (const pane of panes) pane.state.clear();
     root.hidePopover();
     trigger?.setAttribute('aria-expanded', 'false');
     onClose?.();
   }
   const toggle = () => (opened ? close() : open());
-  Object.assign(root, { open, close, toggle });
+  Object.assign(root, { open, close, toggle, showTab: tabId => { const pane = panes.find(item => item.id === tabId); if (pane) show(pane); } });
+  tabBar.addEventListener('click', event => {
+    const pane = panes.find(item => item.tab === event.target.closest('.ui-spotlight-tab'));
+    if (pane) show(pane);
+  });
   trigger?.setAttribute('aria-haspopup', 'dialog'); trigger?.setAttribute('aria-expanded', 'false'); trigger?.setAttribute('aria-controls', id);
   trigger?.addEventListener('click', toggle);
 
-  input.addEventListener('input', () => { error = ''; render(); state.reset(reachable); sync(true); });
+  input.addEventListener('input', () => { error = ''; render(); current.state.reset(reachable); sync(true); });
   input.addEventListener('keydown', event => {
     if (event.isComposing) return;
-    const key = event.key, mod = event.metaKey || event.ctrlKey;
+    const key = event.key, mod = event.metaKey || event.ctrlKey, state = current.state;
+    // Tab walks the tabs; focus never leaves the search field.
+    if (key === 'Tab' && tabbed && !mod && !event.altKey) {
+      event.preventDefault();
+      show(panes[(panes.indexOf(current) + (event.shiftKey ? -1 : 1) + panes.length) % panes.length]);
+      return;
+    }
     if (key !== 'Enter') error = '';
     if (key === 'ArrowDown' || key === 'ArrowUp') { event.preventDefault(); state.move(reachable, key === 'ArrowDown' ? 1 : -1, event.shiftKey); sync(true); }
     else if ((key === 'Home' || key === 'End') && !mod) { event.preventDefault(); state.move(reachable, key.toLowerCase(), event.shiftKey); sync(true); }
@@ -191,25 +236,25 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     const moved = event.clientX !== pointerX || event.clientY !== pointerY;
     pointerX = event.clientX; pointerY = event.clientY;
     const row = rowOf(event);
-    if (!moved || !row || row.hasAttribute('data-disabled') || row.dataset.id === state.active) return;
-    state.highlight(row.dataset.id); sync();
+    if (!moved || !row || row.hasAttribute('data-disabled') || row.dataset.id === current.state.active) return;
+    current.state.highlight(row.dataset.id); sync();
   });
   list.addEventListener('click', event => {
     const row = rowOf(event);
     if (!row || row.hasAttribute('data-disabled')) return;
     error = '';
-    const rowId = row.dataset.id;
+    const rowId = row.dataset.id, state = current.state;
     if (event.shiftKey) state.rangeTo(reachable, rowId);
     else if (event.target.closest('.ui-checkbox') || state.size) state.toggle(rowId);
     else { commit([rowId]); return; }
     sync();
   });
   hiddenBar.addEventListener('click', event => {
-    const chosen = event.target.closest('.ui-spotlight-chosen-row');
+    const chosen = event.target.closest('.ui-spotlight-chosen-row'), state = current.state;
     if (chosen) state.remove(chosen.dataset.id);
     else if (event.target.closest('.ui-checkbox')) state.unselectHidden(visibleIds());
-    else unfolded = !unfolded;
-    if (!state.hidden(visibleIds()).length) unfolded = false;
+    else current.unfolded = !current.unfolded;
+    if (!state.hidden(visibleIds()).length) current.unfolded = false;
     sync();
   });
 

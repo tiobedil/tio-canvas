@@ -108,7 +108,7 @@ export function createCapturer({ binary, idle = 4000 } = {}) {
       if (result.result.value) { ready = true; break; }
     }
     if (!ready) throw new Error(`Page did not load: ${source.src}`);
-    const settled = await send("Runtime.evaluate", { expression: "(async()=>{await document.fonts.ready;await Promise.race([Promise.all([...document.images].map(image=>image.decode().catch(()=>{}))),new Promise(resolve=>setTimeout(resolve,4000))]);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));return true})()", awaitPromise: true, returnByValue: true });
+    const settled = await send("Runtime.evaluate", { expression: "(async()=>{await window.__canvasComponentReady;await document.fonts.ready;await Promise.race([Promise.all([...document.images].map(image=>image.decode().catch(()=>{}))),new Promise(resolve=>setTimeout(resolve,4000))]);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));return true})()", awaitPromise: true, returnByValue: true });
     if (settled.exceptionDetails) throw new Error(`Page did not settle: ${source.src}`);
     const { data } = await send("Page.captureScreenshot", { format: "webp", quality: QUALITY, clip: { x: 0, y: 0, width: source.width, height: source.height, scale: THUMBNAIL_SIZE / Math.min(source.width, source.height) } });
     return Buffer.from(data, "base64");

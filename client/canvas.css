@@ -73,6 +73,21 @@ body[data-space] #viewport { cursor: grab; } body[data-gesture="pan"] #viewport 
   .screen [data-fold],.screen[data-expanded] [data-fold],.screen .screen-more { transition: none; }
 }
 
+/* A component frame carries its dials on its right. They belong to the frame:
+   they live in the world, so they move and shrink with it. In fullscreen the
+   frame fills the window, so the dials float over its top right corner instead,
+   and minimised they become a button that is dragged from corner to corner like
+   the preview menu button (dial-float.js). */
+.screen > .ui-dial-panel { position: absolute; left: calc(100% + var(--canvas-dial-gap)); top: 0; z-index: 1; }
+.screen[data-fullscreen] > .ui-dial-panel { position: fixed; left: auto; right: var(--canvas-preview-inset); top: var(--canvas-preview-inset); }
+.screen[data-fullscreen] > .ui-dial-panel .ui-dial-card { max-height: calc(100dvh - 2 * var(--canvas-preview-inset)); box-shadow: var(--canvas-shadow-modal); }
+.screen[data-fullscreen] > .ui-dial-panel[data-minimized] { left: 0; right: auto; top: 0; transition: transform var(--canvas-snap-duration) var(--canvas-snap-ease); }
+.screen[data-fullscreen] > .ui-dial-panel[data-minimized] .ui-dial-button { cursor: grab; }
+.screen[data-fullscreen] > .ui-dial-panel[data-dragging] { transition: none; }
+.screen[data-fullscreen] > .ui-dial-panel[data-dragging] .ui-dial-button { cursor: grabbing; }
+body[data-gesture] .ui-dial-panel, body[data-space] .ui-dial-panel { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .screen[data-fullscreen] > .ui-dial-panel[data-minimized] { transition: none; } }
+
 /* The Layers drawer: a panel with a title bar and a scrolling list of rows. */
 .layers-drawer {
   position: fixed; inset: var(--canvas-panel-inset) auto auto var(--canvas-panel-inset);

@@ -11,3 +11,4 @@ export { Menu, MenuItem, MenuLabel, MenuFooter, menuKeys, isOpen, closeMenu } fr
 export { Dialog, DialogBody, DialogFooter, openDialog } from './dialog.js';
 export { SelectField, IconSelect, closeSelectMenus, positionSelectMenus } from './select.js';
 export { Spotlight } from './spotlight.js';
+export { Switch, Slider, OptionChips, DialPanel } from './dial.js';

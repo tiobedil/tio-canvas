@@ -12,6 +12,11 @@ export const entries = [
   {
     unreleased: true,
     items: [
+      { type: 'new', text: 'Components can now be previewed on the canvas: each one sits alone in a frame you can resize, open fullscreen and switch to dark mode on its own.' },
+      { type: 'new', text: 'A component frame has controls on its right for every prop, variant and state, so you can try them all without touching code. Minimize them into a floating button when they are in the way.' },
+      { type: 'new', text: 'Add pages now has two small tabs, Pages and Components (press Tab to switch). Each tab keeps its own selection.' },
+      { type: 'improved', text: 'The Add pages panel is taller, so more results fit without scrolling.' },
+      { type: 'improved', text: 'Search in Add pages now finds a page when you skip letters, like "updte" for "update".' },
       { type: 'fixed', text: 'The empty search result in Add pages no longer repeats what you typed, so a long search no longer breaks the layout.' },
     ],
   },
