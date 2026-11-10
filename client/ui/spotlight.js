@@ -42,8 +42,8 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
 
   const input = Input({ id: `${id}-search`, role: 'combobox', 'aria-label': label, 'aria-controls': `${id}-list`, 'aria-expanded': 'true', 'aria-autocomplete': 'list', autocomplete: 'off', spellcheck: 'false', placeholder, disabled: !items.length });
   const notice = h('p', { class: 'ui-spotlight-notice', role: 'status', hidden: true });
-  // Shown while a search hides some selected pages: counts every selected page and unfolds to list them.
-  const chosenBox = Checkbox({ label: 'Unselect all selected pages', checked: true, tabIndex: -1 });
+  // Shown while a search hides some selected pages: counts the ones the results do not show and unfolds to list them.
+  const chosenBox = Checkbox({ label: 'Unselect the other selected pages', checked: true, tabIndex: -1 });
   const chosenText = h('span', {});
   const chosenToggle = h('button', { type: 'button', class: 'ui-spotlight-chosen-toggle', tabIndex: -1, 'aria-expanded': 'false', 'aria-controls': `${id}-chosen` }, chosenText, Chevron());
   const chosenList = h('div', { id: `${id}-chosen`, class: 'ui-spotlight-chosen-list', hidden: true });
@@ -122,12 +122,12 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     if (!reachable.includes(state.active)) input.removeAttribute('aria-activedescendant');
     const hiddenIds = state.hidden(visibleIds());
     hiddenBar.hidden = !hiddenIds.length;
-    chosenText.textContent = plural(state.size, 'selected page', 'selected pages');
+    chosenText.textContent = plural(hiddenIds.length, 'more selected page', 'more selected pages');
     chosenToggle.setAttribute('aria-expanded', String(unfolded));
     hiddenBar.dataset.open = String(unfolded);
     chosenList.hidden = !unfolded || !hiddenIds.length;
     if (!chosenList.hidden) {
-      chosenList.replaceChildren(...order.filter(key => state.selected.has(key)).map(key => h('div', { class: 'ui-spotlight-chosen-row', dataset: { id: key } },
+      chosenList.replaceChildren(...order.filter(key => hiddenIds.includes(key)).map(key => h('div', { class: 'ui-spotlight-chosen-row', dataset: { id: key } },
         Checkbox({ label: `Unselect ${rows.get(key).item.title}`, checked: true, tabIndex: -1, 'aria-hidden': 'true' }), h('span', {}, rows.get(key).item.title))));
     }
     const text = message();
@@ -207,7 +207,7 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
   hiddenBar.addEventListener('click', event => {
     const chosen = event.target.closest('.ui-spotlight-chosen-row');
     if (chosen) state.remove(chosen.dataset.id);
-    else if (event.target.closest('.ui-checkbox')) state.clear();
+    else if (event.target.closest('.ui-checkbox')) state.unselectHidden(visibleIds());
     else unfolded = !unfolded;
     if (!state.hidden(visibleIds()).length) unfolded = false;
     sync();
