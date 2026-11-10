@@ -57,6 +57,8 @@ state.unselectHidden(visible);
 assert.equal(state.size, 0, 'unselecting the hidden ones leaves the visible selection alone');
 state.selectAll(visible);
 assert.deepEqual([...state.selected], ['b', 'c']);
+state.remove('b');
+assert.deepEqual([...state.selected], ['c'], 'one selected row can be unselected on its own');
 state.highlight('c'); state.keep(['b', 'c']);
 assert.equal(state.active, 'c', 'keep leaves a surviving highlight');
 state.keep(['x', 'y']);

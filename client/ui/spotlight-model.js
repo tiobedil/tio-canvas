@@ -72,6 +72,7 @@ export function createSpotlightState() {
         anchor = null; base = null;
       }
     },
+    remove(id) { selected.delete(id); base = null; },
     toggle(id) {
       if (!selected.delete(id)) selected.add(id);
       active = id; anchor = id; base = null;

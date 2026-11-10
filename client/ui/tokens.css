@@ -89,7 +89,7 @@
   --canvas-layers-width: 260px; --canvas-layer-height: 38px; --canvas-layer-gap: 4px;
   --canvas-layers-heading-inset: 18px; --canvas-layer-indent: 10px; --canvas-grabber-stroke: 3px;
   --canvas-picker-width: 500px; --canvas-picker-height: 700px;
-  --canvas-spotlight-width: 400px; --canvas-spotlight-height: 270px; --canvas-spotlight-thumb: 28px; --canvas-spotlight-row: 40px;
+  --canvas-spotlight-width: 520px; --canvas-spotlight-height: 320px; --canvas-spotlight-thumb: 28px; --canvas-spotlight-row: 40px;
   --canvas-checkbox-size: 16px; --canvas-checkbox-target: 44px; --canvas-checkbox-radius: 4px;
   --canvas-check-width: 5px; --canvas-check-height: 9px; --canvas-check-stroke: 2px;
   --canvas-preview-inset: var(--canvas-panel-inset); --canvas-preview-gap: var(--canvas-menu-offset); --canvas-preview-menu: 232px;

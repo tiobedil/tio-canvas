@@ -1,5 +1,5 @@
 import { h } from './dom.js';
-import { Icon } from './icons.js';
+import { Icon, Chevron } from './icons.js';
 import { Input } from './field.js';
 import { Checkbox } from './list.js';
 import { Pill } from './content.js';
@@ -42,9 +42,13 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
 
   const input = Input({ id: `${id}-search`, role: 'combobox', 'aria-label': label, 'aria-controls': `${id}-list`, 'aria-expanded': 'true', 'aria-autocomplete': 'list', autocomplete: 'off', spellcheck: 'false', placeholder, disabled: !items.length });
   const notice = h('p', { class: 'ui-spotlight-notice', role: 'status', hidden: true });
-  const hiddenBox = Checkbox({ label: 'Unselect the pages the search hides', checked: true, tabIndex: -1 });
-  const hiddenText = h('span', {});
-  const hiddenBar = h('div', { class: 'ui-spotlight-hidden', hidden: true }, hiddenBox, hiddenText);
+  // Shown while a search hides some selected pages: counts every selected page and unfolds to list them.
+  const chosenBox = Checkbox({ label: 'Unselect all selected pages', checked: true, tabIndex: -1 });
+  const chosenText = h('span', {});
+  const chosenToggle = h('button', { type: 'button', class: 'ui-spotlight-chosen-toggle', tabIndex: -1, 'aria-expanded': 'false', 'aria-controls': `${id}-chosen` }, chosenText, Chevron());
+  const chosenList = h('div', { id: `${id}-chosen`, class: 'ui-spotlight-chosen-list', hidden: true });
+  const hiddenBar = h('div', { class: 'ui-spotlight-hidden', hidden: true }, h('div', { class: 'ui-spotlight-chosen-head' }, chosenBox, chosenToggle), chosenList);
+  let unfolded = false;
   const list = h('div', { id: `${id}-list`, class: 'ui-spotlight-list', role: 'listbox', 'aria-multiselectable': 'true', 'aria-label': label });
   const emptyEl = h('div', { class: 'ui-spotlight-empty', role: 'status', hidden: true });
   const root = h('div', { id, class: 'ui-spotlight', popover: 'manual', role: 'dialog', 'aria-label': label },
@@ -118,7 +122,14 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     if (!reachable.includes(state.active)) input.removeAttribute('aria-activedescendant');
     const hiddenIds = state.hidden(visibleIds());
     hiddenBar.hidden = !hiddenIds.length;
-    hiddenText.textContent = `${plural(hiddenIds.length, 'selected page', 'selected pages')} hidden by search`;
+    chosenText.textContent = plural(state.size, 'selected page', 'selected pages');
+    chosenToggle.setAttribute('aria-expanded', String(unfolded));
+    hiddenBar.dataset.open = String(unfolded);
+    chosenList.hidden = !unfolded || !hiddenIds.length;
+    if (!chosenList.hidden) {
+      chosenList.replaceChildren(...order.filter(key => state.selected.has(key)).map(key => h('div', { class: 'ui-spotlight-chosen-row', dataset: { id: key } },
+        Checkbox({ label: `Unselect ${rows.get(key).item.title}`, checked: true, tabIndex: -1, 'aria-hidden': 'true' }), h('span', {}, rows.get(key).item.title))));
+    }
     const text = message();
     notice.hidden = !text; notice.textContent = text;
   }
@@ -193,7 +204,14 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     else { commit([rowId]); return; }
     sync();
   });
-  hiddenBar.addEventListener('click', () => { state.unselectHidden(visibleIds()); sync(); });
+  hiddenBar.addEventListener('click', event => {
+    const chosen = event.target.closest('.ui-spotlight-chosen-row');
+    if (chosen) state.remove(chosen.dataset.id);
+    else if (event.target.closest('.ui-checkbox')) state.clear();
+    else unfolded = !unfolded;
+    if (!state.hidden(visibleIds()).length) unfolded = false;
+    sync();
+  });
 
   // Outside the panel: a click closes it, and Cmd or Ctrl+K opens and closes it.
   document.addEventListener('pointerdown', event => {
