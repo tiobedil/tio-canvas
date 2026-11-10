@@ -26,6 +26,7 @@ createServer(async (request, response) => {
       return;
     }
     if (pathname === "/canvas" || pathname.startsWith("/canvas/")) {
+      await canvas.ensureThumbnail(pathname, `http://${request.headers.host}`);
       const { directory, localPath, project } = canvas.locate(pathname);
       if (project) {
         response.writeHead(200, { "content-type": types[".js"] }).end(await canvas.projectModule());

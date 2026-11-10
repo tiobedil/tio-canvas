@@ -21,7 +21,7 @@ export function formatShortcut(value) {
 
 const tip = document.createElement('div');
 tip.id = 'canvas-tooltip';
-tip.className = 'canvas-tooltip';
+tip.className = 'ui-tooltip';
 tip.setAttribute('role', 'tooltip');
 tip.popover = 'manual';
 document.body.append(tip);
@@ -66,7 +66,7 @@ function place(el, info) {
   tip.replaceChildren(text);
   if (info.shortcut) {
     const keys = document.createElement('span');
-    keys.className = 'tooltip-shortcut';
+    keys.className = 'ui-tooltip-shortcut';
     keys.textContent = formatShortcut(info.shortcut);
     tip.append(keys);
   }

@@ -29,6 +29,7 @@ createServer(async (request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, "http://x").pathname);
   try {
     if (pathname === "/canvas" || pathname.startsWith("/canvas/")) {
+      await canvas.ensureThumbnail(pathname, `http://${request.headers.host}`);
       const { directory, localPath, project } = canvas.locate(pathname);
       if (project) {
         const module = await canvas.projectModule();

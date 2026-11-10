@@ -2,6 +2,8 @@
 // step ends when the user does the thing the step is about, so there is no
 // Back, and no Next except where there is nothing to do (a tip, or the finish).
 // While it is up, every press and key outside what is highlighted is swallowed.
+import { h, Button } from './ui/index.js';
+
 const KEY = 'tio-canvas:onboarding';
 const PAD = 6, GAP = 12, MARGIN = 12, RADIUS = 14;
 const $ = selector => document.querySelector(selector);
@@ -19,13 +21,13 @@ const steps = [
   {
     targets: () => [$('#add')],
     title: 'Add a page',
-    body: 'Click here to open the page list.',
+    body: 'Click here, or press ⌘K (Ctrl+K on Windows), to search your pages.',
   },
   {
-    targets: () => [$('#page-options .page-option')],
-    deny: '.page-checkbox-target', modal: true,
+    targets: () => [$('#add-pages .ui-spotlight-row:not([data-disabled])')],
+    deny: '.ui-checkbox',
     title: 'Pick a page',
-    body: 'Click a page to add it to the canvas.',
+    body: 'Click a page to add it to the canvas. The arrow keys and Enter work too.',
   },
   {
     // The screen that was just added, clipped to what is on screen.
@@ -36,7 +38,7 @@ const steps = [
     action: 'Next',
   },
   {
-    targets: () => [$('#inspector button.select-field')],
+    targets: () => [$('#inspector .ui-select')],
     ready: inspectorReady, fallback: selectScreen, pan: true,
     title: 'Change the size',
     body: 'Open Preset and pick a device. The screen resizes to match.',
@@ -87,15 +89,12 @@ function build() {
   card.popover = 'manual';
   card.setAttribute('role', 'group');
   card.setAttribute('aria-label', 'Canvas tour');
-  card.innerHTML = '<div class="onboarding-copy" aria-live="polite"><h2></h2><p></p></div>'
-    + '<div class="onboarding-footer"><div class="onboarding-dots" role="img"></div><div class="onboarding-actions">'
-    + '<button type="button" class="secondary-button" data-tooltip="Skip the tour" data-shortcut="esc">Skip</button>'
-    + '<button type="button" class="primary-button" hidden></button></div></div>';
-  titleEl = card.querySelector('h2');
-  bodyEl = card.querySelector('p');
-  dotsEl = card.querySelector('.onboarding-dots');
-  skipEl = card.querySelector('.secondary-button');
-  actionEl = card.querySelector('.primary-button');
+  skipEl = Button({ size: 'sm', tooltip: 'Skip the tour', shortcut: 'esc' }, 'Skip');
+  actionEl = Button({ size: 'sm', variant: 'primary', hidden: true });
+  titleEl = h('h2'); bodyEl = h('p'); dotsEl = h('div', { class: 'onboarding-dots', role: 'img' });
+  card.append(
+    h('div', { class: 'onboarding-copy', 'aria-live': 'polite' }, titleEl, bodyEl),
+    h('div', { class: 'onboarding-footer' }, dotsEl, h('div', { class: 'onboarding-actions' }, skipEl, actionEl)));
   for (let n = 0; n < steps.length; n++) dotsEl.append(document.createElement('span'));
   skipEl.addEventListener('click', end);
   actionEl.addEventListener('click', () => (index === LAST ? end() : go(index + 1)));
@@ -142,13 +141,6 @@ function render(step, key) {
 function raise() {
   for (const element of [dim, card]) { if (element.matches(':popover-open')) element.hidePopover(); element.showPopover(); }
 }
-// A modal dialog makes everything outside its own subtree inert, the card
-// included. Inside the dialog it stays pressable, and Skip stays reachable.
-function dock(modal) {
-  const home = modal ? $('#add-pages') : document.body;
-  if (home && card.parentElement !== home) { home.append(card); raise(); }
-}
-
 // Pan the canvas by the least distance that brings an on-canvas target fully into view.
 function reveal(rect) {
   const left = visible($('#layers')) ? $('#layers').getBoundingClientRect().right + 16 : 16;
@@ -169,7 +161,6 @@ function layout() {
   const step = steps[index];
   const resolved = step.ready && !step.ready() ? step.fallback : step;
   const key = `${index}:${resolved === step ? 'main' : 'fallback'}`;
-  dock(!!step.modal && !!$('#add-pages')?.open);
   if (key !== shownKey) render(resolved, key);
   activeTargets = resolved.targets();
   activeDeny = resolved.deny || '';
@@ -211,7 +202,6 @@ function go(next) { index = next; shownKey = ''; offSince = 0; run(); }
 function start() {
   if (!dim) build();
   active = true; paused = false; placed = false; shownKey = ''; index = 0;
-  dock(false);
   raise();
   dim.style.transition = 'none'; card.style.transition = 'none';
   layout();
@@ -228,7 +218,7 @@ function end() {
 
 function syncDialogs() {
   if (!active) return;
-  const adding = $('#add-pages')?.open, shortcuts = $('#shortcuts')?.open;
+  const adding = $('#add-pages')?.matches(':popover-open'), shortcuts = $('#shortcuts')?.open;
   if (shortcuts) {
     if (!paused) { paused = true; hideUi(); }
     return;
@@ -252,7 +242,7 @@ function blocking() { return active && !paused && dim?.dataset.on === 'true'; }
 function allowed(event) {
   const target = event.target instanceof Element ? event.target : null;
   if (!target) return true;
-  if (card.contains(target) || target.closest('.canvas-tooltip, .icon-options:popover-open')) return true;
+  if (card.contains(target) || target.closest('.ui-tooltip, .ui-menu:is([data-variant="options"], [data-variant="icons"]):popover-open')) return true;
   if (activeDeny && target.closest(activeDeny)) return false;
   return activeTargets.some(element => element?.contains(target));
 }
@@ -266,19 +256,20 @@ function guardKey(event) {
   if (event.key === 'Escape') {
     if (document.body.hasAttribute('data-fullscreen')) return;
     // Dialogs and menus close themselves; otherwise Escape skips the tour.
-    if ($('dialog[open], .icon-options:popover-open, #screen-context:popover-open')) return;
+    if ($('dialog[open], .ui-spotlight:popover-open, .ui-menu:popover-open:not(#layers-menu)')) return;
     event.preventDefault(); event.stopImmediatePropagation(); end();
     return;
   }
-  if (event.key === 'Tab' || allowed(event)) return;
+  if (event.key === 'Tab' || allowed(event) || event.target.closest?.('.ui-spotlight')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
 }
 
 function init() {
-  for (const dialog of [$('#add-pages'), $('#shortcuts')]) {
-    if (dialog) new MutationObserver(syncDialogs).observe(dialog, { attributes: true, attributeFilter: ['open'] });
-  }
+  const shortcuts = $('#shortcuts');
+  if (shortcuts) new MutationObserver(syncDialogs).observe(shortcuts, { attributes: true, attributeFilter: ['open'] });
+  // The Add pages panel is a popover: it reports opening and closing with `toggle`, which does not bubble.
+  document.addEventListener('toggle', event => { if (event.target.id === 'add-pages') syncDialogs(); }, true);
   for (const type of POINTER) window.addEventListener(type, guard, { capture: true, passive: false });
   window.addEventListener('keydown', guardKey, true);
   document.addEventListener('change', event => { if (active && index === PRESET && event.target.id === 'preset') go(PRESET + 1); }, true);

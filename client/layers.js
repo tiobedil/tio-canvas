@@ -1,12 +1,5 @@
 import { createRangeSelection } from './range-selection.js';
-const paths={
-  phone:'<rect x="6" y="2" width="8" height="16" rx="2"/><path d="M9 15h2"/>',
-  tablet:'<rect x="4" y="2" width="12" height="16" rx="2"/><path d="M9 15h2"/>',
-  laptop:'<rect x="4" y="3" width="12" height="10" rx="1"/><path d="M2 15h16l-1 2H3Z"/>',
-  desktop:'<rect x="3" y="3" width="14" height="10" rx="1"/><path d="M10 13v4m-4 0h8"/>',
-  custom:'<path d="M4 10V4h6M4 4l12 12m0-6v6h-6"/>',
-  text:'<path d="M4 5.5V4h12v1.5M10 4v12M7.5 16h5"/>'
-};
+import { h, Icon, setIcon } from './ui/index.js';
 export function deviceKind(preset,presets){return presets[preset]?.device??'custom';}
 export function createLayerDrawer({root,presets,collapsed=false,onSelect,onDrop,onCollapse,onRename,onSelectMany}){
   const list=root.querySelector('ol'),toggle=root.querySelector('#layers-toggle'),count=root.querySelector('#screens-count');
@@ -15,7 +8,7 @@ export function createLayerDrawer({root,presets,collapsed=false,onSelect,onDrop,
   function setCollapsed(value){
     root.toggleAttribute('data-collapsed',value);list.hidden=value;
     toggle.setAttribute('aria-expanded',String(!value));toggle.setAttribute('aria-label',`${value?'Expand':'Minimize'} Layers`);toggle.title=`${value?'Expand':'Minimize'} Layers`;
-    toggle.querySelector('path').setAttribute('d',value?'M5 7.5l5 5 5-5':'M5 12.5l5-5 5 5');
+    setIcon(toggle.querySelector('svg'),value?'chevron-down':'chevron-up');
   }
   // The drawer is clipped (overflow: hidden), so animating its height reveals or
   // hides the list instead of snapping. One box, 160ms, ease-out-quint.
@@ -46,11 +39,13 @@ export function createLayerDrawer({root,presets,collapsed=false,onSelect,onDrop,
     for(const item of [...items].reverse()){
       const {id,title,preset,kind:itemKind}=item;let row=rows.get(id);
       if(!row){
-        row=document.createElement('li');const button=document.createElement('button');button.type='button';button.className='layer-row';button.dataset.layerId=id;button.dataset.rangeId=id;
-        button.innerHTML='<span class="layer-grab" data-reorder aria-hidden="true"><svg class="layer-grabber" viewBox="0 0 20 20"><path d="M7 5h0m6 0h0M7 10h0m6 0h0M7 15h0m6 0h0"/></svg><svg class="layer-device" viewBox="0 0 20 20"></svg></span><span class="layer-label"></span>';row.append(button);rows.set(id,row);
+        const button=h('button',{type:'button',class:'layer-row ui-row',dataset:{layerId:id,rangeId:id}},
+          h('span',{class:'layer-grab',dataset:{reorder:true},'aria-hidden':'true'},Icon('grabber',{className:'layer-grabber'}),Icon('custom',{className:'layer-device'})),
+          h('span',{class:'layer-label'}));
+        row=h('li',{},button);rows.set(id,row);
       }
       const button=row.firstElementChild,kind=itemKind==='text'?'text':deviceKind(preset,presets);button.dataset.kind=itemKind;
-      if(button.dataset.device!==kind){button.querySelector('.layer-device').innerHTML=paths[kind];button.dataset.device=kind;}
+      if(button.dataset.device!==kind){setIcon(button.querySelector('.layer-device'),kind);button.dataset.device=kind;}
       if(!button.querySelector('.layer-label').isContentEditable && button.querySelector('.layer-label').textContent!==title)button.querySelector('.layer-label').textContent=title;button.dataset.tooltip='Drag to select, or drag the grip to reorder';
       button.setAttribute('aria-label',`${title}, ${itemKind==='text'?'Text':presets[preset]?.label??'Custom'}`);button.setAttribute('aria-pressed',String(selected.has(id)));
       const next=previous?previous.nextElementSibling:list.firstElementChild;

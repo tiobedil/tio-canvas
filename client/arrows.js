@@ -1,6 +1,6 @@
 import { SIDES, boundPoint, resolvePoint, snapArrow, arrowGeometry, readArrows } from './arrow-geometry.js';
 import { arrowBounds, arrowIntersects, resizeArrows } from './arrow-selection.js';
-import { setupArrowFields } from './select-field.js';
+import { closeSelectMenus } from './ui/index.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const svgElement = (tag, attributes = {}) => {
@@ -14,7 +14,8 @@ export function createArrows({ viewport, world, camera, objects, saved, checkpoi
   const layer = document.createElement('div');layer.id = 'arrow-layer';world.append(layer);
   const dots = document.createElement('div');dots.id = 'arrow-snaps';
   const nodes = document.createElement('div');nodes.id = 'arrow-nodes';viewport.append(dots, nodes);
-  const toolbar = document.querySelector('#arrow-inspector'), fields = setupArrowFields(toolbar);
+  const toolbar = document.querySelector('#arrow-inspector');
+  const fields = { update() { for (const field of toolbar.querySelectorAll('.ui-select-field')) field.sync(); }, close: closeSelectMenus };
   const cursorButton = document.querySelector('#tool-cursor'), arrowButton = document.querySelector('#tool-arrow'), textButton = document.querySelector('#tool-text');
   const pointAt = event => ({ x: (event.clientX - camera.x) / camera.scale, y: (event.clientY - camera.y) / camera.scale });
   const screenPoint = point => ({ x: camera.x + point.x * camera.scale, y: camera.y + point.y * camera.scale });

@@ -1,77 +1,44 @@
-/* Canvas-only chrome, visually informed by Untitled UI's public controls.
+/* The canvas itself: the board, the screens on it, selection, arrows, text, and
+   where each piece of chrome sits. Controls (buttons, fields, menus, dialogs) are
+   components: see ui/ui.css. Tokens live in ui/tokens.css.
+   Canvas-only chrome, visually informed by Untitled UI's public controls.
    No library stylesheet, framework, external font, or project styles imported. */
-:root {
-  color-scheme: light;
-  --canvas-surface: oklch(0.965 0 0); --canvas-text: oklch(0.32 0.005 265);
-  --canvas-muted: oklch(0.53 0.01 265); --canvas-panel: oklch(1 0 0);
-  --canvas-line: oklch(0.89 0.003 265); --canvas-accent: oklch(0.6 0.24 330);
-  --canvas-button: oklch(0.965 0.002 265); --canvas-button-hover: oklch(0.935 0.003 265);
-  --canvas-focus: var(--canvas-accent); --canvas-danger: oklch(0.55 0.2 25);
-  --canvas-shadow-ink: oklch(0.2 0.005 265); --canvas-on-accent: oklch(1 0 0);
-  --canvas-shadow: 0 1px 2px color-mix(in oklch,var(--canvas-shadow-ink) 6%,transparent), 0 6px 20px color-mix(in oklch,var(--canvas-shadow-ink) 6%,transparent);
-  --canvas-control: 36px; --canvas-handle: 8px; --canvas-side: 22px;
-  --canvas-menu-gap: 4px; --canvas-menu-offset: 12px; --canvas-gap: 10px; --canvas-radius: 8px;
-  --canvas-panel-radius: calc(var(--canvas-radius) + var(--canvas-padding) + var(--canvas-border));
-  --canvas-dot: color-mix(in oklch,var(--canvas-muted) 12%,transparent);
-  --canvas-padding: 8px; --canvas-rename-padding: 4px; --canvas-font: 12px; --canvas-border: 1px;
-  --canvas-toolbar-bottom: var(--canvas-panel-inset); --canvas-camera-duration: 260ms; --canvas-field-width: 64px; --canvas-chevron-gap: 6px;
-  --canvas-select-min-width: 150px; --canvas-chevron-size: 12px; --canvas-icon-size: 16px; --canvas-ring: 2px;
-  --canvas-contact-size: 24px; --canvas-contact-fill: oklch(0.535 0 0 / .22);
-  --canvas-contact-line: oklch(0.535 0 0 / .35); --canvas-contact-layer: 100;
-  --canvas-tick: 6px; --canvas-badge-padding: 4px; --canvas-guide-label: 10px; --canvas-select-max-height: 350px;
-}
-:root[data-dark] {
-  color-scheme: dark; --canvas-surface: oklch(0.2 0.004 265); --canvas-text: oklch(0.92 0.002 265);
-  --canvas-muted: oklch(0.7 0.008 265); --canvas-panel: oklch(0.255 0.005 265);
-  --canvas-line: oklch(0.38 0.006 265); --canvas-button: oklch(0.31 0.005 265);
-  --canvas-button-hover: oklch(0.37 0.006 265);
-  --canvas-danger: oklch(0.75 0.15 25);
-}
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; font: var(--canvas-font)/1.5 system-ui,sans-serif; color: var(--canvas-text); background: var(--canvas-surface); overflow: hidden; }
 #viewport { position: fixed; inset: 0; overflow: hidden; outline: none; background-image: radial-gradient(circle,var(--canvas-dot) 1px,transparent 1px); }
-#world { position: absolute; transform-origin: 0 0; will-change: transform; }
+#world { position: absolute; transform-origin: 0 0; will-change: transform; z-index: var(--canvas-object-layer); }
 .screen { position: absolute; }
 .screen-title { position: absolute; bottom: 100%; left: 0; background: transparent; border: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; transform-origin: left bottom; padding: var(--canvas-padding) 0; color: var(--canvas-muted); cursor: move; }
-.screen-title[contenteditable] { width: max-content; min-width: 1ch; cursor: text; background: var(--canvas-panel); border-radius: var(--canvas-radius); padding: var(--canvas-rename-padding); outline: var(--canvas-ring) solid var(--canvas-focus); text-overflow: clip; }
+.screen-title[contenteditable] { width: max-content; min-width: 1ch; cursor: text; background: var(--canvas-panel); border-radius: var(--canvas-radius); padding: var(--canvas-rename-padding); outline: var(--canvas-ring) solid var(--canvas-focus); text-overflow: clip; box-shadow: var(--canvas-shadow-button); }
 .screen iframe { box-shadow: var(--canvas-shadow); display: block; width: 100%; height: 100%; border: 0; background: var(--canvas-panel); }
 .screen[data-selected] { outline: var(--screen-outline) solid var(--canvas-accent); }
 .screen[data-selected] .screen-title { color: var(--canvas-accent); }
-#selection { position: absolute; border: var(--canvas-border) solid var(--canvas-accent); pointer-events: none; }
+#selection { position: absolute; border: var(--canvas-border) solid var(--canvas-accent); pointer-events: none; z-index: var(--canvas-selection-layer); }
 #group-grab { position: absolute; inset: 0; pointer-events: auto; cursor: grab; }
 body[data-gesture] #group-grab { cursor: grabbing; }
-.canvas-tools { display: flex; align-items: center; gap: var(--canvas-gap); padding: var(--canvas-padding); background: var(--canvas-panel); border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-panel-radius); box-shadow: var(--canvas-shadow); font-weight: 500; }
+/* Toolbars sit under the selection frame or beside the board. */
 :is(#inspector,#group-inspector) { position: absolute; top: calc(100% + var(--canvas-gap) + var(--canvas-border)); left: 50%; transform: translateX(-50%); pointer-events: auto; white-space: nowrap; }
-label { display: flex; align-items: center; gap: var(--canvas-padding); color: var(--canvas-muted); }
-button,select,input { font: inherit; color: inherit; }
-input { width: var(--canvas-field-width); padding: 0 var(--canvas-padding); text-align: center; }
-input,.select-field { height: var(--canvas-control); border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-radius); background: var(--canvas-panel); color: var(--canvas-text); }
-input:disabled { color: var(--canvas-muted); background: var(--canvas-button); }
-input[type="number"] { appearance: textfield; }
-input::-webkit-inner-spin-button,input::-webkit-outer-spin-button { appearance: none; margin: 0; }
-.select-field { position: relative; display: inline-flex; align-items: center; gap: var(--canvas-chevron-gap); padding: 0 var(--canvas-padding); }
-.select-field select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.canvas-tools :is(button,input):focus-visible,.select-field:has(:focus-visible) { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
-.chevron { width: var(--canvas-chevron-size); height: var(--canvas-chevron-size); fill: none; stroke: currentColor; }
 nav { position: fixed; bottom: var(--canvas-toolbar-bottom); left: 50%; transform: translateX(-50%); white-space: nowrap; }
 #zoom-tools { left: var(--canvas-panel-inset); right: auto; transform: none; }
 #history-tools { right: var(--canvas-panel-inset); left: auto; transform: none; }
-nav button { display: inline-flex; align-items: center; justify-content: center; gap: var(--canvas-chevron-gap); height: var(--canvas-control); padding: 0 var(--canvas-padding); border: 0; border-radius: var(--canvas-radius); background: var(--canvas-button); color: var(--canvas-text); cursor: pointer; }
-nav button:hover:not(:disabled) { background: var(--canvas-button-hover); }
-nav button:disabled { opacity: .4; cursor: default; }
-nav #add { background: var(--canvas-accent); color: var(--canvas-on-accent); }
-nav #add:hover { background: color-mix(in oklch,var(--canvas-accent) 88%,var(--canvas-text)); }
-nav svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-.icon-button { display: inline-grid; place-items: center; width: var(--canvas-control); padding: 0; }
-.tool-divider { height: var(--canvas-side); width: var(--canvas-border); background: var(--canvas-line); }
-.theme-icon path { fill: currentColor; stroke: none; }
+@media (max-width: 1100px) {
+  #edit-tools { bottom: calc(2 * var(--canvas-panel-inset) + var(--canvas-control) + 2 * var(--canvas-padding) + 2 * var(--canvas-border)); left: var(--canvas-panel-inset); right: auto; transform: none; }
+}
+#arrow-inspector, #text-inspector { position: fixed; translate: -50% 0; white-space: nowrap; }
+body:not([data-ready]) :is(#layers,#edit-tools,#history-tools,#zoom-tools,#arrow-inspector,#text-inspector,#selection) { visibility: hidden; }
+#canvas-status { position: fixed; bottom: calc(2 * var(--canvas-panel-inset) + var(--canvas-control) + 2 * var(--canvas-padding) + 2 * var(--canvas-border)); left: 50%; translate: -50% 0; padding: var(--canvas-padding); max-width: calc(100vw - 2 * var(--canvas-toolbar-bottom)); background: var(--canvas-panel); border-radius: var(--canvas-radius); box-shadow: var(--canvas-shadow); z-index: var(--canvas-contact-layer); pointer-events: none; }
+#canvas-status:empty { display: none; animation: none; }
+@media (prefers-reduced-motion: reduce) { #canvas-status { animation: none; } }
+
+/* Resize handles, the marquee and the guides. */
 .handle { position: absolute; width: var(--canvas-handle); height: var(--canvas-handle); background: var(--canvas-panel); border: var(--canvas-border) solid var(--canvas-accent); pointer-events: auto; transform: translate(-50%,-50%); padding: 0; border-radius: 0; }
 .handle[data-side] { background: transparent; border: 0; }
 .handle:not([data-side]) { z-index: 1; }
 .handle[data-side="horizontal"] { width: 100%; }
 .handle[data-side="vertical"] { height: 100%; }
 .handle:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); }
+.handle:not([data-side]),.arrow-snap,.smart-handle::before { box-shadow: var(--canvas-shadow-button); }
 #selection[data-locked] .handle { display: none; }
 /* Gate input at the outer frame so nested pages cannot bypass selection. */
 .screen:not([data-input-active]):not([data-fullscreen]) iframe { pointer-events: none; }
@@ -85,64 +52,50 @@ body[data-space] #viewport { cursor: grab; } body[data-gesture="pan"] #viewport 
 .guide.gap::after { right: 0; }
 .guide.gap[data-axis="vertical"]::before,.guide.gap[data-axis="vertical"]::after { width: var(--canvas-tick); height: var(--canvas-border); top: 0; left: 50%; transform: translateX(-50%); }
 .guide.gap[data-axis="vertical"]::after { top: 100%; }
-
-:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more) { position: absolute; right: 0; bottom: 100%; width: 28px; height: 32px; display: grid; place-items: center; padding: 0; transform-origin: right bottom; border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-muted); cursor: pointer; }
-:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more):hover { color: var(--canvas-text); background: var(--canvas-button-hover); }
-:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more):focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); }
-:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more) svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-
 #canvas-contact { position: fixed; left: 0; top: 0; width: calc(var(--canvas-contact-size) * var(--contact-scale,1)); height: calc(var(--canvas-contact-size) * var(--contact-scale,1)); border-radius: 50%; background: var(--canvas-contact-fill); border: var(--canvas-border) solid var(--canvas-contact-line); pointer-events: none; z-index: var(--canvas-contact-layer); }
-
 .screen iframe[data-refresh-pending] { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
 
-#canvas-status { position: fixed; bottom: calc(2 * var(--canvas-panel-inset) + var(--canvas-control) + 2 * var(--canvas-padding) + 2 * var(--canvas-border)); left: 50%; translate: -50% 0; padding: var(--canvas-padding); max-width: calc(100vw - 2 * var(--canvas-toolbar-bottom)); background: var(--canvas-panel); border-radius: var(--canvas-radius); box-shadow: var(--canvas-shadow); z-index: var(--canvas-contact-layer); pointer-events: none; }
-#canvas-status:empty { display: none; }
-
-/* The Layers drawer shares the tools' surface, borders, and native controls. */
-:root {
-  --canvas-panel-inset: 12px;
-  --canvas-layers-width: 260px;
-  --canvas-layer-height: 38px;
-  --canvas-layer-gap: 4px;
-  --canvas-layers-heading-inset: 18px;
-  --canvas-layer-indent: 10px;
-  --canvas-grabber-ink: color-mix(in oklch,var(--canvas-muted) 65%,transparent);
-  --canvas-grabber-stroke: 3px;
-  --canvas-layer-z: 110;
-  --canvas-layer-selected: color-mix(in oklch,var(--canvas-accent) 12%,transparent);
+/* The small controls above a screen are bare buttons (ui/button.js) with this skin.
+   Icons that do not fit the screen width fold behind a ... button and slide in on hover. */
+.screen .screen-action { position: absolute; right: 0; bottom: 100%; width: 28px; height: 32px; transform-origin: right bottom; border-radius: var(--canvas-radius); color: var(--canvas-muted); cursor: pointer; transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease), transform var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease); }
+.screen .screen-action:hover { color: var(--canvas-text); background: var(--canvas-button-hover); }
+.screen .screen-action:active { transform: scale(.92); background: var(--canvas-button-pressed); color: var(--canvas-text); }
+.screen .screen-action:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); }
+.screen .screen-more { display: none; transition: opacity .12s ease-out; }
+.screen[data-folded] .screen-more { display: grid; }
+.screen[data-expanded] .screen-more { opacity: 0; pointer-events: none; }
+.screen [data-fold] { opacity: 0; visibility: hidden; pointer-events: none; translate: calc(var(--screen-outline) * 10) 0;
+  transition: opacity .12s ease-out, translate .12s ease-out, visibility 0s .12s; }
+.screen[data-expanded] [data-fold] { opacity: 1; visibility: visible; pointer-events: auto; translate: 0 0;
+  background: var(--canvas-surface); transition: opacity .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), translate .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), visibility 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .screen .screen-action:active { transform: none; }
+  .screen [data-fold],.screen[data-expanded] [data-fold],.screen .screen-more { transition: none; }
 }
+
+/* The Layers drawer: a panel with a title bar and a scrolling list of rows. */
 .layers-drawer {
   position: fixed; inset: var(--canvas-panel-inset) auto auto var(--canvas-panel-inset);
   max-height: calc(100dvh - 3 * var(--canvas-panel-inset) - var(--canvas-control) - 2 * var(--canvas-padding) - 2 * var(--canvas-border));
   width: min(var(--canvas-layers-width), calc(100vw - 2 * var(--canvas-panel-inset)));
   padding: 0; gap: 0;
-  display: flex; flex-direction: column; align-items: stretch; z-index: var(--canvas-layer-z);
+  display: flex; flex-direction: column; align-items: stretch;
   overflow: hidden;
 }
-.layers-header { display: flex; align-items: center; gap: var(--canvas-gap); padding: var(--canvas-padding); padding-left: var(--canvas-layers-heading-inset); flex: none; }
-.layers-header h2 { margin: 0; margin-right: auto; font-size: inherit; font-weight: 600; }
+.layers-drawer[data-collapsed] { inset: var(--canvas-panel-inset) auto auto var(--canvas-panel-inset); margin: 0; }
 #layers-title { display: flex; align-items: center; gap: var(--canvas-gap); }
 /* A 4x raster mask, not the SVG: the browser's downscale of a bitmap draws these
    diagonal edges smoother than its vector rasteriser does at 24px. */
 #layers-title .layers-logo { width: 24px; height: 24px; flex: none; background: currentColor; mask: url(/canvas/tio-logo.png) center / 100% 100% no-repeat; -webkit-mask: url(/canvas/tio-logo.png) center / 100% 100% no-repeat; }
-.layers-header button { display: grid; place-items: center; width: var(--canvas-control); height: var(--canvas-control); padding: 0; border: 0; border-radius: var(--canvas-radius); background: var(--canvas-button); color: inherit; flex: none; cursor: pointer; }
-.layers-header button:hover { background: var(--canvas-button-hover); }
-.layers-header button svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-.layers-drawer ol { position: relative; margin: 0; padding: var(--canvas-padding); border-top: var(--canvas-border) solid var(--canvas-line); list-style: none; overflow: auto; min-height: 0; flex: 1; overscroll-behavior: contain; }
+#layers-more { position: relative; }
+#layers-more .ui-badge { position: absolute; top: 0; right: 0; translate: 50% -50%; box-shadow: 0 0 0 2px var(--canvas-panel); }
+.layers-drawer ol { position: relative; margin: 0; padding: var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); list-style: none; overflow: auto; min-height: 0; flex: 1; overscroll-behavior: contain; }
 .layers-drawer ol[hidden],.layers-drawer[data-empty] :is(ol,#layers-toggle) { display: none; }
 .layers-drawer li { position: relative; }
 .layers-drawer li ~ li { margin-top: var(--canvas-layer-gap); }
-.layer-row span[contenteditable] { min-width: 0; flex: 1; cursor: text; text-overflow: clip; }
-.layers-drawer .layer-row, .layer-ghost .layer-row {
-  display: flex; align-items: center; justify-content: flex-start; gap: var(--canvas-layer-indent);
-  width: 100%; height: var(--canvas-layer-height); padding-inline: var(--canvas-layer-indent);
-  border: 0; border-radius: var(--canvas-radius); text-align: left; cursor: default;
-}
-.layers-drawer .layer-row { background: transparent; color: inherit; }
-.layers-drawer .layer-row:hover { background: var(--canvas-button-hover); }
-.layer-row svg, .layer-ghost svg { flex: none; width: var(--canvas-icon-size); height: var(--canvas-icon-size); stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.layer-row span[contenteditable] { min-width: 0; flex: 1; cursor: text; text-overflow: clip; user-select: text; touch-action: auto; }
+.layers-drawer .layer-row, .layer-ghost .layer-row { justify-content: flex-start; gap: var(--canvas-layer-indent); height: var(--canvas-layer-height); padding-inline: var(--canvas-layer-indent); cursor: default; }
 .layer-row span, .layer-ghost span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.layers-drawer .layer-row[aria-pressed="true"] { color: var(--canvas-text); background: var(--canvas-layer-selected); }
 .layers-drawer li[data-dragging] { opacity: .4; }
 .layer-drop-line { position: absolute; top: 0; left: var(--canvas-padding); right: var(--canvas-padding); height: 2px; border-radius: 1px; background: oklch(0 0 0); pointer-events: none; transition: transform 140ms var(--canvas-snap-ease); }
 :root[data-dark] .layer-drop-line { background: oklch(1 0 0); }
@@ -153,136 +106,74 @@ body[data-space] #viewport { cursor: grab; } body[data-gesture="pan"] #viewport 
 .layer-ghost[hidden] { display: none; }
 body[data-layer-drag] { cursor: grabbing; user-select: none; }
 body[data-layer-drag] iframe { pointer-events: none; }
-.layers-drawer[data-collapsed] { inset: var(--canvas-panel-inset) auto auto var(--canvas-panel-inset); margin: 0; }
-
-/* Preview is host-viewport fullscreen, not a second document or browser window. */
-:root {
-  --canvas-preview-inset: var(--canvas-panel-inset); --canvas-preview-gap: var(--canvas-menu-offset);
-  --canvas-preview-menu: 232px; --canvas-preview-layer: 200;
-  --canvas-preview-dark: oklch(0.255 0.005 265); --canvas-preview-ink: oklch(0.96 0.002 265);
-  --canvas-snap-duration: 260ms; --canvas-snap-ease: cubic-bezier(0.23,1,0.32,1);
-}
-.screen-fullscreen { position: absolute; right: 0; bottom: 100%; width: 28px; height: 32px; display: grid; place-items: center; padding: 0; transform-origin: right bottom; border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-muted); cursor: pointer; }
-.screen-fullscreen:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); }
-.screen-fullscreen svg,#fullscreen-toggle svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-body[data-fullscreen] #viewport { background: var(--canvas-surface); }
-body[data-fullscreen] #world { position: fixed; inset: 0; transform: none !important; will-change: auto; }
-body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status),body[data-fullscreen] .screen:not([data-fullscreen]),.screen[data-fullscreen] :is(.screen-title,.screen-orientation,.screen-theme,.screen-more,.screen-refresh,.screen-fullscreen) { display: none; }
-.screen[data-fullscreen] { position: absolute; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; outline: none; }
-.screen[data-fullscreen] iframe { box-shadow: none; }
-#fullscreen-tools { position: fixed; left: 0; top: 0; width: var(--canvas-control); height: var(--canvas-control); z-index: var(--canvas-preview-layer); transition: transform var(--canvas-snap-duration) var(--canvas-snap-ease); }
-#fullscreen-tools[data-dragging] { transition: none; }
-#fullscreen-toggle { display: grid; place-items: center; width: var(--canvas-control); height: var(--canvas-control); padding: 0; border: var(--canvas-border) solid color-mix(in oklch,var(--canvas-preview-ink) 15%,transparent); border-radius: 50%; color: var(--canvas-preview-ink); background: var(--canvas-preview-dark); box-shadow: var(--canvas-shadow); cursor: grab; touch-action: none; user-select: none; }
-#fullscreen-tools[data-dragging] #fullscreen-toggle { cursor: grabbing; }
-#fullscreen-toggle:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
-#fullscreen-menu { position: absolute; width: min(var(--canvas-preview-menu),calc(100vw - 2 * var(--canvas-preview-inset))); max-height: calc(100dvh - 2 * var(--canvas-preview-inset) - var(--canvas-float-size) - var(--canvas-preview-gap)); overflow: auto; flex-direction: column; align-items: stretch; }
-#fullscreen-back { height: var(--canvas-control); border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-text); text-align: left; padding-inline: var(--canvas-padding); cursor: pointer; }
-@media (hover: hover) and (pointer: fine) {
-  .screen-fullscreen:hover { color: var(--canvas-text); background: var(--canvas-button-hover); }
-  #fullscreen-back:hover { background: var(--canvas-button-hover); }
-  #fullscreen-toggle:hover { background: color-mix(in oklch,var(--canvas-preview-dark) 90%,var(--canvas-preview-ink)); }
-}
-@media (prefers-reduced-motion: reduce) { #fullscreen-tools { transition: none; } }
-
-/* Page catalog stays available even when no screens are displayed. */
-:root {
-  --canvas-picker-width: 500px; --canvas-picker-height: 700px;
-  --canvas-thumbnail-size: 44px;
-  --canvas-checkbox-line: color-mix(in oklch,var(--canvas-muted) 45%,var(--canvas-panel));
-  --canvas-checkbox-size: 16px; --canvas-checkbox-target: 44px; --canvas-checkbox-radius: 4px;
-  --canvas-check-width: 5px; --canvas-check-height: 9px; --canvas-check-stroke: 2px;
-  --canvas-scrim: oklch(0 0 0 / .45);
-}
-.page-picker { width: min(var(--canvas-picker-width),calc(100vw - 2 * var(--canvas-panel-inset))); height: min(var(--canvas-picker-height),calc(100dvh - 2 * var(--canvas-panel-inset))); max-width: none; max-height: none; padding: 0; border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-panel-radius); color: var(--canvas-text); background: var(--canvas-panel); box-shadow: var(--canvas-shadow); }
-.page-picker[open] { display: flex; }
-/* Kept on the closed dialog too: while it fades out the [open] rules are already gone, and a flex box that falls back to a row rearranges its header and body mid-exit. */
-.page-picker { flex-direction: column; }
-.page-picker::backdrop { background: var(--canvas-scrim); }
-.page-picker-body { flex: 1; min-height: 0; display: flex; flex-direction: column; border-block: var(--canvas-border) solid var(--canvas-line); }
-.page-picker-body > p { margin: var(--canvas-padding) var(--canvas-layers-heading-inset); color: var(--canvas-muted); }
-#page-options { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--canvas-menu-gap); overflow: auto; padding: var(--canvas-padding); overscroll-behavior: contain; }
-.page-option { display: flex; flex: none; align-items: center; gap: var(--canvas-gap); width: 100%; padding: var(--canvas-padding); border: 0; border-radius: var(--canvas-radius); background: transparent; text-align: left; cursor: pointer; }
-.page-thumbnail { flex: none; width: var(--canvas-thumbnail-size); aspect-ratio: 1; overflow: hidden; border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-checkbox-radius); background: var(--canvas-button); pointer-events: none; }
-.page-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.page-option-add { display: flex; align-items: center; align-self: stretch; flex: 1; min-width: 0; gap: var(--canvas-gap); padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
-.page-option-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.page-option:hover { background: var(--canvas-button-hover); }
-.page-option[data-checked="true"] { background: var(--canvas-layer-selected); }
-.page-checkbox-target { margin-inline: calc(-1 * var(--canvas-padding)); display: grid; place-items: center; flex: none; width: var(--canvas-checkbox-target); height: var(--canvas-checkbox-target); padding: 0; border: 0; background: transparent; cursor: pointer; }
-.page-checkbox { display: grid; place-items: center; width: var(--canvas-checkbox-size); height: var(--canvas-checkbox-size); border: var(--canvas-border) solid var(--canvas-checkbox-line); border-radius: var(--canvas-checkbox-radius); background: var(--canvas-panel); }
-.page-option[data-checked="true"] .page-checkbox { background: var(--canvas-accent); border-color: var(--canvas-accent); }
-.page-option[data-checked="true"] .page-checkbox::after { content: ''; width: var(--canvas-check-width); height: var(--canvas-check-height); border: solid var(--canvas-on-accent); border-width: 0 var(--canvas-check-stroke) var(--canvas-check-stroke) 0; transform: translate(-0.45px,-2.25px) rotate(45deg); }
-.page-option small { display: block; color: var(--canvas-muted); }
-.page-pill { flex: none; padding: var(--canvas-badge-padding) var(--canvas-padding); border-radius: var(--canvas-radius); color: var(--canvas-muted); background: var(--canvas-button); }
-.page-picker footer { display: flex; justify-content: flex-start; gap: var(--canvas-gap); padding: var(--canvas-padding); }
-.page-picker footer button { height: var(--canvas-control); padding-inline: var(--canvas-padding); border: 0; border-radius: var(--canvas-radius); background: var(--canvas-button); cursor: pointer; }
-.page-picker footer button:hover { background: var(--canvas-button-hover); }
-.page-picker footer button:disabled { opacity: .4; cursor: default; }
-.page-picker button:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: calc(-1 * var(--canvas-ring)); }
-#add-pages-submit { margin-left: auto; background: var(--canvas-accent); color: var(--canvas-on-accent); }
-#page-options,.layer-row { user-select: none; touch-action: none; }
+.layer-row { user-select: none; touch-action: none; }
 .layer-grab { display: inline-flex; align-items: center; gap: var(--canvas-layer-gap); align-self: stretch; flex: none; cursor: grab; }
 .layer-grabber { opacity: 0; color: var(--canvas-grabber-ink); }
 .layer-grabber path { stroke-width: var(--canvas-grabber-stroke); }
 .layer-row:hover .layer-grabber,.layer-row:focus-visible .layer-grabber,.layer-ghost .layer-grabber,li[data-dragging] .layer-grabber { opacity: 1; }
 body[data-layer-drag] .layer-grab { cursor: grabbing; }
-.layer-row span[contenteditable] { user-select: text; touch-action: auto; }
-#page-picker-error:empty { display: none; }
+/* A pointer selecting a layer draws no focus ring; the keyboard still does. */
+.layers-drawer[data-pointer] :is(.layer-row,.layer-row span):focus-visible { outline: none; }
 
-#group-inspector label[hidden] { display: none; }
+/* The More menu and the screen menu take their width and origin from where they open. */
+#layers-menu { width: var(--canvas-preview-menu); transform-origin: top center; }
+#version-label { color: var(--canvas-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* Context-menu actions stay entirely in the development canvas. */
-:is(#screen-context,#layers-menu) button { height: var(--canvas-control); border: 0; border-radius: var(--canvas-radius); color: var(--canvas-text); cursor: pointer; }
-:is(#screen-context,#layers-menu) { position: fixed; inset: auto; margin: 0; flex-direction: column; align-items: stretch; gap: var(--canvas-menu-gap); min-width: var(--canvas-preview-menu); outline: none; }
-:is(#screen-context,#layers-menu):not(:popover-open) { display: none; }
-:is(#screen-context,#layers-menu) button { display: flex; align-items: center; gap: var(--canvas-padding); background: transparent; text-align: left; padding-inline: var(--canvas-padding); }
-:is(#screen-context,#layers-menu) button:hover { background: var(--canvas-button-hover); }
-:is(#screen-context,#layers-menu) svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-:is(#screen-context,#layers-menu) [data-action="delete"] { color: var(--canvas-danger); }
-.shortcuts-body { overflow: auto; padding: var(--canvas-layers-heading-inset); border-top: var(--canvas-border) solid var(--canvas-line); overscroll-behavior: contain; }
-.shortcuts-body p { margin-top: 0; color: var(--canvas-muted); }
-.shortcuts-body dl { margin: 0; }
-#shortcuts { --canvas-shortcut-key-size: 24px; --canvas-shortcut-key-radius: 4px; }
+/* Preview is host-viewport fullscreen, not a second document or browser window. */
+body[data-fullscreen] #viewport { background: var(--canvas-surface); }
+body[data-fullscreen] #world { position: fixed; inset: 0; transform: none !important; will-change: auto; }
+body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status),body[data-fullscreen] .screen:not([data-fullscreen]),.screen[data-fullscreen] :is(.screen-title,.screen-action) { display: none; }
+.screen[data-fullscreen] { position: absolute; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; outline: none; }
+.screen[data-fullscreen] iframe { box-shadow: none; }
+/* The floating menu button matches Interface Kit's minimised button: a 44px circle,
+   #242424, a white 20px icon, no ring. The same in both themes, since it floats over
+   a page, not over the canvas. */
+#fullscreen-tools { position: fixed; left: 0; top: 0; width: var(--canvas-float-size); height: var(--canvas-float-size); z-index: var(--canvas-preview-layer);
+  transition: transform var(--canvas-snap-duration) var(--canvas-snap-ease), opacity var(--tactile-in) var(--tactile-ease), scale var(--tactile-in) var(--tactile-ease), visibility var(--tactile-in); }
+#fullscreen-tools[data-dragging] { transition: none; }
+#fullscreen-tools[data-kit-open] { opacity: 0; scale: .8; visibility: hidden; pointer-events: none; transition-duration: var(--canvas-snap-duration), var(--tactile-out), var(--tactile-out), var(--tactile-out); }
+#fullscreen-toggle { width: var(--canvas-float-size); height: var(--canvas-float-size); border-radius: 50%; color: var(--canvas-float-ink); background: var(--canvas-float-surface); cursor: grab; touch-action: none; user-select: none; }
+#fullscreen-toggle svg { width: var(--canvas-float-icon); height: var(--canvas-float-icon); }
+#fullscreen-toggle:active { transform: scale(.97); }
+#fullscreen-tools[data-dragging] #fullscreen-toggle { cursor: grabbing; }
+#fullscreen-toggle:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
+#fullscreen-menu { position: absolute; width: min(var(--canvas-preview-menu),calc(100vw - 2 * var(--canvas-preview-inset))); max-height: calc(100dvh - 2 * var(--canvas-preview-inset) - var(--canvas-float-size) - var(--canvas-preview-gap)); overflow: auto; flex-direction: column; align-items: stretch; }
+@media (hover: hover) and (pointer: fine) { #fullscreen-toggle:hover { background: color-mix(in srgb, var(--canvas-float-surface) 90%, var(--canvas-float-ink)); } }
+@media (prefers-reduced-motion: reduce) { #fullscreen-tools, #fullscreen-tools[data-kit-open], #fullscreen-toggle:active { transition: none; transform: none; } }
+
+/* Guide and hotkeys: the shortcut table inside the dialog body. */
 .shortcuts-body { min-height: 0; }
-.shortcut-section + .shortcut-section { margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-border) solid var(--canvas-line); }
-.shortcut-section h3 { margin: 0 0 var(--canvas-padding); color: var(--canvas-muted); font-size: inherit; font-weight: 600; }
+.shortcuts-body dl { margin: 0; }
 .shortcut-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: var(--canvas-gap); min-height: var(--canvas-layer-height); padding-block: var(--canvas-badge-padding); }
 .shortcut-row dt { font-weight: 500; }
 .shortcut-row dd { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--canvas-layer-gap); margin: 0; text-align: right; }
 .shortcut-chord { display: inline-flex; align-items: center; gap: var(--canvas-layer-gap); }
-.shortcut-row kbd,.shortcut-gesture { display: inline-grid; place-items: center; min-width: var(--canvas-shortcut-key-size); height: var(--canvas-shortcut-key-size); padding-inline: var(--canvas-badge-padding); border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-shortcut-key-radius); background: var(--canvas-button); color: var(--canvas-text); font: inherit; box-shadow: 0 var(--canvas-border) 0 var(--canvas-line); }
 .shortcut-arrows { display: inline-grid; grid-template-columns: repeat(3, var(--canvas-shortcut-key-size)); grid-template-areas: ". up ." "left down right"; gap: var(--canvas-layer-gap); }
 .shortcut-row-stack { grid-template-columns: minmax(0,1fr); gap: var(--canvas-padding); padding-block: var(--canvas-padding); }
 .shortcut-row-stack dd { justify-content: stretch; }
 .shortcut-keypad { flex: 1; justify-content: center; gap: var(--canvas-gap); padding: var(--canvas-layers-heading-inset) var(--canvas-padding); border-radius: var(--canvas-radius); background: var(--canvas-well); }
 .shortcut-plus { color: color-mix(in oklch, var(--canvas-muted) 55%, transparent); }
-.shortcut-arrows kbd[data-arrow="up"] { grid-area: up; }
-.shortcut-arrows kbd[data-arrow="left"] { grid-area: left; }
-.shortcut-arrows kbd[data-arrow="down"] { grid-area: down; }
-.shortcut-arrows kbd[data-arrow="right"] { grid-area: right; }
+.shortcut-arrows .ui-kbd[data-arrow="up"] { grid-area: up; }
+.shortcut-arrows .ui-kbd[data-arrow="left"] { grid-area: left; }
+.shortcut-arrows .ui-kbd[data-arrow="down"] { grid-area: down; }
+.shortcut-arrows .ui-kbd[data-arrow="right"] { grid-area: right; }
 .shortcut-or { color: var(--canvas-muted); }
 
-/* Spatial reorder controls are separate from the Layers stacking controls. */
-:root { --canvas-smart-dot: 10px; --canvas-smart-target: 24px; --canvas-smart-drag-layer: 1000; --canvas-smart-ink: var(--canvas-accent); }
-#smart-handles { position: absolute; inset: calc(-1 * var(--canvas-border)); pointer-events: none; }
-.smart-handle { position: absolute; left: 0; top: 0; margin: calc(var(--canvas-smart-target) / -2); width: var(--canvas-smart-target); height: var(--canvas-smart-target); padding: 0; border: 0; background: transparent; pointer-events: auto; cursor: grab; touch-action: none; }
-.smart-handle::before { content: ''; position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: var(--canvas-smart-dot); height: var(--canvas-smart-dot); border: var(--canvas-border) solid var(--canvas-smart-ink); border-radius: 50%; background: var(--canvas-panel); }
-.smart-handle:hover::before,.smart-handle[data-moving]::before { background: var(--canvas-smart-ink); }
-.smart-handle:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); border-radius: 50%; }
-body[data-gesture="reorder"] .smart-handle { cursor: grabbing; }
-#smart-target { position: absolute; pointer-events: none; border: var(--canvas-ring) solid var(--canvas-accent); }
+/* Change log, install and update: the content blocks inside the dialog body. */
+.changelog-entry h3 { display: flex; align-items: baseline; gap: var(--canvas-padding); }
+.changelog-entry time { color: var(--canvas-muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.changelog-items { display: grid; grid-template-columns: 4.5rem minmax(0,1fr); column-gap: var(--canvas-gap); row-gap: var(--canvas-padding); margin: 0; padding: 0; list-style: none; }
+.changelog-items li { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: baseline; text-wrap: pretty; }
+.install-head { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); }
+.install-head h3 { margin: 0; }
+.install-steps { margin: 0; padding-left: 1.4em; display: grid; gap: var(--canvas-gap); }
+.install-steps p { margin: 2px 0 var(--canvas-padding); }
+.install-downloads { display: flex; flex-wrap: wrap; gap: var(--canvas-padding); margin-bottom: var(--canvas-padding); }
+.update-state { display: grid; justify-items: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset) 0; text-align: center; }
+.update-state p { margin: 0; }
+.update-state strong { color: var(--canvas-text); }
 
-.screen[data-reordering] { z-index: var(--canvas-smart-drag-layer) !important; }
-
-@media (max-width: 1100px) {
-  #edit-tools { bottom: calc(2 * var(--canvas-panel-inset) + var(--canvas-control) + 2 * var(--canvas-padding) + 2 * var(--canvas-border)); left: var(--canvas-panel-inset); right: auto; transform: none; }
-}
-
-/* Objects share one stack; all canvas chrome sits above that stack. */
-:root { --canvas-arrow-fade: .55; --canvas-object-layer: 0; --canvas-node-layer: 10; --canvas-selection-layer: 20; --canvas-toolbar-layer: 30; }
-#world { z-index: var(--canvas-object-layer); }
-.canvas-tools { z-index: var(--canvas-toolbar-layer); }
-#selection { z-index: var(--canvas-selection-layer); }
+/* Arrows and their toolbar. */
 #arrow-layer { display: contents; }
 .arrow-object { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 #arrow-snaps,#arrow-nodes { position: absolute; inset: 0; pointer-events: none; z-index: var(--canvas-node-layer); }
@@ -295,316 +186,46 @@ body[data-gesture="reorder"] .smart-handle { cursor: grabbing; }
 .arrow-group-box { position: absolute; border: var(--canvas-border) solid var(--canvas-accent); pointer-events: none; }
 .arrow-snap { position: absolute; translate: -50% -50%; width: var(--canvas-smart-dot); height: var(--canvas-smart-dot); border-radius: 50%; border: var(--canvas-border) solid var(--canvas-accent); background: var(--canvas-panel); }
 .arrow-snap[data-active] { background: var(--canvas-accent); }
-#arrow-inspector { position: fixed; translate: -50% 0; white-space: nowrap; }
-.field-icon { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.icon-select { cursor: pointer; }
-.icon-select[data-mixed="true"] > .field-icon { opacity: .4; }
-.secondary-button,.icon-options button { height: var(--canvas-control); padding-inline: var(--canvas-padding); border: 0; border-radius: var(--canvas-radius); background: var(--canvas-button); color: var(--canvas-text); cursor: pointer; }
-.icon-options button { background: transparent; }
-.secondary-button:hover,.icon-options button:hover { background: var(--canvas-button-hover); }
-.icon-options { min-width: var(--canvas-select-min-width); position: fixed; inset: auto; margin: 0; gap: var(--canvas-chevron-gap); }
-.endpoint-options { min-width: 0; }
-.icon-options:not(:popover-open) { display: none; }
-.icon-options button { width: var(--canvas-control); display: grid; place-items: center; }
-.icon-options button[aria-checked="true"] { background: var(--canvas-layer-selected); color: var(--canvas-accent); }
-#edit-tools button[aria-pressed="true"] { background: var(--canvas-layer-selected); color: var(--canvas-accent); }
 body[data-canvas-tool="arrow"] #viewport { cursor: crosshair; }
 body[data-canvas-tool="text"] #viewport { cursor: text; }
 body[data-canvas-tool="arrow"] .screen:not([data-fullscreen]) iframe,body[data-canvas-tool="text"] .screen:not([data-fullscreen]) iframe,body[data-arrow-drag] iframe,body[data-text-drag] iframe { pointer-events: none; }
 body[data-arrow-drag] { user-select: none; }
 body[data-fullscreen] :is(#arrow-layer,#arrow-snaps,#arrow-nodes,#arrow-inspector,#text-layer,#text-nodes,#text-inspector) { display: none; }
-.sr-only { position: absolute; width: var(--canvas-border); height: var(--canvas-border); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.shortcut-gesture { display: inline-flex; align-items: center; gap: var(--canvas-chevron-gap); }
-.shortcut-gesture svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; }
-.text-options { flex-direction: column; align-items: stretch; gap: var(--canvas-menu-gap); max-height: var(--canvas-select-max-height); overflow-y: auto; }
-.text-options > * { flex: none; }
-.text-options button { width: auto; display: block; text-align: left; white-space: nowrap; }
-.option-group-label { display: flex; align-items: center; gap: var(--canvas-chevron-gap); padding: var(--canvas-menu-gap) var(--canvas-padding); color: var(--canvas-muted); font-size: var(--canvas-guide-label); font-weight: 400; }
-.text-options > .option-group-label { margin-top: var(--canvas-menu-gap); padding-top: var(--canvas-padding); border-top: var(--canvas-border) solid var(--canvas-line); }
-.text-options:has(.option-group-label) button { padding-left: calc(var(--canvas-padding) + var(--canvas-icon-size) + var(--canvas-chevron-gap)); }
-.text-options { overscroll-behavior: contain; scrollbar-width: thin; }
-.option-group-label svg { width: var(--canvas-icon-size); height: var(--canvas-icon-size); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-button.select-field { cursor: pointer; font: inherit; }
+/* Spatial reorder controls are separate from the Layers stacking controls. */
+#smart-handles { position: absolute; inset: calc(-1 * var(--canvas-border)); pointer-events: none; }
+.smart-handle { position: absolute; left: 0; top: 0; margin: calc(var(--canvas-smart-target) / -2); width: var(--canvas-smart-target); height: var(--canvas-smart-target); padding: 0; border: 0; background: transparent; pointer-events: auto; cursor: grab; touch-action: none; }
+.smart-handle::before { content: ''; position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: var(--canvas-smart-dot); height: var(--canvas-smart-dot); border: var(--canvas-border) solid var(--canvas-smart-ink); border-radius: 50%; background: var(--canvas-panel); }
+.smart-handle:hover::before,.smart-handle[data-moving]::before { background: var(--canvas-smart-ink); }
+.smart-handle:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); border-radius: 50%; }
+/* The reorder dot is an outline at rest; the selection colour fills it on hover and while dragging. */
+.smart-handle:not(.arrow-node)::before { background: transparent; box-shadow: none; transition: background-color var(--tactile-press) var(--tactile-ease); }
+.smart-handle:not(.arrow-node):hover::before,.smart-handle:not(.arrow-node)[data-moving]::before { background: var(--canvas-smart-ink); }
+body[data-gesture="reorder"] .smart-handle { cursor: grabbing; }
+#smart-target { position: absolute; pointer-events: none; border: var(--canvas-ring) solid var(--canvas-accent); }
+.screen[data-reordering] { z-index: var(--canvas-smart-drag-layer) !important; }
+/* The group box steps aside while screens are being reordered. */
+body[data-gesture="reorder"] #selection { border-color: transparent; }
+body[data-gesture="reorder"] #selection #handles { visibility: hidden; }
 
-/* Tactile surfaces (skill: tactile-design). Controls look like objects: a fine
-   ring and a crisp drop, a squeeze when pressed. Geometry is untouched; borders
-   stay in the box model as transparent so no offset in this file moves. */
-:root {
-  --canvas-ink: 0.2 0.005 265;
-  --canvas-focus: oklch(0.58 0.008 265);
-  --canvas-well: oklch(0.955 0.002 265);
-  --canvas-button: oklch(1 0 0);
-  --canvas-button-hover: oklch(0.975 0.002 265);
-  --canvas-button-pressed: oklch(0.95 0.002 265);
-  --canvas-primary: oklch(0.25 0.005 265); --canvas-on-primary: oklch(0.985 0 0);
-  --canvas-primary-hover: color-mix(in oklab,var(--canvas-primary) 93%,var(--canvas-on-primary));
-  --canvas-hairline: 0.5px;
-  --canvas-shadow-button: 0 0 0 1px oklch(var(--canvas-ink) / .08), 0 1px 2px 0 oklch(var(--canvas-ink) / .12);
-  --canvas-shadow-primary: 0 0 0 1px var(--canvas-panel), 0 1px 2px 0 oklch(var(--canvas-ink) / .24);
-  --canvas-shadow: 0 0 0 1px oklch(var(--canvas-ink) / .08), 0 1px 2px 0 oklch(var(--canvas-ink) / .12), 0 4px 8px -4px oklch(var(--canvas-ink) / .16);
-  --canvas-shadow-modal: 0 0 0 1px oklch(var(--canvas-ink) / .07), 0 1px 2px 0 oklch(var(--canvas-ink) / .14), 0 6px 8px -4px oklch(var(--canvas-ink) / .14);
-  --canvas-scrim: oklch(0 0 0 / .3);
-  --tactile-ease: cubic-bezier(.23,1,.32,1); --tactile-press: 150ms;
-}
-:root[data-dark] {
-  --canvas-focus: oklch(0.66 0.008 265);
-  --canvas-well: oklch(0.3 0.005 265);
-  --canvas-button: oklch(0.31 0.005 265);
-  --canvas-button-hover: oklch(0.345 0.006 265);
-  --canvas-button-pressed: oklch(0.37 0.006 265);
-  --canvas-primary: oklch(0.92 0.002 265); --canvas-on-primary: oklch(0.2 0.004 265);
-  --canvas-shadow-button: 0 0 0 0.5px oklch(0.45 0.006 265), 0 1px 2px 0 oklch(0 0 0 / .5);
-  --canvas-shadow-primary: 0 0 0 0.5px var(--canvas-primary), 0 1px 2px 0 oklch(0 0 0 / .5);
-  --canvas-shadow: 0 0 0 0.5px oklch(0.45 0.006 265), 0 1px 2px 0 oklch(0 0 0 / .5), 0 4px 8px -4px oklch(0 0 0 / .5);
-  --canvas-shadow-modal: 0 0 0 0.5px oklch(0.45 0.006 265), 0 1px 2px 0 oklch(0 0 0 / .5), 0 6px 8px -4px oklch(0 0 0 / .5);
-  --canvas-scrim: oklch(0 0 0 / .6);
-}
-
-/* Overlays: the ring is the edge, so the border goes transparent. */
-.canvas-tools,.page-picker { border-color: transparent; }
-.page-picker { box-shadow: var(--canvas-shadow-modal); }
-.page-picker::backdrop { backdrop-filter: blur(2px); }
-#canvas-status { box-shadow: var(--canvas-shadow); }
-
-/* Structural lines are half a pixel. */
-.tool-divider { width: var(--canvas-hairline); }
-.layers-drawer ol,.shortcuts-body,.page-picker-body,.shortcut-section + .shortcut-section,.text-options > .option-group-label { border-color: var(--canvas-line); border-width: 0; border-style: solid; }
-.layers-drawer ol,.shortcuts-body { border-top-width: var(--canvas-hairline); }
-.page-picker-body { border-block-width: var(--canvas-hairline); }
-.shortcut-section + .shortcut-section,.text-options > .option-group-label { border-top-width: var(--canvas-hairline); }
-
-/* Secondary buttons and menu triggers: white, ring and drop, no fill change. */
-nav button,.layers-header button,.secondary-button,.select-field,.page-picker footer button,.page-pill,#fullscreen-toggle {
-  box-shadow: var(--canvas-shadow-button);
-}
-.select-field { border-color: transparent; background: var(--canvas-button); }
-.page-pill { background: var(--canvas-button); }
-.icon-options button,:is(#screen-context,#layers-menu) button,#fullscreen-back { box-shadow: none; }
-#fullscreen-toggle { border-color: transparent; }
-nav button,.layers-header button,.secondary-button,.page-picker footer button,.select-field,.icon-options button,.page-checkbox-target {
-  transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease);
-}
-:is(nav button,.layers-header button,.secondary-button,.page-picker footer button):hover:not(:disabled) { background: var(--canvas-button-hover); }
-:is(nav button,.layers-header button,.secondary-button,.page-picker footer button):active:not(:disabled) { background: var(--canvas-button-pressed); transform: scale(.97); }
-.select-field:active { transform: scale(.97); }
-#fullscreen-toggle:active { transform: scale(.97); }
-nav button:disabled,.page-picker footer button:disabled { box-shadow: var(--canvas-shadow-button); opacity: .6; }
-nav button.icon-button:disabled { opacity: .4; }
-
-/* Primary: the one black action. */
-nav #add,#add-pages-submit { background: var(--canvas-primary); color: var(--canvas-on-primary); box-shadow: var(--canvas-shadow-primary); }
-nav #add:hover:not(:disabled),#add-pages-submit:hover:not(:disabled) { background: var(--canvas-primary-hover); }
-nav #add:active:not(:disabled),#add-pages-submit:active:not(:disabled) { background: var(--canvas-primary); }
-
-/* Chosen tool: sunk into a well. */
-#edit-tools button[aria-pressed="true"],#text-inspector button[aria-pressed="true"],.icon-options button[aria-checked="true"] { background: var(--canvas-selected); color: var(--canvas-text); box-shadow: inset 0 1px 2px 0 oklch(var(--canvas-ink) / .12); }
-.icon-options button { box-shadow: none; }
-
-/* Fields are wells: darker than the panel, no border; focus deepens them. */
-input { background: var(--canvas-well); border-color: transparent; }
-input:focus { background: var(--canvas-button-pressed); }
-input:disabled { background: var(--canvas-well); }
-.screen-title[contenteditable] { box-shadow: var(--canvas-shadow-button); }
-
-/* Key caps, checkboxes and thumbnails borrow the same ring. */
-.shortcut-row kbd,.shortcut-gesture { border-color: transparent; background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); }
-.page-checkbox { border-color: transparent; background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); }
-.page-option[data-checked="true"] .page-checkbox { background: var(--canvas-primary); border-color: transparent; box-shadow: var(--canvas-shadow-primary); }
-.page-option[data-checked="true"] .page-checkbox::after { border-color: var(--canvas-on-primary); }
-.page-thumbnail { border-color: transparent; box-shadow: var(--canvas-shadow-button); }
-
-@media (prefers-reduced-motion: reduce) {
-  :is(nav button,.layers-header button,.secondary-button,.page-picker footer button,.select-field,#fullscreen-toggle):active { transform: none; }
-  nav button,.layers-header button,.secondary-button,.select-field,.icon-options button { transition-duration: 150ms; }
-}
-
-/* Second pass: the remaining controls, rows and chosen states. */
-:root { --canvas-layer-selected: var(--canvas-selected); --canvas-inset: inset 0 1px 2px 0 oklch(var(--canvas-ink) / .12); }
-:root[data-dark] { --canvas-inset: inset 0 1px 2px 0 oklch(0 0 0 / .5); }
-.layers-drawer .layer-row[aria-pressed="true"],.page-option[data-checked="true"] { box-shadow: var(--canvas-inset); }
-.icon-options button[aria-checked="true"],#edit-tools button[aria-pressed="true"],#text-inspector button[aria-pressed="true"] { box-shadow: var(--canvas-inset); }
-.layers-drawer .layer-row,.page-option,:is(#screen-context,#layers-menu) button,#fullscreen-back,:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen) {
-  transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease), transform var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease);
-}
-.layers-drawer .layer-row:active,.page-option:active,:is(#screen-context,#layers-menu) button:active,#fullscreen-back:active { background-color: var(--canvas-button-pressed); }
-.layers-drawer .layer-row[aria-pressed="true"]:active,.page-option[data-checked="true"]:active { background-color: var(--canvas-selected); }
-:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen):active { transform: scale(.92); background: var(--canvas-button-pressed); color: var(--canvas-text); }
-.icon-options button:active { transform: scale(.97); background: var(--canvas-button-pressed); }
-.icon-options button[aria-checked="true"]:active { background: var(--canvas-selected); }
-.page-checkbox-target:active .page-checkbox { transform: scale(.92); }
-.page-checkbox { transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease); }
-.page-option[data-checked="true"] .page-checkbox { box-shadow: var(--canvas-shadow-primary); }
-.handle:not([data-side]),.arrow-snap,.smart-handle::before { box-shadow: var(--canvas-shadow-button); }
-.layers-header h2,.shortcut-section h3 { font-weight: 500; }
-@media (prefers-reduced-motion: reduce) {
-  :is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen,.icon-options button):active { transform: none; }
-}
-
-/* Motion. One curve (ease-out-quint) for everything, kept short so it reads as
-   a response rather than an animation: 150ms in, 110ms out (exits are faster).
-   transform/opacity only; keyboard navigation inside menus never animates. */
-:root { --tactile-press: 120ms; --tactile-in: 150ms; --tactile-out: 110ms; }
-
-/* Chevron turns over while its menu is open. */
-.select-field .chevron { transition: rotate var(--tactile-in) var(--tactile-ease); }
-button.select-field[aria-expanded="true"] .chevron { rotate: 180deg; }
-
-/* Menus and popovers: fade and scale from the trigger. */
-.icon-options,:is(#screen-context,#layers-menu) {
-  opacity: 0; scale: .95;
-  transform-origin: top left;
-  transition: opacity var(--tactile-out) var(--tactile-ease), scale var(--tactile-out) var(--tactile-ease),
-    overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
-}
-.icon-options:popover-open,:is(#screen-context,#layers-menu):popover-open {
-  opacity: 1; scale: 1;
-  transition-duration: var(--tactile-in);
-}
-@starting-style { .icon-options:popover-open,:is(#screen-context,#layers-menu):popover-open { opacity: 0; scale: .95; } }
-
-/* Dialogs and their backdrop move as one unit. */
-.page-picker {
-  opacity: 0; scale: .97;
-  transition: opacity var(--tactile-out) var(--tactile-ease), scale var(--tactile-out) var(--tactile-ease),
-    overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
-}
-.page-picker[open] { opacity: 1; scale: 1; transition-duration: var(--tactile-in); }
-.page-picker::backdrop {
-  opacity: 0;
-  transition: opacity var(--tactile-out) var(--tactile-ease), overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
-}
-.page-picker[open]::backdrop { opacity: 1; transition-duration: var(--tactile-in); }
-@starting-style { .page-picker[open] { opacity: 0; scale: .97; } .page-picker[open]::backdrop { opacity: 0; } }
-
-/* Things that appear when their [hidden] goes. */
-@keyframes tactile-enter { from { opacity: 0; scale: .96; } }
-@keyframes tactile-check { from { opacity: 0; scale: .4; } }
-:is(#inspector,#group-inspector,#arrow-inspector,#text-inspector,#fullscreen-menu,#fullscreen-tools,#canvas-status,#fit-screen):not([hidden]) {
-  animation: tactile-enter var(--tactile-in) var(--tactile-ease);
-}
-#canvas-status:empty { animation: none; }
-.page-option[data-checked="true"] .page-checkbox::after { animation: tactile-check var(--tactile-in) var(--tactile-ease); }
-
-/* State changes. */
-nav button,.layers-header button,.secondary-button,.select-field,.icon-options button,.page-picker footer button {
-  transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease),
-    box-shadow var(--tactile-press) var(--tactile-ease), opacity var(--tactile-press) var(--tactile-ease);
-}
-.layers-drawer .layer-row,.page-option,:is(#screen-context,#layers-menu) button,#fullscreen-back,:is(.screen-refresh,.screen-orientation,.screen-theme,.screen-more,.screen-fullscreen),.page-checkbox,.page-checkbox-target {
-  transition-duration: var(--tactile-press);
-}
-.select-field .chevron { transition-duration: var(--tactile-in); }
-
-/* A theme change is not a hover: nothing transitions its colours. */
-
-@media (prefers-reduced-motion: reduce) {
-  .icon-options,:is(#screen-context,#layers-menu),.page-picker,.page-picker::backdrop,.select-field .chevron { transition: none; }
-  :is(#inspector,#group-inspector,#arrow-inspector,#text-inspector,#fullscreen-menu,#fullscreen-tools,#canvas-status,#fit-screen):not([hidden]),.page-option[data-checked="true"] .page-checkbox::after { animation: none; }
-}
-
-/* A pointer selecting a layer draws no focus ring; the keyboard still does. */
-.layers-drawer[data-pointer] :is(.layer-row,.layer-row span):focus-visible { outline: none; }
-
-/* Theme fade. The tokens the theme is made of are typed with @property, so the
-   browser can interpolate them on the root; everything else is a mix of them or
-   reads them directly, so the whole canvas fades as one. */
-@property --canvas-surface { syntax: '<color>'; inherits: true; initial-value: oklch(0.965 0 0); }
-@property --canvas-text { syntax: '<color>'; inherits: true; initial-value: oklch(0.32 0.005 265); }
-@property --canvas-muted { syntax: '<color>'; inherits: true; initial-value: oklch(0.53 0.01 265); }
-@property --canvas-panel { syntax: '<color>'; inherits: true; initial-value: oklch(1 0 0); }
-@property --canvas-line { syntax: '<color>'; inherits: true; initial-value: oklch(0.89 0.003 265); }
-@property --canvas-button { syntax: '<color>'; inherits: true; initial-value: oklch(1 0 0); }
-@property --canvas-button-hover { syntax: '<color>'; inherits: true; initial-value: oklch(0.975 0.002 265); }
-@property --canvas-button-pressed { syntax: '<color>'; inherits: true; initial-value: oklch(0.95 0.002 265); }
-@property --canvas-well { syntax: '<color>'; inherits: true; initial-value: oklch(0.955 0.002 265); }
-@property --canvas-primary { syntax: '<color>'; inherits: true; initial-value: oklch(0.25 0.005 265); }
-@property --canvas-on-primary { syntax: '<color>'; inherits: true; initial-value: oklch(0.985 0 0); }
-@property --canvas-focus { syntax: '<color>'; inherits: true; initial-value: oklch(0.58 0.008 265); }
-@property --canvas-danger { syntax: '<color>'; inherits: true; initial-value: oklch(0.55 0.2 25); }
-@property --canvas-selected { syntax: '<color>'; inherits: true; initial-value: oklch(0.955 0.002 265); }
-@property --canvas-edge { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .08); }
-@property --canvas-edge-modal { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .07); }
-@property --canvas-edge-primary { syntax: '<color>'; inherits: true; initial-value: oklch(1 0 0); }
-@property --canvas-edge-w { syntax: '<length>'; inherits: true; initial-value: 1px; }
-@property --canvas-drop { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .12); }
-@property --canvas-drop-modal { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .14); }
-@property --canvas-drop-primary { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .24); }
-@property --canvas-lift { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .16); }
-:root {
-  --canvas-edge: oklch(0.2 0.005 265 / .08); --canvas-edge-modal: oklch(0.2 0.005 265 / .07); --canvas-edge-primary: oklch(1 0 0); --canvas-edge-w: 1px;
-  --canvas-drop: oklch(0.2 0.005 265 / .12); --canvas-drop-modal: oklch(0.2 0.005 265 / .14); --canvas-drop-primary: oklch(0.2 0.005 265 / .24); --canvas-lift: oklch(0.2 0.005 265 / .16);
-  --canvas-theme-duration: 250ms;
-  /* The chosen row, tool or option: two steps above its ground, clearly above hover in both themes. */
-  --canvas-selected: oklch(0.955 0.002 265);
-  transition: --canvas-surface var(--canvas-theme-duration), --canvas-text var(--canvas-theme-duration), --canvas-muted var(--canvas-theme-duration),
-    --canvas-panel var(--canvas-theme-duration), --canvas-line var(--canvas-theme-duration), --canvas-button var(--canvas-theme-duration),
-    --canvas-button-hover var(--canvas-theme-duration), --canvas-button-pressed var(--canvas-theme-duration), --canvas-well var(--canvas-theme-duration),
-    --canvas-primary var(--canvas-theme-duration), --canvas-on-primary var(--canvas-theme-duration), --canvas-focus var(--canvas-theme-duration),
-    --canvas-danger var(--canvas-theme-duration), --canvas-edge var(--canvas-theme-duration), --canvas-edge-modal var(--canvas-theme-duration),
-    --canvas-edge-primary var(--canvas-theme-duration), --canvas-edge-w var(--canvas-theme-duration), --canvas-drop var(--canvas-theme-duration),
-    --canvas-drop-modal var(--canvas-theme-duration), --canvas-drop-primary var(--canvas-theme-duration), --canvas-lift var(--canvas-theme-duration),
-    --canvas-selected var(--canvas-theme-duration);
-}
-:root[data-dark] {
-  --canvas-edge: oklch(0.45 0.006 265); --canvas-edge-modal: oklch(0.45 0.006 265); --canvas-edge-primary: oklch(0.92 0.002 265); --canvas-edge-w: 0.5px;
-  --canvas-selected: oklch(0.43 0.006 265);
-  --canvas-drop: oklch(0 0 0 / .5); --canvas-drop-modal: oklch(0 0 0 / .5); --canvas-drop-primary: oklch(0 0 0 / .5); --canvas-lift: oklch(0 0 0 / .5);
-}
-/* Shadows are built from those tokens, in both themes, so they fade with them. */
-:root,:root[data-dark] {
-  --canvas-shadow-button: 0 0 0 var(--canvas-edge-w) var(--canvas-edge), 0 1px 2px 0 var(--canvas-drop);
-  --canvas-shadow-primary: 0 0 0 var(--canvas-edge-w) var(--canvas-edge-primary), 0 1px 2px 0 var(--canvas-drop-primary);
-  --canvas-shadow: 0 0 0 var(--canvas-edge-w) var(--canvas-edge), 0 1px 2px 0 var(--canvas-drop), 0 4px 8px -4px var(--canvas-lift);
-  --canvas-shadow-modal: 0 0 0 var(--canvas-edge-w) var(--canvas-edge-modal), 0 1px 2px 0 var(--canvas-drop-modal), 0 6px 8px -4px var(--canvas-drop-modal);
-  --canvas-inset: inset 0 1px 2px 0 var(--canvas-drop);
-}
-/* Controls do not run their own colour transitions while the theme fades. */
-:root[data-theming] body,:root[data-theming] body *,:root[data-theming] body *::before,:root[data-theming] body *::after { transition: none !important; }
-@media (prefers-reduced-motion: reduce) { :root { transition: none; } }
-
-/* Dialogs keep their place while they close: a dialog that is no longer modal
-   falls back to absolute positioning and would jump mid-exit. */
-.page-picker { position: fixed; inset: 0; margin: auto; }
-/* With no footer, the body's bottom rule would sit beside the dialog's own edge. */
-.page-picker-body:has(+ footer[hidden]) { border-bottom-width: 0; }
-
-/* The toolbar is centred with transform; its entrance must scale about that same centre. */
-@keyframes tactile-enter-centered { from { opacity: 0; transform: translateX(-50%) scale(.96); } }
-#inspector:not([hidden]),#group-inspector:not([hidden]) { animation-name: tactile-enter-centered; }
-@media (prefers-reduced-motion: reduce) { #inspector:not([hidden]),#group-inspector:not([hidden]) { animation: none; } }
-
-/* Inputs share the select field's surface: white, ring and drop. A disabled one
-   gives all of that up: flat well, no edge, muted text. */
-input { background: var(--canvas-button); border-color: transparent; box-shadow: var(--canvas-shadow-button); transition: background-color var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease), opacity var(--tactile-press) var(--tactile-ease); }
-input:focus { background: var(--canvas-button); }
-input:disabled { background: var(--canvas-well); box-shadow: none; color: var(--canvas-muted); opacity: .6; cursor: not-allowed; }
-@media (prefers-reduced-motion: reduce) { input { transition: none; } }
-
-/* Tooltip: the inverted action tooltip of the tactile system (ink-12 fill, ink-1
-   text), so it is the primary's colours with a faint edge (a full-strength ring reads as a white outline). It lives in the
-   top layer, so it stays above dialogs and menus. Fade and scale from the side it
-   opens from; 125ms in, 100ms out. Moving between controls swaps it in place with
-   no animation: the element is already open, so no transition runs. */
-.canvas-tooltip {
-  position: fixed; inset: auto; margin: 0; padding: 6px 8px; border: 0; overflow: visible;
-  width: max-content; max-width: 240px;
-  border-radius: 6px; background: var(--canvas-primary); color: var(--canvas-on-primary);
-  box-shadow: 0 0 0 var(--canvas-edge-w) color-mix(in oklab, var(--canvas-on-primary) 14%, transparent), 0 1px 2px 0 var(--canvas-drop-primary), 0 4px 8px -4px var(--canvas-lift);
-  font-size: var(--canvas-font); font-weight: 500; line-height: 16px; text-align: left;
-  pointer-events: none; user-select: none;
-  opacity: 0; scale: .97;
-  transition: opacity 100ms var(--tactile-ease), scale 100ms var(--tactile-ease), overlay 100ms allow-discrete, display 100ms allow-discrete;
-}
-.canvas-tooltip:popover-open { opacity: 1; scale: 1; transition-duration: 125ms; }
-@starting-style { .canvas-tooltip:popover-open { opacity: 0; scale: .97; } }
-.tooltip-shortcut { margin-inline-start: 8px; color: color-mix(in oklab, var(--canvas-on-primary) 60%, var(--canvas-primary)); white-space: nowrap; }
-@media (prefers-reduced-motion: reduce) { .canvas-tooltip { transition: none; } }
-
-/* A page inside an iframe never reports presses to this document, so the context
-   menu's light dismiss cannot see them. While the menu is open the frames let
-   presses through to the canvas, which closes it. */
-body:has(:is(#screen-context,#layers-menu):popover-open) iframe { pointer-events: none !important; }
+/* Text objects. Font and colour are fixed: the canvas face, the canvas ink. */
+#text-layer { display: contents; }
+.text-object { position: absolute; box-sizing: border-box; margin: 0; padding: 2px; min-height: 1.25em; overflow: visible; line-height: 1.25; font-weight: 400; color: var(--canvas-text);
+  white-space: pre-wrap; overflow-wrap: break-word; outline: none; cursor: default; user-select: none; -webkit-user-select: none; }
+.text-object[data-editing] { cursor: text; user-select: text; -webkit-user-select: text; }
+body[data-text-drag] { user-select: none; }
+#text-nodes { position: absolute; inset: 0; pointer-events: none; z-index: var(--canvas-node-layer); }
+.text-frame,.text-outline { position: absolute; box-sizing: border-box; border: var(--canvas-border) solid var(--canvas-accent); pointer-events: none; }
+.text-frame[hidden] { display: none; }
+/* After a pull past a limit the frame springs back; the words never moved. */
+.text-frame[data-settling] { transition: left 380ms cubic-bezier(.34,1.56,.64,1), top 380ms cubic-bezier(.34,1.56,.64,1), width 380ms cubic-bezier(.34,1.56,.64,1), height 380ms cubic-bezier(.34,1.56,.64,1); }
+@media (prefers-reduced-motion: reduce) { .text-frame[data-settling] { transition: none; } }
+/* Every text selection on the canvas, inputs and rename fields included, is the selection magenta. */
+::selection,*::selection { background: color-mix(in oklch,var(--canvas-accent) 35%,transparent); color: inherit; }
+/* While a selection is dragged inside a text, nothing else may take the pointer. */
+body[data-text-select] :is(.text-frame .handle,#text-inspector) { pointer-events: none; }
+/* The text cursor stays for the whole selection drag, wherever the pointer goes. */
+body[data-text-select],body[data-text-select] * { cursor: text !important; }
 
 /* Onboarding. The dim is one full-screen layer with a rounded hole over what is
    being explained; the hole lets presses through, everything else is blocked.
@@ -634,163 +255,14 @@ body:has(:is(#screen-context,#layers-menu):popover-open) iframe { pointer-events
 .onboarding-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--canvas-line); transition: background-color var(--tactile-in) var(--tactile-ease), transform var(--tactile-in) var(--tactile-ease); }
 .onboarding-dots span[data-on="true"] { background: var(--canvas-text); transform: scale(1.25); }
 .onboarding-actions { display: flex; gap: 8px; }
-.onboarding-card button { height: 28px; padding-inline: 10px; border: 0; border-radius: 6px; font-weight: 500; cursor: pointer; }
-.onboarding-card button:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
-.primary-button { background: var(--canvas-primary); color: var(--canvas-on-primary); box-shadow: var(--canvas-shadow-primary); transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease); }
-.primary-button:hover { background: var(--canvas-primary-hover); }
-.primary-button:active { transform: scale(.97); background: var(--canvas-primary); }
 @media (prefers-reduced-motion: reduce) {
-  .onboarding-dim,.onboarding-card,.onboarding-dots span,.primary-button { transition: none !important; }
+  .onboarding-dim,.onboarding-card,.onboarding-dots span { transition: none !important; }
   .onboarding-card.is-swapping .onboarding-copy { animation: none; }
-  .primary-button:active { transform: none; }
 }
-
-/* Add pages: production and prototypes as an accordion. Each group's panel folds
-   by animating its grid row (0fr to 1fr), the one case where height has to move. */
-.picker-group + .picker-group { margin-top: var(--canvas-menu-gap); }
-.picker-group-toggle { display: flex; align-items: center; gap: var(--canvas-gap); width: 100%; height: var(--canvas-control); padding-inline: var(--canvas-padding); border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-muted); font-weight: 500; text-align: left; cursor: pointer; transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease); }
-.picker-group-toggle:hover { background: var(--canvas-button-hover); color: var(--canvas-text); }
-.picker-group-toggle:active { background: var(--canvas-button-pressed); }
-.picker-group-label { flex: none; }
-.picker-group-count { flex: 1; font-weight: 400; }
-.picker-group-toggle .chevron { transition: rotate var(--tactile-in) var(--tactile-ease); }
-.picker-group[data-open="true"] .picker-group-toggle .chevron { rotate: 180deg; }
-.picker-group-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--tactile-in) var(--tactile-ease); }
-.picker-group[data-open="true"] .picker-group-panel { grid-template-rows: 1fr; }
-.picker-group-list { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: var(--canvas-menu-gap); }
-.page-option small { margin-top: 2px; line-height: 1.4; }
-.picker-group-toggle:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: calc(-1 * var(--canvas-ring)); }
-@media (prefers-reduced-motion: reduce) { .picker-group-panel,.picker-group-toggle .chevron,.picker-group-toggle { transition: none; } }
-
-/* The preview's floating menu button matches Interface Kit's minimised button:
-   44px circle, #242424, white 20px icon, no ring. Same in both themes, since it
-   floats over a page, not over the canvas. */
-:root { --canvas-float-size: 44px; --canvas-float-surface: #242424; --canvas-float-ink: #fff; --canvas-float-icon: 20px; }
-#fullscreen-tools { width: var(--canvas-float-size); height: var(--canvas-float-size); }
-#fullscreen-toggle { width: var(--canvas-float-size); height: var(--canvas-float-size); border: 0; background: var(--canvas-float-surface); color: var(--canvas-float-ink); box-shadow: none; }
-#fullscreen-toggle svg { width: var(--canvas-float-icon); height: var(--canvas-float-icon); }
-@media (hover: hover) and (pointer: fine) { #fullscreen-toggle:hover { background: color-mix(in srgb, var(--canvas-float-surface) 90%, var(--canvas-float-ink)); } }
-
-/* Shortcuts dialog: the keyboard toggle, a two-option segmented control. The
-   chosen option is raised on a well, the way a chosen tool is sunk elsewhere. */
-.segmented { display: flex; gap: 2px; padding: 2px; border-radius: calc(var(--canvas-radius) + 2px); background: var(--canvas-well); flex: none; }
-.layers-header .segmented button { width: auto; height: calc(var(--canvas-control) - 4px); padding-inline: 12px; border-radius: var(--canvas-radius); background: transparent; box-shadow: none; color: var(--canvas-muted); font-weight: 500; transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease); }
-.layers-header .segmented button:hover { background: transparent; color: var(--canvas-text); }
-.layers-header .segmented button[aria-checked="true"] { background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); color: var(--canvas-text); }
-.layers-header .segmented button:active { transform: none; }
-.segmented button:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: 1px; }
-@media (prefers-reduced-motion: reduce) { .layers-header .segmented button { transition: none; } }
 
 /* Phone-sized viewport: a notice over everything (see device-gate.js). */
 #device-gate { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 24px; border: 0; background: var(--canvas-surface); color: var(--canvas-text); overflow: auto; }
 #device-gate:popover-open { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
 #device-gate p { max-width: 28ch; margin: 0; font-size: 14px; line-height: 20px; color: var(--canvas-muted); text-wrap: balance; }
 .device-gate-icons { display: flex; gap: 16px; color: var(--canvas-text); }
-.device-gate-icons svg { width: 32px; height: 32px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-
-/* The More menu: the rows of the context menu, a hairline between groups. */
-#layers-menu hr { width: 100%; height: var(--canvas-hairline); margin: calc(var(--canvas-menu-gap) / 2) 0; border: 0; background: var(--canvas-line); flex: none; }
-#layers-menu { width: var(--canvas-preview-menu); transform-origin: top center; }
-
-body:not([data-ready]) :is(#layers,#edit-tools,#history-tools,#zoom-tools,#arrow-inspector,#text-inspector,#selection) { visibility: hidden; }
-
-/* Steps aside while Interface Kit is open: fade and shrink, composed with the corner
-   travel (transform) through the individual scale property. */
-#fullscreen-tools { transition: transform var(--canvas-snap-duration) var(--canvas-snap-ease), opacity var(--tactile-in) var(--tactile-ease), scale var(--tactile-in) var(--tactile-ease), visibility var(--tactile-in); }
-#fullscreen-tools[data-dragging] { transition: none; }
-#fullscreen-tools[data-kit-open] { opacity: 0; scale: .8; visibility: hidden; pointer-events: none; transition-duration: var(--canvas-snap-duration), var(--tactile-out), var(--tactile-out), var(--tactile-out); }
-@media (prefers-reduced-motion: reduce) { #fullscreen-tools, #fullscreen-tools[data-kit-open] { transition: none; } }
-
-/* Reorder dot: an outline at rest; the selection colour fills it on hover and while dragging. */
-.smart-handle:not(.arrow-node)::before { background: transparent; box-shadow: none; transition: background-color var(--tactile-press) var(--tactile-ease); }
-.smart-handle:not(.arrow-node):hover::before,.smart-handle:not(.arrow-node)[data-moving]::before { background: var(--canvas-smart-ink); }
-
-/* Text objects. Font and colour are fixed: the canvas face, the canvas ink. */
-#text-layer { display: contents; }
-.text-object { position: absolute; box-sizing: border-box; margin: 0; padding: 2px; min-height: 1.25em; overflow: visible; line-height: 1.25; font-weight: 400; color: var(--canvas-text);
-  white-space: pre-wrap; overflow-wrap: break-word; outline: none; cursor: default; user-select: none; -webkit-user-select: none; }
-.text-object[data-editing] { cursor: text; user-select: text; -webkit-user-select: text; }
-body[data-text-drag] { user-select: none; }
-#text-nodes { position: absolute; inset: 0; pointer-events: none; z-index: var(--canvas-node-layer); }
-.text-frame,.text-outline { position: absolute; box-sizing: border-box; border: var(--canvas-border) solid var(--canvas-accent); pointer-events: none; }
-.text-frame[hidden] { display: none; }
-/* After a pull past a limit the frame springs back; the words never moved. */
-.text-frame[data-settling] { transition: left 380ms cubic-bezier(.34,1.56,.64,1), top 380ms cubic-bezier(.34,1.56,.64,1), width 380ms cubic-bezier(.34,1.56,.64,1), height 380ms cubic-bezier(.34,1.56,.64,1); }
-@media (prefers-reduced-motion: reduce) { .text-frame[data-settling] { transition: none; } }
-#text-inspector { position: fixed; translate: -50% 0; white-space: nowrap; }
-
-/* Every text selection on the canvas, inputs and rename fields included, is the selection magenta. */
-::selection,*::selection { background: color-mix(in oklch,var(--canvas-accent) 35%,transparent); color: inherit; }
-
-/* While a selection is dragged inside a text, nothing else may take the pointer. */
-body[data-text-select] :is(.text-frame .handle,#text-inspector) { pointer-events: none; }
-/* The text cursor stays for the whole selection drag, wherever the pointer goes. */
-body[data-text-select],body[data-text-select] * { cursor: text !important; }
-
-
-/* The group box steps aside while screens are being reordered. */
-body[data-gesture="reorder"] #selection { border-color: transparent; }
-body[data-gesture="reorder"] #selection #handles { visibility: hidden; }
-
-/* Change log dialog: reuses the shortcuts dialog body; one block per release.
-   The dialog is as tall as its content, up to the picker height. */
-#changelog { height: fit-content; max-height: min(var(--canvas-picker-height),calc(100dvh - 2 * var(--canvas-panel-inset))); }
-.changelog-entry + .changelog-entry { margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-border) solid var(--canvas-line); }
-.changelog-entry h3 { display: flex; align-items: baseline; gap: var(--canvas-padding); margin: 0 0 var(--canvas-padding); font-size: inherit; font-weight: 600; color: var(--canvas-text); }
-.changelog-entry time { color: var(--canvas-muted); font-weight: 400; font-variant-numeric: tabular-nums; }
-.changelog-items { display: grid; grid-template-columns: 4.5rem minmax(0,1fr); column-gap: var(--canvas-gap); row-gap: var(--canvas-padding); margin: 0; padding: 0; list-style: none; }
-.changelog-items li { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: baseline; text-wrap: pretty; }
-.install-section + .install-section { margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-border) solid var(--canvas-line); }
-.install-section h3 { margin: 0 0 var(--canvas-padding); font-size: inherit; font-weight: 600; color: var(--canvas-text); }
-.install-head { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); }
-.install-head h3 { margin: 0; }
-.install-steps { margin: 0; padding-left: 1.4em; display: grid; gap: var(--canvas-gap); }
-.install-steps p { margin: 2px 0 var(--canvas-padding); }
-.install-code { margin: 0; padding: var(--canvas-padding) var(--canvas-gap); overflow: auto; max-height: 16rem; border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-radius); background: var(--canvas-button); color: var(--canvas-text); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
-.install-command { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); margin-bottom: var(--canvas-padding); padding: var(--canvas-padding) var(--canvas-gap); border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-radius); background: var(--canvas-button); }
-.install-command code { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; user-select: text; }
-.install-downloads { display: flex; flex-wrap: wrap; gap: var(--canvas-padding); margin-bottom: var(--canvas-padding); }
-.install-copy { flex: none; text-decoration: none; font: inherit; padding: 2px var(--canvas-gap); border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-radius); background: var(--canvas-button); color: var(--canvas-text); cursor: pointer; }
-#install { height: fit-content; max-height: min(var(--canvas-picker-height),calc(100dvh - 2 * var(--canvas-panel-inset))); }
-.changelog-tag { --tag-hue: 265; justify-self: start; padding: 1px var(--canvas-padding); border-radius: 999px; background: oklch(0.7 0.12 var(--tag-hue) / .16); color: color-mix(in oklch, oklch(0.5 0.15 var(--tag-hue)) 70%, var(--canvas-text)); font-size: 11px; font-weight: 600; line-height: 18px; }
-.changelog-tag[data-type="new"] { --tag-hue: 150; }
-.changelog-tag[data-type="improved"] { --tag-hue: 250; }
-.changelog-tag[data-type="fixed"] { --tag-hue: 60; }
-.changelog-tag[data-type="faster"] { --tag-hue: 330; }
-
-/* Icons that do not fit the screen width fold behind a ... button and slide in on hover. */
-.screen-more { display: none; transition: opacity .12s ease-out; }
-.screen[data-folded] .screen-more { display: grid; }
-.screen[data-expanded] .screen-more { opacity: 0; pointer-events: none; }
-.screen [data-fold] { opacity: 0; visibility: hidden; pointer-events: none; translate: calc(var(--screen-outline) * 10) 0;
-  transition: opacity .12s ease-out, translate .12s ease-out, visibility 0s .12s; }
-.screen[data-expanded] [data-fold] { opacity: 1; visibility: visible; pointer-events: auto; translate: 0 0;
-  background: var(--canvas-surface); transition: opacity .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), translate .18s cubic-bezier(.23,1,.32,1) calc(var(--i) * 35ms), visibility 0s; }
-@media (prefers-reduced-motion: reduce) { .screen [data-fold],.screen[data-expanded] [data-fold],.screen-more { transition: none; } }
-
-/* Version row at the top of the More menu, and the update dialog. */
-#layers-more { position: relative; }
-.update-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--canvas-accent); flex: none; }
-.update-dot[hidden] { display: none; }
-#layers-more .update-dot { position: absolute; top: 0; right: 0; translate: 50% -50%; box-shadow: 0 0 0 2px var(--canvas-panel); }
-/* The footer runs edge to edge: its divider and tinted background cover the menu's padding and its 1px border, so no ring shows around them. The border stays on the menu itself. */
-/* A popover clips its children to the padding box by default; the footer has to paint over the border. */
-#layers-menu { --menu-bleed: calc(var(--canvas-padding) + var(--canvas-border)); overflow: visible; }
-#layers-menu hr:has(+ .menu-version) { width: auto; margin: calc(var(--canvas-menu-gap) / 2) calc(-1 * var(--menu-bleed)) 0; }
-.menu-version { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-padding); margin: calc(-1 * var(--canvas-menu-gap)) calc(-1 * var(--menu-bleed)) calc(-1 * var(--menu-bleed)); padding: 12px 13px 13px calc(2 * var(--canvas-padding) + var(--canvas-border)); border-radius: 0 0 var(--canvas-panel-radius) var(--canvas-panel-radius); background: color-mix(in oklch, var(--canvas-text) 4%, transparent); }
-#version-label { color: var(--canvas-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-#layers-menu #update-open { height: 28px; padding-inline: var(--canvas-padding); background: var(--canvas-button); border: var(--canvas-border) solid var(--canvas-line); }
-#layers-menu #update-open:hover { background: var(--canvas-button-hover); }
-#layers-menu #update-open[data-primary] { background: var(--canvas-accent); border-color: var(--canvas-accent); color: var(--canvas-on-accent); }
-#layers-menu #update-open[data-primary]:hover { background: color-mix(in oklch, var(--canvas-accent) 88%, black); border-color: transparent; }
-#layers-menu #update-open[data-primary]:active { background: color-mix(in oklch, var(--canvas-accent) 78%, black); }
-#update { height: fit-content; max-height: min(var(--canvas-picker-height),calc(100dvh - 2 * var(--canvas-panel-inset))); }
-.shortcuts-body .update-summary { margin: 0 calc(-1 * var(--canvas-gap)) var(--canvas-layers-heading-inset); padding: var(--canvas-padding) var(--canvas-gap); border-radius: var(--canvas-radius); background: color-mix(in oklch, var(--canvas-accent) 14%, transparent); color: light-dark(oklch(0.42 0.2 330), oklch(0.82 0.12 330)); }
-.update-summary strong { font-weight: 600; }
-.update-summary + .install-section { margin-top: 0; padding-top: 0; border-top: 0; }
-.update-state { display: grid; justify-items: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset) 0; text-align: center; }
-.update-state p { margin: 0; }
-.update-state strong { color: var(--canvas-text); }
-
-/* Modal content scrolls up and down only: no sideways scrolling or rubber-banding. */
-.page-picker,.shortcuts-body,#page-options,.install-code { overflow-x: hidden; overscroll-behavior-x: none; }
+.device-gate-icons .ui-icon { width: 32px; height: 32px; }

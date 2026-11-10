@@ -1,0 +1,363 @@
+/* The canvas component library: every reusable control, with all of its states.
+   Components read tokens (tokens.css) and nothing else; where one lives or how
+   big it is on the canvas belongs in canvas.css. Build them with ui/*.js.
+
+   States, defined once and shared:
+     hover      a step lighter          :hover
+     pressed    a step darker, squeezed :active
+     chosen     sunk into a well        [aria-pressed="true"] [aria-checked="true"] [data-checked="true"]
+     disabled   faded, no pointer       :disabled
+     focus      a ring, keyboard only   :focus-visible
+   Motion is one curve: 120ms for a press, 150ms in and 110ms out for overlays. */
+
+@layer ui {
+
+/* ---- Base ------------------------------------------------------------- */
+button, select, input { font: inherit; color: inherit; }
+.ui-icon { width: var(--canvas-icon-size); height: var(--canvas-icon-size); flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.ui-icon [data-solid] { fill: currentColor; stroke: none; }
+.ui-chevron { width: var(--canvas-chevron-size); height: var(--canvas-chevron-size); flex: none; fill: none; stroke: currentColor; }
+.ui-sr-only { position: absolute; width: var(--canvas-border); height: var(--canvas-border); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---- Button ------------------------------------------------------------
+   Button({ variant, size, icon, label, pressed, disabled })
+   variant  secondary (default) | primary | accent | ghost | bare
+   size     md (default) | sm
+   An icon with no text is square. Ghost sits flat until hovered; bare has no
+   skin at all, for controls that bring their own. */
+.ui-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--canvas-chevron-gap);
+  height: var(--canvas-control); padding: 0 var(--canvas-padding);
+  border: 0; border-radius: var(--canvas-radius);
+  background: var(--canvas-button); color: var(--canvas-text); box-shadow: var(--canvas-shadow-button);
+  font: inherit; text-align: center; white-space: nowrap; cursor: pointer;
+  transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease),
+    box-shadow var(--tactile-press) var(--tactile-ease), opacity var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease);
+}
+.ui-button:hover:not(:disabled) { background: var(--canvas-button-hover); }
+.ui-button:active:not(:disabled) { background: var(--canvas-button-pressed); transform: scale(.97); }
+.ui-button:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
+.ui-button:disabled { opacity: .6; cursor: default; }
+.ui-button[data-icon-only] { display: inline-grid; place-items: center; width: var(--canvas-control); padding: 0; }
+.ui-button[data-icon-only]:disabled { opacity: .4; }
+.ui-button[data-size="xs"] { height: auto; padding: 2px var(--canvas-gap); border: var(--canvas-border) solid var(--canvas-line); box-shadow: none; text-decoration: none; }
+.ui-menu-footer .ui-button { height: 28px; box-sizing: border-box; border: var(--canvas-border) solid var(--canvas-line); box-shadow: none; }
+.ui-menu-footer .ui-button[data-variant="accent"], .ui-menu-footer .ui-button[data-primary] { border-color: var(--canvas-accent); }
+.ui-button[data-size="sm"] { height: 28px; padding-inline: 10px; border-radius: 6px; font-weight: 500; }
+/* Chosen: sunk into a well, and it stays there under the pointer. */
+.ui-button:is([aria-pressed="true"], [aria-checked="true"]):not(:disabled, [data-variant="bare"]) { background: var(--canvas-selected); color: var(--canvas-text); box-shadow: var(--canvas-inset); }
+
+.ui-button[data-variant="primary"] { background: var(--canvas-primary); color: var(--canvas-on-primary); box-shadow: var(--canvas-shadow-primary); }
+.ui-button[data-variant="primary"]:hover:not(:disabled) { background: var(--canvas-primary-hover); }
+.ui-button[data-variant="primary"]:active:not(:disabled) { background: var(--canvas-primary); }
+.ui-button[data-variant="primary"][aria-expanded="true"]:not(:disabled) { background: var(--canvas-primary-hover); }
+
+.ui-button[data-variant="accent"] { background: var(--canvas-accent); color: var(--canvas-on-accent); box-shadow: none; }
+.ui-button[data-variant="accent"]:hover:not(:disabled) { background: color-mix(in oklch, var(--canvas-accent) 88%, black); }
+.ui-button[data-variant="accent"]:active:not(:disabled) { background: color-mix(in oklch, var(--canvas-accent) 78%, black); }
+
+.ui-button[data-variant="ghost"] { background: transparent; box-shadow: none; }
+.ui-button[data-variant="ghost"][data-tone="muted"] { color: var(--canvas-muted); }
+.ui-button[data-variant="ghost"][data-tone="danger"] { color: var(--canvas-danger); }
+
+.ui-button[data-variant="bare"] { display: grid; place-items: center; height: auto; padding: 0; background: transparent; box-shadow: none; transition: none; }
+.ui-button[data-variant="bare"]:hover:not(:disabled), .ui-button[data-variant="bare"]:active:not(:disabled) { background: transparent; transform: none; }
+.ui-button[data-variant="bare"]:disabled { opacity: .6; }
+
+/* ---- Panel and toolbar ----------------------------------------------------
+   Panel is the floating surface: toolbars, menus, the layers drawer.
+   Toolbar({ as, label }) lays controls in a row. */
+.ui-panel { display: flex; align-items: center; gap: var(--canvas-gap); padding: var(--canvas-padding); background: var(--canvas-panel); border: var(--canvas-border) solid transparent; border-radius: var(--canvas-panel-radius); box-shadow: var(--canvas-shadow); font-weight: 500; z-index: var(--canvas-toolbar-layer); }
+.ui-toolbar { white-space: nowrap; }
+.ui-divider { width: var(--canvas-hairline); height: var(--canvas-side); background: var(--canvas-line); }
+.ui-divider[data-orientation="horizontal"] { width: 100%; height: var(--canvas-hairline); margin: calc(var(--canvas-menu-gap) / 2) 0; border: 0; flex: none; }
+
+/* A panel that appears when its [hidden] goes: it scales in. */
+.ui-enter:not([hidden]) { animation: ui-enter var(--tactile-in) var(--tactile-ease); }
+.ui-enter[data-centered]:not([hidden]) { animation-name: ui-enter-centered; }
+
+/* ---- Field and input -----------------------------------------------------
+   Field({ label }, control) puts a muted label beside a control.
+   Input is a well that lifts onto the surface; disabled gives all of that up. */
+.ui-field { display: flex; align-items: center; gap: var(--canvas-padding); color: var(--canvas-muted); }
+.ui-input {
+  width: var(--canvas-field-width); height: var(--canvas-control); padding: 0 var(--canvas-padding);
+  border: var(--canvas-border) solid transparent; border-radius: var(--canvas-radius);
+  background: var(--canvas-button); color: var(--canvas-text); box-shadow: var(--canvas-shadow-button);
+  text-align: center;
+  transition: background-color var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease), opacity var(--tactile-press) var(--tactile-ease);
+}
+.ui-input[type="number"] { appearance: textfield; }
+.ui-input::-webkit-inner-spin-button, .ui-input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.ui-input:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
+.ui-input:disabled { background: var(--canvas-well); box-shadow: none; color: var(--canvas-muted); opacity: .6; cursor: not-allowed; }
+
+/* ---- Select -----------------------------------------------------------------
+   SelectField opens a Menu. The trigger shows the chosen label (or icon) and a
+   chevron that turns while the menu is open. The native <select> inside is the
+   data interface and is never shown. */
+.ui-select-field { display: contents; }
+.ui-select {
+  position: relative; display: inline-flex; align-items: center; gap: var(--canvas-chevron-gap);
+  height: var(--canvas-control); padding: 0 var(--canvas-padding);
+  border: var(--canvas-border) solid transparent; border-radius: var(--canvas-radius);
+  background: var(--canvas-button); color: var(--canvas-text); box-shadow: var(--canvas-shadow-button);
+  font: inherit; cursor: pointer;
+  transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease),
+    box-shadow var(--tactile-press) var(--tactile-ease), opacity var(--tactile-press) var(--tactile-ease);
+}
+.ui-select:active { transform: scale(.97); }
+.ui-select:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: var(--canvas-ring); }
+.ui-select .ui-chevron { transition: rotate var(--tactile-in) var(--tactile-ease); }
+.ui-select[aria-expanded="true"] .ui-chevron { rotate: 180deg; }
+.ui-select[data-mixed="true"] > .ui-icon { opacity: .4; }
+
+/* ---- Menu --------------------------------------------------------------------
+   Menu({ variant }) is a popover panel of MenuItems.
+   variant  list (default) | options (a scrolling choice list) | icons (a row of icon choices)
+   It fades and scales from its trigger. A MenuItem is a ghost button. */
+.ui-menu {
+  position: fixed; inset: auto; margin: 0; outline: none; color: var(--canvas-text);
+  flex-direction: column; align-items: stretch; gap: var(--canvas-menu-gap); min-width: var(--canvas-preview-menu);
+  opacity: 0; scale: .95; transform-origin: top left;
+  transition: opacity var(--tactile-out) var(--tactile-ease), scale var(--tactile-out) var(--tactile-ease),
+    overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
+}
+.ui-menu:not(:popover-open) { display: none; }
+.ui-menu:popover-open { opacity: 1; scale: 1; transition-duration: var(--tactile-in); }
+@starting-style { .ui-menu:popover-open { opacity: 0; scale: .95; } }
+.ui-menu[data-variant="options"] { min-width: var(--canvas-select-min-width); max-height: var(--canvas-select-max-height); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.ui-menu[data-variant="options"] > * { flex: none; }
+.ui-menu[data-variant="icons"] { flex-direction: row; align-items: center; min-width: 0; gap: var(--canvas-chevron-gap); }
+.ui-menu[data-variant="options"]:has(.ui-menu-label) .ui-menu-item { padding-left: calc(var(--canvas-padding) + var(--canvas-icon-size) + var(--canvas-chevron-gap)); }
+.ui-menu-item { justify-content: flex-start; gap: var(--canvas-padding); width: 100%; text-align: left; }
+.ui-menu-item[data-icon-only] { width: var(--canvas-control); justify-content: center; }
+.ui-menu-item:active:not(:disabled):not([data-icon-only]) { transform: none; }
+.ui-menu-label { display: flex; align-items: center; gap: var(--canvas-chevron-gap); padding: var(--canvas-menu-gap) var(--canvas-padding); color: var(--canvas-muted); font-size: var(--canvas-guide-label); font-weight: 400; }
+.ui-menu > .ui-menu-label { margin-top: var(--canvas-menu-gap); padding-top: var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); }
+/* A footer runs edge to edge: its tint covers the menu's padding and ring. */
+.ui-menu:has(.ui-menu-footer) { --menu-bleed: calc(var(--canvas-padding) + var(--canvas-border)); overflow: visible; }
+.ui-divider:has(+ .ui-menu-footer) { width: auto; margin: calc(var(--canvas-menu-gap) / 2) calc(-1 * var(--menu-bleed)) 0; }
+.ui-menu-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-padding); margin: calc(-1 * var(--canvas-menu-gap)) calc(-1 * var(--menu-bleed)) calc(-1 * var(--menu-bleed)); padding: 12px 13px 13px calc(2 * var(--canvas-padding) + var(--canvas-border)); border-radius: 0 0 var(--canvas-panel-radius) var(--canvas-panel-radius); background: color-mix(in oklch, var(--canvas-text) 4%, transparent); }
+/* A page inside a frame never reports presses to this document, so light dismiss
+   cannot see them: while a menu is open the frames let presses through. */
+body:has(.ui-menu:popover-open) iframe { pointer-events: none !important; }
+
+/* ---- Dialog ----------------------------------------------------------------------
+   Dialog({ id, title, size }, DialogBody(...), DialogFooter(...))
+   size  fixed (default, the picker's size) | fit (as tall as its content, up to the picker)
+   Its backdrop closes it, and it opens scrolled to the top. The dialog and its
+   backdrop move as one unit. */
+.ui-dialog {
+  position: fixed; inset: 0; margin: auto; padding: 0; flex-direction: column;
+  width: min(var(--canvas-picker-width), calc(100vw - 2 * var(--canvas-panel-inset)));
+  height: min(var(--canvas-picker-height), calc(100dvh - 2 * var(--canvas-panel-inset)));
+  max-width: none; max-height: none; overflow-x: hidden; overscroll-behavior-x: none;
+  border: var(--canvas-border) solid transparent; border-radius: var(--canvas-panel-radius);
+  background: var(--canvas-panel); color: var(--canvas-text); box-shadow: var(--canvas-shadow-modal);
+  opacity: 0; scale: .97;
+  transition: opacity var(--tactile-out) var(--tactile-ease), scale var(--tactile-out) var(--tactile-ease),
+    overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
+}
+.ui-dialog[open] { display: flex; opacity: 1; scale: 1; transition-duration: var(--tactile-in); }
+.ui-dialog[data-size="fit"] { height: fit-content; max-height: min(var(--canvas-picker-height), calc(100dvh - 2 * var(--canvas-panel-inset))); }
+.ui-dialog::backdrop {
+  background: var(--canvas-scrim); backdrop-filter: blur(2px); opacity: 0;
+  transition: opacity var(--tactile-out) var(--tactile-ease), overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
+}
+.ui-dialog[open]::backdrop { opacity: 1; transition-duration: var(--tactile-in); }
+@starting-style { .ui-dialog[open] { opacity: 0; scale: .97; } .ui-dialog[open]::backdrop { opacity: 0; } }
+.ui-dialog .ui-button:focus-visible { outline-offset: calc(-1 * var(--canvas-ring)); }
+
+/* The title bar shared by dialogs and the layers drawer. */
+.ui-header { display: flex; align-items: center; gap: var(--canvas-gap); padding: var(--canvas-padding); padding-left: var(--canvas-layers-heading-inset); flex: none; }
+.ui-header > h2 { margin: 0 auto 0 0; font-size: inherit; font-weight: 500; }
+
+.ui-dialog-body { flex: 1 1 auto; min-height: 0; overflow: auto; overflow-x: hidden; overscroll-behavior: contain; overscroll-behavior-x: none; border-top: var(--canvas-hairline) solid var(--canvas-line); }
+.ui-dialog-body:has(+ .ui-dialog-footer:not([hidden])) { border-bottom: var(--canvas-hairline) solid var(--canvas-line); }
+.ui-dialog-body[data-padded] { padding: var(--canvas-layers-heading-inset); }
+:where(.ui-dialog-body[data-padded]) p { margin-top: 0; color: var(--canvas-muted); }
+:where(.ui-dialog-body[data-padded]) dl { margin: 0; }
+.ui-dialog-footer { display: flex; justify-content: flex-start; gap: var(--canvas-gap); padding: var(--canvas-padding); }
+.ui-dialog-footer > [data-align="end"] { margin-left: auto; }
+
+/* ---- Segmented control -----------------------------------------------------
+   SegmentedControl({ options, value }): one choice of a few, the chosen one
+   raised on a well (the way a chosen tool is sunk elsewhere). */
+.ui-segmented { display: flex; flex: none; gap: 2px; padding: 2px; border-radius: calc(var(--canvas-radius) + 2px); background: var(--canvas-well); font-weight: 400; }
+.ui-segment {
+  display: grid; place-items: center; height: calc(var(--canvas-control) - 4px); padding: 0 12px;
+  border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-muted); box-shadow: none;
+  font: inherit; font-weight: 500; cursor: pointer;
+  transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease);
+}
+.ui-segment:hover { background: var(--canvas-button-hover); color: var(--canvas-text); }
+.ui-segment:active { background: var(--canvas-button-pressed); transform: scale(.97); }
+.ui-segment[aria-checked="true"] { background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); color: var(--canvas-text); }
+.ui-segment[aria-checked="true"]:hover { background: var(--canvas-button-hover); }
+.ui-segment[aria-checked="true"]:active { background: var(--canvas-button-pressed); }
+.ui-segment:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: 1px; }
+
+/* ---- Row, checkbox, disclosure -----------------------------------------------
+   Row is the shared look of a list entry: layer rows and page options. */
+.ui-row {
+  display: flex; align-items: center; width: 100%; border: 0; border-radius: var(--canvas-radius);
+  background: transparent; color: inherit; text-align: left;
+  transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease), transform var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease);
+}
+.ui-row:hover { background: var(--canvas-button-hover); }
+.ui-row:active { background-color: var(--canvas-button-pressed); }
+.ui-row:is([aria-pressed="true"], [data-checked="true"]) { color: var(--canvas-text); background: var(--canvas-selected); box-shadow: var(--canvas-inset); }
+.ui-row:is([aria-pressed="true"], [data-checked="true"]):active { background-color: var(--canvas-selected); }
+
+/* Checkbox({ label }): a 44px target around a 16px box; chosen it fills and ticks. */
+.ui-checkbox { display: grid; place-items: center; flex: none; width: var(--canvas-checkbox-target); height: var(--canvas-checkbox-target); margin-inline: calc(-1 * var(--canvas-padding)); padding: 0; border: 0; background: transparent; cursor: pointer; }
+.ui-checkbox-mark {
+  display: grid; place-items: center; width: var(--canvas-checkbox-size); height: var(--canvas-checkbox-size);
+  border: var(--canvas-border) solid transparent; border-radius: var(--canvas-checkbox-radius);
+  background: var(--canvas-button); box-shadow: var(--canvas-shadow-button);
+  transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease), box-shadow var(--tactile-press) var(--tactile-ease);
+}
+.ui-checkbox:active .ui-checkbox-mark { transform: scale(.92); }
+.ui-checkbox[aria-checked="true"] .ui-checkbox-mark { background: var(--canvas-primary); box-shadow: var(--canvas-shadow-primary); }
+.ui-checkbox[aria-checked="true"] .ui-checkbox-mark::after {
+  content: ''; width: var(--canvas-check-width); height: var(--canvas-check-height);
+  border: solid var(--canvas-on-primary); border-width: 0 var(--canvas-check-stroke) var(--canvas-check-stroke) 0;
+  transform: translate(-0.45px, -2.25px) rotate(45deg); animation: ui-check var(--tactile-in) var(--tactile-ease);
+}
+.ui-checkbox:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: calc(-1 * var(--canvas-ring)); }
+
+/* Disclosure({ label, count, open }, ...items): a group that folds. The panel
+   folds by animating its grid row (0fr to 1fr), the one case where height moves. */
+.ui-disclosure + .ui-disclosure { margin-top: var(--canvas-menu-gap); }
+.ui-disclosure-toggle { display: flex; align-items: center; gap: var(--canvas-gap); width: 100%; height: var(--canvas-control); padding-inline: var(--canvas-padding); border: 0; border-radius: var(--canvas-radius); background: transparent; color: var(--canvas-muted); font-weight: 500; text-align: left; cursor: pointer; transition: background-color var(--tactile-press) var(--tactile-ease), color var(--tactile-press) var(--tactile-ease); }
+.ui-disclosure-toggle:hover { background: var(--canvas-button-hover); color: var(--canvas-text); }
+.ui-disclosure-toggle:active { background: var(--canvas-button-pressed); }
+.ui-disclosure-toggle:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: calc(-1 * var(--canvas-ring)); }
+.ui-disclosure-label { flex: none; }
+.ui-disclosure-count { flex: 1; font-weight: 400; }
+.ui-disclosure-toggle .ui-chevron { transition: rotate var(--tactile-in) var(--tactile-ease); }
+.ui-disclosure[data-open="true"] .ui-disclosure-toggle .ui-chevron { rotate: 180deg; }
+.ui-disclosure-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--tactile-in) var(--tactile-ease); }
+.ui-disclosure[data-open="true"] .ui-disclosure-panel { grid-template-rows: 1fr; }
+.ui-disclosure-list { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: var(--canvas-menu-gap); }
+
+/* ---- Content: the small pieces dialogs are written in -------------------------- */
+/* Kbd({ children }): a key cap. */
+.ui-kbd { display: inline-grid; place-items: center; min-width: var(--canvas-shortcut-key-size); height: var(--canvas-shortcut-key-size); padding-inline: var(--canvas-badge-padding); border: var(--canvas-border) solid transparent; border-radius: var(--canvas-shortcut-key-radius); background: var(--canvas-button); color: var(--canvas-text); font: inherit; box-shadow: var(--canvas-shadow-button); }
+.ui-kbd[data-gesture] { display: inline-flex; align-items: center; gap: var(--canvas-chevron-gap); }
+/* Tag({ hue }): a short coloured label. */
+.ui-tag { --tag-hue: 265; justify-self: start; padding: 1px var(--canvas-padding); border-radius: 999px; background: oklch(0.7 0.12 var(--tag-hue) / .16); color: color-mix(in oklch, oklch(0.5 0.15 var(--tag-hue)) 70%, var(--canvas-text)); font-size: 11px; font-weight: 600; line-height: 18px; }
+/* Pill({ children }): a quiet fact about a row. */
+.ui-pill { flex: none; padding: var(--canvas-badge-padding) var(--canvas-padding); border-radius: var(--canvas-radius); color: var(--canvas-muted); background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); }
+/* Badge: a dot that says something changed. */
+.ui-badge { width: 8px; height: 8px; border-radius: 50%; background: var(--canvas-accent); flex: none; }
+/* Section({ title }): a block of a dialog, a hairline between neighbours. */
+.ui-section + .ui-section { margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); }
+.ui-section h3 { margin: 0 0 var(--canvas-padding); font-size: inherit; font-weight: 600; color: var(--canvas-text); }
+.ui-section[data-tone="muted"] h3 { font-weight: 500; color: var(--canvas-muted); }
+/* CodeBlock and CommandRow: text to copy. */
+.ui-code { margin: 0; padding: var(--canvas-padding) var(--canvas-gap); overflow: auto; overflow-x: hidden; overscroll-behavior-x: none; max-height: 16rem; border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-radius); background: var(--canvas-button); color: var(--canvas-text); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.ui-command { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); margin-bottom: var(--canvas-padding); padding: var(--canvas-padding) var(--canvas-gap); border: var(--canvas-border) solid var(--canvas-line); border-radius: var(--canvas-radius); background: var(--canvas-button); }
+.ui-command code { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; user-select: text; }
+/* Callout({ children }): a sentence worth noticing. */
+.ui-callout { margin: 0 calc(-1 * var(--canvas-gap)) var(--canvas-layers-heading-inset); padding: var(--canvas-padding) var(--canvas-gap); border-radius: var(--canvas-radius); background: color-mix(in oklch, var(--canvas-accent) 14%, transparent); color: light-dark(oklch(0.42 0.2 330), oklch(0.82 0.12 330)); }
+.ui-callout strong { font-weight: 600; }
+
+/* ---- Tooltip -----------------------------------------------------------------
+   One for the whole canvas, driven by attributes (see tooltip.js): data-tooltip,
+   data-shortcut, data-tooltip-disabled. The action tooltip of the tactile system:
+   the primary's colours with a faint edge, in the top layer so it stays above
+   dialogs and menus. 125ms in, 100ms out; moving between controls swaps it in
+   place with no animation. */
+.ui-tooltip {
+  position: fixed; inset: auto; margin: 0; padding: 6px 8px; border: 0; overflow: visible;
+  width: max-content; max-width: 240px;
+  border-radius: 6px; background: var(--canvas-primary); color: var(--canvas-on-primary);
+  box-shadow: 0 0 0 var(--canvas-edge-w) color-mix(in oklab, var(--canvas-on-primary) 14%, transparent), 0 1px 2px 0 var(--canvas-drop-primary), 0 4px 8px -4px var(--canvas-lift);
+  font-size: var(--canvas-font); font-weight: 500; line-height: 16px; text-align: left;
+  pointer-events: none; user-select: none;
+  opacity: 0; scale: .97;
+  transition: opacity 100ms var(--tactile-ease), scale 100ms var(--tactile-ease), overlay 100ms allow-discrete, display 100ms allow-discrete;
+}
+.ui-tooltip:popover-open { opacity: 1; scale: 1; transition-duration: 125ms; }
+@starting-style { .ui-tooltip:popover-open { opacity: 0; scale: .97; } }
+.ui-tooltip-shortcut { margin-inline-start: 8px; color: color-mix(in oklab, var(--canvas-on-primary) 60%, var(--canvas-primary)); white-space: nowrap; }
+
+/* ---- Spotlight -------------------------------------------------------------------
+   Spotlight({ id, groups, items, ... }): a search panel above the bottom toolbar, with
+   no scrim. Search field, two optional bars and the results. It has a fixed size, so
+   typing never makes it jump; rows have one fixed height, whatever the title. */
+.ui-spotlight {
+  --spotlight-bottom: var(--canvas-spotlight-bottom);
+  position: fixed; inset: auto; left: 50%; bottom: var(--spotlight-bottom); margin: 0; padding: 0;
+  display: flex; flex-direction: column; overflow: hidden;
+  width: min(var(--canvas-spotlight-width), calc(100vw - 2 * var(--canvas-panel-inset)));
+  height: min(var(--canvas-spotlight-height), calc(100dvh - var(--spotlight-bottom) - var(--canvas-panel-inset)));
+  border: var(--canvas-border) solid transparent; border-radius: var(--canvas-panel-radius);
+  background: var(--canvas-panel); color: var(--canvas-text); box-shadow: var(--canvas-shadow-modal);
+  translate: -50% 0; transform-origin: bottom center; opacity: 0; scale: .97;
+  transition: opacity var(--tactile-out) var(--tactile-ease), scale var(--tactile-out) var(--tactile-ease),
+    overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
+}
+.ui-spotlight:not(:popover-open) { display: none; }
+.ui-spotlight:popover-open { opacity: 1; scale: 1; transition-duration: var(--tactile-in); }
+@starting-style { .ui-spotlight:popover-open { opacity: 0; scale: .97; } }
+.ui-spotlight [hidden] { display: none !important; }
+body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
+@media (max-width: 1100px) {
+  /* The toolbar rides above the zoom toolbar here, so the panel rides higher too. */
+  .ui-spotlight { --spotlight-bottom: calc(var(--canvas-spotlight-bottom) + var(--canvas-panel-inset) + var(--canvas-toolbar-height)); }
+}
+
+.ui-spotlight-search { display: flex; align-items: center; gap: var(--canvas-gap); flex: none; padding-inline: var(--canvas-layers-heading-inset); color: var(--canvas-muted); }
+.ui-spotlight-search .ui-input { flex: 1; min-width: 0; height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--canvas-text); font-size: 15px; text-align: left; }
+.ui-spotlight-search .ui-input:focus-visible { outline: 0; }
+.ui-spotlight-search .ui-input::placeholder { color: color-mix(in oklch, var(--canvas-muted) 65%, transparent); opacity: 1; }
+.ui-spotlight-search .ui-input:disabled { background: transparent; opacity: .6; }
+
+.ui-spotlight-notice, .ui-spotlight-hidden { flex: none; display: flex; align-items: center; gap: var(--canvas-gap); margin: 0; padding: var(--canvas-badge-padding) var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); background: var(--canvas-well); color: var(--canvas-muted); }
+.ui-spotlight-hidden { flex-direction: column; align-items: stretch; gap: 0; padding-block: 0; background: var(--canvas-button-hover); }
+.ui-spotlight-chosen-head { display: flex; align-items: center; gap: var(--canvas-gap); min-height: 32px; }
+.ui-spotlight-chosen-head .ui-checkbox, .ui-spotlight-chosen-row .ui-checkbox { margin-inline: calc(-1 * var(--canvas-padding)) 0; }
+.ui-spotlight-chosen-toggle { display: inline-flex; align-items: center; gap: var(--canvas-chevron-gap); flex: 1; min-width: 0; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ui-spotlight-chosen-toggle .ui-chevron { transition: rotate var(--tactile-press) var(--tactile-ease); }
+.ui-spotlight-hidden[data-open="true"] .ui-spotlight-chosen-toggle .ui-chevron { rotate: 180deg; }
+.ui-spotlight-chosen-list { max-height: 96px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; margin-inline: calc(-1 * var(--canvas-layers-heading-inset)); padding: var(--canvas-menu-gap) var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); }
+.ui-spotlight-chosen-row { display: flex; align-items: center; gap: var(--canvas-gap); height: 28px; cursor: pointer; color: var(--canvas-text); }
+.ui-spotlight-chosen-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ui-spotlight-list { flex: 1; min-height: 0; overflow: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 0 var(--canvas-padding) var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); scrollbar-width: thin; }
+.ui-spotlight-group { display: flex; flex-direction: column; gap: 2px; }
+.ui-spotlight-group + .ui-spotlight-group { margin-top: var(--canvas-padding); }
+.ui-spotlight-heading { display: flex; align-items: baseline; gap: var(--canvas-chevron-gap); padding: var(--canvas-gap) var(--canvas-padding) var(--canvas-menu-gap); color: var(--canvas-muted); font-size: var(--canvas-guide-label); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+.ui-spotlight-heading-count { font-weight: 400; }
+.ui-spotlight-row { flex: none; gap: var(--canvas-gap); height: var(--canvas-spotlight-row); padding: 0 var(--canvas-padding); cursor: pointer; scroll-margin-block: 28px 8px; }
+.ui-spotlight-row:hover:not([data-active], [data-checked="true"]) { background: transparent; }
+.ui-spotlight-row[data-active]:not([data-disabled]) { background: var(--canvas-button-hover); }
+.ui-spotlight-row[data-active][data-checked="true"] { background: var(--canvas-selected); }
+.ui-spotlight-row[data-disabled] { opacity: .5; cursor: default; }
+.ui-spotlight-row[data-disabled]:hover { background: transparent; }
+.ui-spotlight-thumb { flex: none; width: var(--canvas-spotlight-thumb); aspect-ratio: 1; overflow: hidden; border: var(--canvas-border) solid transparent; border-radius: var(--canvas-checkbox-radius); background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); pointer-events: none; }
+.ui-spotlight-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ui-spotlight-label { flex: 1; min-width: 0; }
+.ui-spotlight-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; line-height: 16px; }
+.ui-spotlight mark { padding: 0; border-radius: 2px; background: color-mix(in oklch, var(--canvas-accent) 24%, transparent); color: inherit; }
+
+.ui-spotlight-empty { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); text-align: center; overflow-wrap: anywhere; }
+.ui-spotlight-empty p { margin: 0; max-width: 36ch; color: var(--canvas-muted); }
+.ui-spotlight-empty > div { display: flex; flex-direction: column; align-items: center; gap: var(--canvas-padding); }
+
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-button:active:not(:disabled), .ui-select:active, .ui-segment:active { transform: none; }
+  .ui-button, .ui-select, .ui-segment { transition-duration: 150ms; }
+  .ui-tooltip, .ui-menu, .ui-spotlight, .ui-dialog, .ui-dialog::backdrop, .ui-select .ui-chevron, .ui-disclosure-panel, .ui-disclosure-toggle .ui-chevron, .ui-disclosure-toggle, .ui-input { transition: none; }
+  .ui-enter:not([hidden]), .ui-checkbox[aria-checked="true"] .ui-checkbox-mark::after { animation: none; }
+}
+}
+
+/* ---- Entrances ------------------------------------------------------------------ */
+@keyframes ui-enter { from { opacity: 0; scale: .96; } }
+@keyframes ui-enter-centered { from { opacity: 0; transform: translateX(-50%) scale(.96); } }
+@keyframes ui-check { from { opacity: 0; scale: .4; } }

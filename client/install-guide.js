@@ -1,6 +1,6 @@
 // Content of the "Install in a project" dialog: manual steps plus a prompt
 // the person can copy and hand to a coding agent.
-export const el = (tag, className = '', text = '') => { const node = document.createElement(tag); if (className) node.className = className; if (text) node.textContent = text; return node; };
+import { h, Button, Section, CodeBlock, CommandRow, CopyButton } from './ui/index.js';
 
 const template = name => new URL(`./templates/${name}`, import.meta.url).href;
 
@@ -24,50 +24,25 @@ export const agentPrompt = `Install the @tio-canvas/canvas package in this proje
 
 1. Add it as a dev dependency with this project's package manager: @tio-canvas/canvas.
 2. Read node_modules/@tio-canvas/canvas/docs/integration.md and follow its "Use it in a project" section.
-3. Create dev/canvas/screens.js listing the real pages of this project (id, kind, title, description, src, x, y, width, height, preset). Give storageKey a name unique to this project. The file must not import anything.
+3. Create dev/canvas/screens.js listing the real pages of this project (id, kind, title, src, x, y, width, height, preset). Give storageKey a name unique to this project. The file must not import anything.
 4. Wire the dev server: serve the package client at /canvas with createCanvasHost from "@tio-canvas/canvas/server" (locate, projectModule, pageScripts, interfaceKitBundle, watchTargets). Do this for development only.
 5. Do not link /canvas from any public page, and do not publish it unless I ask.
 6. Start the dev server, open /canvas, and confirm every screen loads. Tell me the URL and anything you could not verify.`;
 
-export function codeBlock(code) {
-  const pre = el('pre', 'install-code'); pre.append(el('code', '', code)); return pre;
-}
-
-export function copyButton(label, text) {
-  const button = el('button', 'install-copy', label); button.type = 'button';
-  button.onclick = async () => {
-    try { await navigator.clipboard.writeText(text); button.textContent = 'Copied'; } catch { button.textContent = 'Copy failed'; }
-    setTimeout(() => { button.textContent = label; }, 1600);
-  };
-  return button;
-}
-
-export function commandRow(command) {
-  const row = el('div', 'install-command'); row.append(el('code', '', command), copyButton('Copy', command)); return row;
-}
-
 export function renderInstallGuide(body) {
   body.replaceChildren();
-  const manual = el('section', 'install-section');
-  manual.append(el('h3', '', 'Install it yourself'));
-  const list = el('ol', 'install-steps');
+  const list = h('ol', { class: 'install-steps' });
   for (const step of steps) {
-    const item = el('li'); item.append(el('strong', '', step.title), el('p', '', step.text));
-    for (const command of step.commands ?? (step.command ? [step.command] : [])) item.append(commandRow(command));
+    const item = h('li', {}, h('strong', {}, step.title), h('p', {}, step.text));
+    for (const command of step.commands ?? (step.command ? [step.command] : [])) item.append(CommandRow(command));
     if (step.downloads) {
-      const row = el('div', 'install-downloads');
-      for (const [name, label] of step.downloads) {
-        const link = el('a', 'install-copy', label); link.href = template(name); link.download = name; row.append(link);
-      }
-      item.append(row);
+      item.append(h('div', { class: 'install-downloads' }, ...step.downloads.map(([name, label]) => Button({ as: 'a', size: 'xs', href: template(name), download: name }, label))));
     }
     list.append(item);
   }
-  manual.append(list);
-
-  const agent = el('section', 'install-section');
-  const head = el('div', 'install-head'); head.append(el('h3', '', 'Ask an agent to do it'));
-  head.append(copyButton('Copy prompt', agentPrompt));
-  agent.append(head, el('p', '', 'Paste this into your coding agent while it is in the project.'), codeBlock(agentPrompt));
-  body.append(agent, manual);
+  body.append(
+    Section({ className: 'install-section' },
+      h('div', { class: 'install-head' }, h('h3', {}, 'Ask an agent to do it'), CopyButton('Copy prompt', agentPrompt)),
+      h('p', {}, 'Paste this into your coding agent while it is in the project.'), CodeBlock(agentPrompt)),
+    Section({ title: 'Install it yourself', className: 'install-section' }, list));
 }
