@@ -1,6 +1,6 @@
 {
   "name": "@tio-canvas/canvas",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A private exploration canvas: lay your project's pages out on an infinite board, frame real documents, annotate. Development tool, plain JavaScript, ships nothing to visitors.",
   "type": "module",
   "license": "MIT",
