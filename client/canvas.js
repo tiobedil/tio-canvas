@@ -882,7 +882,7 @@ function duplicateSelection() {
   selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection(true);textTool?.duplicateSelected(offset.x,offset.y);fitEntries(copies);commitEdit(before);
 }
 const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
-document.body.append(Spotlight({id:'add-pages',label:'Add pages',placeholder:'Search pages and groups',trigger:$('#add'),
+document.body.append(Spotlight({id:'add-pages',label:'Add pages',placeholder:'Search',trigger:$('#add'),
   groups:Object.entries(screenKinds).map(([id,label])=>({id,label})),
   items:screens.map(source=>({id:source.id,group:source.kind,title:source.title})),
   thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(item.id)}.webp`,
