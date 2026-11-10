@@ -101,8 +101,8 @@ Options: `--config <file>`, `--out <dir>`.
 
 The canvas can also show one component alone in a frame. The frame is resized by
 hand (it has no device presets), opens fullscreen and has its own dark mode,
-like a page. On its right sit the dials: one control for every prop, variant and
-state you list. They are added from the same panel as pages (Cmd+K), in the
+like a page. Inside it, on the right, sit the dials: one control for every prop,
+variant and state you list. They are added from the same panel as pages (Cmd+K), in the
 Components tab.
 
 Only the components your project lists are shown. The canvas never shows its own.
@@ -141,9 +141,10 @@ export const components = [
   `{ type: 'select' | 'boolean' | 'text' | 'number', value, label, options, min, max, step }`;
   a number with both `min` and `max` is a slider. Options may be strings, numbers
   or booleans, or `{ value, label }`.
-- `width` and `height` set the size a new frame starts with (480 × 320).
+- `width` and `height` set the size a new frame starts with (1100 × 600).
 - `fill: true` stretches the component to the frame's width (a navigation bar,
-  say). Without it the component keeps its own size and is centred.
+  say). Without it the component keeps its own size and is centred in the room
+  the dials leave (in the whole frame once they are minimized).
 - `framework` is `'react'` (the default) or `'dom'`. A `dom` component is a
   function that returns a DOM node.
 - `render` replaces the default drawing, for a component that needs more than

@@ -56,6 +56,11 @@ export function startComponent({ id, config, exports, react }) {
     if (event.source !== parent || event.origin !== location.origin || event.data?.type !== "tio-canvas:component") return;
     props = componentProps(controls, event.data.props);
     setTheme(event.data.dark === true);
+    // Room the open dials cover on the right: the component is centred in what is left.
+    const reserve = Number.isFinite(event.data.reserve) ? Math.max(0, event.data.reserve) : 0;
+    // The first drawing takes its place at once; only a later change (the dials fold or unfold) slides.
+    if (!drawn) { document.body.style.transition = "none"; requestAnimationFrame(() => { document.body.style.transition = ""; }); }
+    document.body.style.paddingRight = `${24 + reserve}px`;
     draw();
   });
   window.addEventListener("error", event => { if (!drawn || !root.childNodes.length) fail(event.error ?? event.message); });

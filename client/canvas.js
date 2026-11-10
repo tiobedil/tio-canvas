@@ -36,17 +36,13 @@ const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 const finite = (n, fallback, min, max) => Number.isFinite(n) ? clamp(n, min, max) : fallback;
 // A component is a source like a page: it is added from the picker and can be on
 // the canvas many times. Its frame shows /canvas/component.html, has no device
-// preset (it is always resized by hand) and carries its dials on its right.
+// preset (it is always resized by hand) and carries its dials inside, on the right.
 const componentSources = components.map(component => ({ id: componentSourceId(component.id), kind: 'component', title: component.title, group: component.group ?? 'Components',
-  src: `/canvas/component.html?component=${encodeURIComponent(component.id)}`, x: 0, y: 0, width: component.width ?? 480, height: component.height ?? 320, preset: 'custom' }));
+  src: `/canvas/component.html?component=${encodeURIComponent(component.id)}`, x: 0, y: 0, width: component.width ?? 1100, height: component.height ?? 600, preset: 'custom' }));
 const componentControls = new Map(components.map(component => [componentSourceId(component.id), normalizeControls(component.controls)]));
 const sources = [...screens, ...componentSources];
 const isComponent = model => model.kind === 'component';
-// The room a frame takes on the canvas: a component's dials count, so nothing is placed under them.
 const rootToken = name => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
-const footprint = model => isComponent(model) ? { ...model, width: model.width + rootToken('--canvas-dial-gap') + rootToken('--canvas-dial-width') } : model;
-// The same for a frame already on the canvas, whose dials have a real size: taller than a small frame, narrow when minimised.
-const footprintOf = target => target.dials ? { ...target.model, width: target.model.width + rootToken('--canvas-dial-gap') + target.dials.offsetWidth, height: Math.max(target.model.height, target.dials.offsetHeight) } : target.model;
 let saved = {};
 try { const raw = localStorage.getItem(key); if (raw?.length < 1000000) { const value = JSON.parse(raw); if (value.version === 1) saved = value; } } catch {}
 const initialInset=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--canvas-panel-inset'));
@@ -66,7 +62,9 @@ let contactState=null;
 // A screen's theme is its own: it sets the frame's colour scheme, which is what the page inside sees as prefers-color-scheme. It is not saved.
 function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';if(entry.dials)postComponent(entry);}
 // What a component frame draws: its props and its theme. The frame asks for them when it is ready (component-ready).
-function postComponent(entry,target=entry.iframe?.contentWindow){target?.postMessage({type:'tio-canvas:component',props:entry.model.props,dark:entry.dark===true},location.origin);}
+function postComponent(entry,target=entry.iframe?.contentWindow){target?.postMessage({type:'tio-canvas:component',props:entry.model.props,dark:entry.dark===true,reserve:dialReserve(entry)},location.origin);}
+// The open dials cover the right of the frame. The component is centred in what is left: the frame page keeps this much room free on its right.
+function dialReserve(entry){return entry.model.dialsMinimized?0:rootToken('--canvas-dial-width')+rootToken('--canvas-dial-gap');}
 function syncComponent(entry){
   if(!entry.dials)return;
   entry.dials.setValues(entry.model.props);entry.dials.setMinimized(entry.model.dialsMinimized===true);entry.dialFloat.sync();postComponent(entry);
@@ -153,7 +151,7 @@ function createEntry(definition, loadSaved = true) {
       const start = history.checkpoint(); before = null;
       entry.model.props = componentProps(controls); dials.setValues(entry.model.props); postComponent(entry); commitEdit(start);
     });
-    dials.addEventListener('dial-minimize', event => { entry.model.dialsMinimized = event.detail.minimized; entry.dialFloat.sync(); persist(); });
+    dials.addEventListener('dial-minimize', event => { entry.model.dialsMinimized = event.detail.minimized; entry.dialFloat.sync(); postComponent(entry); persist(); });
   }
   return entry;
 }
@@ -828,6 +826,9 @@ function wheelPan(dx,dy,mode) {
 }
 viewport.addEventListener('wheel',event=>{
   if(preview.entry || event.target.closest('#inspector,#group-inspector')) return;
+  // Dials that do not fit their frame scroll; a plain wheel over them scrolls the dials, not the canvas.
+  const dialBody=event.target.closest('.ui-dial-body');
+  if(dialBody && dialBody.scrollHeight>dialBody.clientHeight && !event.metaKey && !event.ctrlKey)return;
   event.preventDefault();
   if(event.metaKey || event.ctrlKey)wheelZoom(event.deltaY,event.deltaMode,event.clientX,event.clientY,event.ctrlKey && !event.metaKey ? PINCH_ZOOM_SENSITIVITY : ZOOM_SENSITIVITY);
   else wheelPan(event.deltaX,event.deltaY,event.deltaMode);
@@ -887,7 +888,7 @@ window.addEventListener('message',event=>{
 const fitAll=()=>[...entries,...(textTool?.objects()??[]).map(model=>({model}))];
 function fitEntries(targets,{fullViewport=false}={}) {
   if(!targets.length)return;
-  const models=targets.map(footprintOf);
+  const models=targets.map(target=>target.model);
   const minX=Math.min(...models.map(m=>m.x)),minY=Math.min(...models.map(m=>m.y));
   const maxX=Math.max(...models.map(m=>m.x+m.width)),maxY=Math.max(...models.map(m=>m.y+m.height));
   const {left:availableLeft,width:availableWidth}=fullViewport?{left:0,width:innerWidth}:workArea();
@@ -925,9 +926,8 @@ function duplicateSelection() {
     if(!textTool?.selectedIds.length)return;
     const before=history.checkpoint();if(textTool.duplicateSelected())commitEdit(before);return;
   }
-  // Dials take room too: a copy never lands on the dials of another frame.
-  const box=bounds(originals.map(footprintOf));
-  const offset=duplicateOffset(box,entries.map(footprintOf),extent);
+  const box=bounds(originals.map(entry=>entry.model));
+  const offset=duplicateOffset(box,entries.map(entry=>entry.model),extent);
   if(!offset || entries.filter(entry=>entry.model.sourceId).length+originals.length>200)return;
   const before=history.checkpoint();
   const copies=originals.map(entry=>duplicate(entry,offset.x,offset.y)).filter(Boolean);
@@ -959,7 +959,7 @@ document.body.append(Spotlight({id:'add-pages',label:'Add pages and components',
   onAdd(ids){
     const added=ids.map(id=>sources.find(source=>source.id===id)).filter(Boolean);
     if(sourceCount()+added.length>200)return false;
-    const positions=addedPagePositions(added.map(footprint),[...entries.map(footprintOf),...(textTool?.objects()??[])],extent);
+    const positions=addedPagePositions(added,[...entries.map(entry=>entry.model),...(textTool?.objects()??[])],extent);
     if(!positions)return false;
     const before=history.checkpoint(),copies=[];
     for(const [index,source] of added.entries()){

@@ -34,7 +34,7 @@ export const components = [
     label: p.text || 'Button', pressed: p.pressed || undefined, disabled: p.disabled }, ...(p.text ? [p.text] : []))),
   dom('Actions', 'copy-button', 'CopyButton', { label: 'Copy prompt', text: 'Text that lands on the clipboard' }, (m, p) => m.CopyButton(p.label, p.text)),
   dom('Actions', 'icon', 'Icon', { name: icons, size: { type: 'number', min: 12, max: 96, step: 2, value: 20 } },
-    (m, p) => { const icon = m.Icon(p.name); icon.style.width = icon.style.height = `${p.size}px`; return icon; }, { width: 320, height: 240 }),
+    (m, p) => { const icon = m.Icon(p.name); icon.style.width = icon.style.height = `${p.size}px`; return icon; }),
 
   dom('Forms', 'input', 'Input', { type: ['text', 'number'], value: '1440', placeholder: 'Width', disabled: false },
     (m, p) => m.Input({ type: p.type, value: p.value, placeholder: p.placeholder, disabled: p.disabled })),
@@ -44,8 +44,8 @@ export const components = [
     const box = m.Checkbox({ label: 'Select', checked: p.checked });
     box.addEventListener('click', () => box.setAttribute('aria-checked', String(box.getAttribute('aria-checked') !== 'true')));
     return box;
-  }, { width: 320, height: 240 }),
-  dom('Forms', 'switch', 'Switch', { checked: true, disabled: false }, (m, p) => m.Switch({ label: 'Switch', checked: p.checked, disabled: p.disabled }), { width: 320, height: 240 }),
+  }),
+  dom('Forms', 'switch', 'Switch', { checked: true, disabled: false }, (m, p) => m.Switch({ label: 'Switch', checked: p.checked, disabled: p.disabled })),
   dom('Forms', 'slider', 'Slider', { value: { type: 'number', min: 0, max: 100, step: 1, value: 40 }, max: [100, 10, 1000], step: [1, 5, 10] },
     (m, p) => { const slider = m.Slider({ label: 'Slider', min: 0, max: p.max, step: p.step, value: Math.min(p.value, p.max) }); slider.style.width = '240px'; return slider; }),
   dom('Forms', 'option-chips', 'OptionChips', { options: { type: 'number', min: 2, max: 12, step: 1, value: 5 }, chosen: { type: 'number', min: 1, max: 12, step: 1, value: 2 } }, (m, p) => {
@@ -64,19 +64,19 @@ export const components = [
     const field = m.IconSelect({ id: 'demo-ending', label: 'End style', options: [{ value: 'line', icon: 'end-line', label: 'Line' }, { value: 'arrow', icon: 'end-finish', label: 'Right arrow' }] });
     field.trigger.value = p.value === 'mixed' ? '' : p.value; field.sync();
     return field;
-  }, { width: 420, height: 300 }),
+  }),
   dom('Forms', 'select-field', 'SelectField', { mixed: false }, (m, p) => {
     for (const old of document.querySelectorAll('body > .ui-menu')) old.remove();
     const field = m.SelectField({ id: 'demo-size', label: 'Text size', mixed: p.mixed, options: [{ value: 'sm', label: '16 px' }, { value: 'md', label: '24 px' }, { value: 'lg', label: '40 px' }, { value: 'xl', label: '64 px' }] });
     if (p.mixed) field.select.value = '';
     field.sync();
     return field;
-  }, { width: 420, height: 360 }),
+  }),
 
-  dom('Content', 'kbd', 'Kbd', { text: '⌘', gesture: false }, (m, p) => (p.gesture ? m.Kbd({ gesture: true }, m.Icon('mouse'), p.text) : m.Kbd({}, p.text)), { width: 320, height: 240 }),
-  dom('Content', 'tag', 'Tag', { text: 'New', hue: { type: 'number', min: 0, max: 360, step: 5, value: 265 } }, (m, p) => m.Tag({ hue: p.hue }, p.text), { width: 320, height: 240 }),
-  dom('Content', 'pill', 'Pill', { text: '2 on canvas' }, (m, p) => m.Pill({}, p.text), { width: 320, height: 240 }),
-  dom('Content', 'badge', 'Badge', {}, m => m.Badge(), { width: 320, height: 240 }),
+  dom('Content', 'kbd', 'Kbd', { text: '⌘', gesture: false }, (m, p) => (p.gesture ? m.Kbd({ gesture: true }, m.Icon('mouse'), p.text) : m.Kbd({}, p.text))),
+  dom('Content', 'tag', 'Tag', { text: 'New', hue: { type: 'number', min: 0, max: 360, step: 5, value: 265 } }, (m, p) => m.Tag({ hue: p.hue }, p.text)),
+  dom('Content', 'pill', 'Pill', { text: '2 on canvas' }, (m, p) => m.Pill({}, p.text)),
+  dom('Content', 'badge', 'Badge', {}, m => m.Badge()),
   dom('Content', 'callout', 'Callout', { strong: 'Heads up.', text: 'Restart the dev server after you change the config.' },
     (m, p) => { const callout = m.Callout({}, m.h('strong', {}, p.strong), ` ${p.text}`); callout.style.margin = '0'; callout.style.maxWidth = '360px'; return callout; }),
   dom('Content', 'code-block', 'CodeBlock', { code: 'pnpm add -D @tio-canvas/canvas\npnpm dev' }, (m, p) => m.CodeBlock(p.code)),
@@ -92,18 +92,18 @@ export const components = [
     const group = m.Disclosure({ id: 'demo-pages', label: p.label, count: p.rows, open: p.open },
       ...Array.from({ length: p.rows }, (_, index) => m.h('div', { class: 'ui-row', style: { height: '32px', padding: '0 8px' } }, `Page ${index + 1}`)));
     group.style.width = '260px'; return group;
-  }, { width: 480, height: 400 }),
+  }),
   dom('Surfaces', 'menu', 'Menu', { danger: true, footer: false }, (m, p) => {
     const menu = m.Menu({ id: 'demo-menu', label: 'Screen actions', popover: false, style: { position: 'static', display: 'flex', opacity: '1', scale: '1' } },
       m.MenuItem({ icon: 'duplicate' }, 'Duplicate'), m.MenuItem({ icon: 'book' }, 'Guide & hotkeys'),
       ...(p.danger ? [m.Divider({ orientation: 'horizontal' }), m.MenuItem({ icon: 'trash', danger: true }, 'Delete')] : []),
       ...(p.footer ? [m.Divider({ orientation: 'horizontal' }), m.MenuFooter(m.h('span', {}, 'v0.3.0'), m.Button({}, 'Check for update'))] : []));
     return menu;
-  }, { width: 480, height: 400 }),
+  }),
   dom('Surfaces', 'panel', 'Panel', { header: true, title: 'Layers', text: 'The floating surface under toolbars, menus and the layers drawer.' }, (m, p) =>
     m.Panel({ style: { position: 'static', flexDirection: 'column', alignItems: 'stretch', width: '260px', padding: '0', gap: '0' } },
       ...(p.header ? [m.Header({ title: p.title }, m.Button({ icon: 'dots', iconOnly: true, label: 'More' }))] : []),
-      m.h('p', { style: { margin: '0', padding: '12px 18px', fontWeight: '400' } }, p.text)), { width: 480, height: 360 }),
+      m.h('p', { style: { margin: '0', padding: '12px 18px', fontWeight: '400' } }, p.text))),
   dom('Surfaces', 'dialog', 'Dialog', { title: 'Change log', size: ['fit', 'fixed'], footer: true, text: 'Press the backdrop, the Close button or Escape to close it.' }, (m, p) => {
     const dialog = m.Dialog({ id: 'demo-dialog', title: p.title, size: p.size === 'fit' ? 'fit' : undefined, style: { position: 'static', width: '360px', height: p.size === 'fit' ? 'auto' : '320px' } },
       m.DialogBody({ padded: true }, m.h('p', { style: { margin: '0' } }, p.text)),
@@ -111,7 +111,7 @@ export const components = [
     // Shown in place, not as a modal: the frame is its stage.
     queueMicrotask(() => dialog.show());
     return dialog;
-  }, { width: 560, height: 480 }),
+  }),
   dom('Surfaces', 'spotlight', 'Spotlight', { tabs: true, pages: { type: 'number', min: 0, max: 12, step: 1, value: 5 } }, (m, p) => {
     for (const old of document.querySelectorAll('#component-root .ui-spotlight')) old.close?.();
     const list = (noun, count) => Array.from({ length: count }, (_, index) => ({ id: `${noun}-${index}`, group: index % 2 ? 'b' : 'a', title: `${noun} ${index + 1}` }));
@@ -122,11 +122,11 @@ export const components = [
     spotlight.style.setProperty('--spotlight-bottom', '24px');
     queueMicrotask(() => spotlight.open());
     return spotlight;
-  }, { width: 640, height: 520 }),
+  }),
   dom('Surfaces', 'dial-panel', 'DialPanel', { title: 'Button', minimized: false }, (m, p) => m.DialPanel({ title: p.title, minimized: p.minimized, controls: [
     { name: 'variant', label: 'variant', type: 'select', value: 'primary', options: ['secondary', 'primary', 'accent', 'ghost'].map(value => ({ value, label: value })) },
     { name: 'disabled', label: 'disabled', type: 'boolean', value: false },
     { name: 'text', label: 'text', type: 'text', value: 'Add pages' },
     { name: 'radius', label: 'radius', type: 'number', min: 0, max: 24, step: 1, value: 8 },
-  ] }), { width: 480, height: 420 }),
+  ] })),
 ];

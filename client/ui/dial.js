@@ -2,6 +2,7 @@ import { h, cx, step } from './dom.js';
 import { Icon } from './icons.js';
 import { Button } from './button.js';
 import { Input } from './field.js';
+import { SelectField } from './select.js';
 
 /**
  * An on/off switch.
@@ -82,7 +83,8 @@ let dialCount = 0;
 
 /**
  * The dials of one component: a titled panel with one row per control, which
- * folds away into a round floating button.
+ * folds away into a round floating button. A choice is a select menu and text is
+ * a field, each under its name; a switch, a slider or a number sits beside its name.
  *   const panel = DialPanel({ title: 'Button', controls, values, minimized: false })
  *   controls   from normalizeControls() in registry.js: [{ name, label, type, value, options, min, max, step }]
  *   values     { name: value } to show; a missing name shows the control's default
@@ -107,15 +109,21 @@ export function DialPanel({ title, controls = [], values = {}, minimized = false
       setters.set(control.name, value => field.setValue(value));
     } else if (control.type === 'select') {
       layout = 'stacked';
-      field = OptionChips({ label: control.label, options: control.options });
-      field.addEventListener('change', event => { emit(row, 'dial-input', { name: control.name, value: event.detail }); emit(row, 'dial-change', { name: control.name, value: event.detail }); });
-      setters.set(control.name, value => field.setValue(value));
+      // A select menu. The native <select> inside holds strings, so it holds each option's place in the list and the real value (a number stays a number) is looked up.
+      field = SelectField({ id, label: control.label, options: control.options.map((option, at) => ({ value: String(at), label: option.label })) });
+      field.select.addEventListener('change', event => {
+        event.stopPropagation();
+        const value = control.options[Number(field.select.value)].value;
+        emit(row, 'dial-input', { name: control.name, value }); emit(row, 'dial-change', { name: control.name, value });
+      });
+      setters.set(control.name, value => { field.select.value = String(Math.max(0, control.options.findIndex(option => option.value === value))); field.sync(); });
     } else if (control.type === 'number' && control.min !== undefined && control.max !== undefined) {
       field = Slider({ label: control.label, min: control.min, max: control.max, step: control.step ?? 1 });
       for (const type of ['input', 'change']) field.addEventListener(type, event => emit(row, `dial-${type}`, { name: control.name, value: event.detail }));
       setters.set(control.name, value => field.setValue(value));
     } else {
       const number = control.type === 'number';
+      if (!number) layout = 'stacked';
       field = Input({ type: number ? 'number' : 'text', className: 'ui-dial-input', 'aria-labelledby': `${id}-name`, min: control.min, max: control.max, step: control.step, autocomplete: 'off', spellcheck: 'false' });
       const read = () => (number ? (Number.isFinite(field.valueAsNumber) ? field.valueAsNumber : control.value) : field.value);
       for (const type of ['input', 'change']) field.addEventListener(type, event => { event.stopPropagation(); emit(row, `dial-${type}`, { name: control.name, value: read() }); });

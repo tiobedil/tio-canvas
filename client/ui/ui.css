@@ -401,7 +401,8 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
 .ui-chip:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: 1px; }
 
 /* DialPanel({ title, controls, values }): a card with one row per control. A
-   switch, a slider or a field sits beside its name; a choice goes under it.
+   switch, a slider or a number sits beside its name; a choice (a select menu)
+   and a text field go under it.
    Minimised, the card gives way to a round floating button (the same as the
    fullscreen menu button). Where the panel sits belongs to canvas.css. */
 .ui-dial-panel { width: var(--canvas-dial-width); color: var(--canvas-text); }
@@ -412,11 +413,13 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
 .ui-dial-header .ui-button { width: 28px; height: 28px; padding: 0; }
 .ui-dial-body { display: flex; flex-direction: column; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 4px 14px 8px; }
 .ui-dial-row { display: flex; align-items: center; gap: var(--canvas-gap); flex: none; min-height: 36px; }
-.ui-dial-row[data-layout="stacked"] { flex-direction: column; align-items: stretch; gap: 6px; padding-block: 8px; }
+.ui-dial-row[data-layout="stacked"] { flex-direction: column; align-items: stretch; gap: 4px; padding-block: 6px; }
 .ui-dial-name { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--canvas-muted); }
 .ui-dial-row[data-layout="stacked"] .ui-dial-name { max-width: 100%; }
 .ui-dial-row[data-layout="inline"] > :last-child { margin-left: auto; }
-.ui-dial-row .ui-dial-input { flex: 1; min-width: 0; width: auto; height: 28px; border-radius: 6px; text-align: left; }
+.ui-dial-row .ui-dial-input { flex: none; min-width: 0; width: auto; height: 28px; border-radius: 6px; text-align: left; }
+.ui-dial-row .ui-select { width: 100%; height: 28px; justify-content: space-between; border-radius: 6px; }
+.ui-dial-row .ui-select [data-field-label] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ui-dial-row[data-type="number"] .ui-dial-input { flex: none; width: 72px; text-align: right; }
 .ui-dial-empty { margin: 0; padding: var(--canvas-padding) 0; color: var(--canvas-muted); }
 .ui-dial-button { display: grid; place-items: center; width: var(--canvas-float-size); height: var(--canvas-float-size); padding: 0; border: 0; border-radius: 50%; background: var(--canvas-float-surface); color: var(--canvas-float-ink); cursor: pointer; touch-action: none; user-select: none; transition: transform var(--tactile-press) var(--tactile-ease), background-color var(--tactile-press) var(--tactile-ease); }

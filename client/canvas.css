@@ -73,14 +73,14 @@ body[data-space] #viewport { cursor: grab; } body[data-gesture="pan"] #viewport 
   .screen [data-fold],.screen[data-expanded] [data-fold],.screen .screen-more { transition: none; }
 }
 
-/* A component frame carries its dials on its right. They belong to the frame:
-   they live in the world, so they move and shrink with it. In fullscreen the
-   frame fills the window, so the dials float over its top right corner instead,
-   and minimised they become a button that is dragged from corner to corner like
-   the preview menu button (dial-float.js). */
-.screen > .ui-dial-panel { position: absolute; left: calc(100% + var(--canvas-dial-gap)); top: 0; z-index: 1; }
-.screen[data-fullscreen] > .ui-dial-panel { position: fixed; left: auto; right: var(--canvas-preview-inset); top: var(--canvas-preview-inset); }
-.screen[data-fullscreen] > .ui-dial-panel .ui-dial-card { max-height: calc(100dvh - 2 * var(--canvas-preview-inset)); box-shadow: var(--canvas-shadow-modal); }
+/* A component frame carries its dials inside, in its top right corner. They
+   belong to the frame: they live in the world, so they move and shrink with it,
+   and when they are taller than the frame their rows scroll. The component is
+   centred in the room they leave (component.html). In fullscreen the frame
+   fills the window and the dials stay in its corner; minimised there they become
+   a button that is dragged from corner to corner like the preview menu button
+   (dial-float.js). */
+.screen > .ui-dial-panel { position: absolute; right: var(--canvas-dial-gap); top: var(--canvas-dial-gap); z-index: 1; display: flex; flex-direction: column; max-width: calc(100% - 2 * var(--canvas-dial-gap)); max-height: calc(100% - 2 * var(--canvas-dial-gap)); }
 .screen[data-fullscreen] > .ui-dial-panel[data-minimized] { left: 0; right: auto; top: 0; transition: transform var(--canvas-snap-duration) var(--canvas-snap-ease); }
 .screen[data-fullscreen] > .ui-dial-panel[data-minimized] .ui-dial-button { cursor: grab; }
 .screen[data-fullscreen] > .ui-dial-panel[data-dragging] { transition: none; }

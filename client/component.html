@@ -9,9 +9,10 @@
        loads is built from the project's config (src/component-bundle.js). -->
   <style>
     html, body { height: 100%; margin: 0; }
-    body { display: grid; place-items: center; padding: 24px; box-sizing: border-box; overflow: auto; background: Canvas; color: CanvasText; font-family: system-ui, sans-serif; }
+    body { display: grid; place-items: center; padding: 24px; transition: padding-right 200ms cubic-bezier(.23,1,.32,1); box-sizing: border-box; overflow: auto; background: Canvas; color: CanvasText; font-family: system-ui, sans-serif; }
     /* A grid, so a component is laid out as a block whatever its own display is. `fill` on a component stretches it to the frame's width. */
     #component-root { display: grid; justify-items: center; min-width: 0; max-width: 100%; }
+    @media (prefers-reduced-motion: reduce) { body { transition: none; } }
     #component-root[data-fill] { width: 100%; justify-items: stretch; }
   </style>
 </head>
