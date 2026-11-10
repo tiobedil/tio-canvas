@@ -884,7 +884,7 @@ function duplicateSelection() {
 const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
 document.body.append(Spotlight({id:'add-pages',label:'Add pages',placeholder:'Search pages and groups',trigger:$('#add'),
   groups:Object.entries(screenKinds).map(([id,label])=>({id,label})),
-  items:screens.map(source=>({id:source.id,group:source.kind,title:source.title,description:source.description})),
+  items:screens.map(source=>({id:source.id,group:source.kind,title:source.title})),
   thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(item.id)}.webp`,
   count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
   remaining:()=>200-sourceCount(),

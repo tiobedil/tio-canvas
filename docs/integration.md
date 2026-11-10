@@ -26,18 +26,18 @@ import anything.
 ```js
 export const storageKey = 'my-project:canvas:v1'; // where the browser keeps the saved layout
 export const screens = [
-  { id: 'home', kind: 'production', title: 'Home', description: 'The live homepage.',
+  { id: 'home', kind: 'production', title: 'Home',
     src: '/', x: 160, y: 160, width: 1440, height: 900, preset: 'laptop' },
 ];
 ```
 
 - `id` is stable: saved layouts refer to it. `kind` is `production` or `prototype`.
-  `description` is required. Both are checked and a mistake throws.
+  Both are checked and a mistake throws.
 - `preset` is a key of the device presets (`laptop`, `iphone-16`, `ipad-air`, …; see `client/registry.js`).
 - `storageKey` is optional. Two projects served from one origin (for example
   `localhost:4321`) must not share a key, or they overwrite each other's layout.
 
-Page thumbnails live in `dev/canvas/thumbnails/<id>.webp` (see `tio-canvas thumbnails`).
+Page thumbnails live in `dev/canvas/thumbnails/<id>.webp` and are made for you (see Thumbnails below).
 
 ### 2. Serve it from your dev server
 
@@ -72,15 +72,28 @@ screens that exist, and a `noindex` tag. Do not link to it from a public page.
 
 ### 4. Thumbnails
 
-With the dev server running:
+The Add pages panel shows a small picture of each page (about 1 KB, 96px on the
+short side). The dev server makes a missing one by itself the first time the
+canvas asks for it, so a page you add to `screens.js` gets its thumbnail on the
+next load. Pass the request to the host before you serve a file under `/canvas`:
+
+```js
+await canvas.ensureThumbnail(pathname, `http://${request.headers.host}`);
+```
+
+It starts one headless Chromium on demand, takes the pictures one at a time, and
+stops it a few seconds later. It uses `$CHROME_BIN`, a Chromium from the
+Playwright cache (`~/Library/Caches/ms-playwright`), or an installed Chrome. With
+none of them the panel just shows no picture. A thumbnail is made once and kept;
+to refresh them after a page changes, with the dev server running:
 
 ```bash
+npx tio-canvas thumbnails http://localhost:4321            # all of them
 npx tio-canvas thumbnails http://localhost:4321 --missing
 npx tio-canvas thumbnails --check          # fails when a screen has no thumbnail
 ```
 
-Options: `--config <file>`, `--out <dir>`. It uses a Chromium from the Playwright
-cache (`~/Library/Caches/ms-playwright`) or `CHROME_BIN`.
+Options: `--config <file>`, `--out <dir>`.
 
 ## Updating
 

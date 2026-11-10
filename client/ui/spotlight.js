@@ -2,7 +2,7 @@ import { h } from './dom.js';
 import { Icon } from './icons.js';
 import { Input } from './field.js';
 import { Checkbox } from './list.js';
-import { Kbd, Pill } from './content.js';
+import { Pill } from './content.js';
 import { searchGroups, createSpotlightState } from './spotlight-model.js';
 
 const TYPING = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
@@ -20,12 +20,12 @@ function marked(text, range) {
  *
  *   const spotlight = Spotlight({ id: 'add-pages', label: 'Add pages', trigger: button,
  *     groups: [{ id: 'production', label: 'Production' }],
- *     items: [{ id, group, title, description }],
+ *     items: [{ id, group, title }],
  *     thumbnail: item => url, count: item => n, remaining: () => slots left,
  *     onAdd: ids => true | false, empty: node })
  *   document.body.append(spotlight)
  *
- * A query matches an item's title or a group's name. Up and Down move the
+ * A query matches an item's title or a group's name. There is no footer: the keys are in the Guide. Up and Down move the
  * highlight, Shift with them selects a range, Enter adds the selection (or the
  * highlighted row), Escape clears the selection, then the query, then closes.
  * The query survives closing. Cmd or Ctrl+K opens and closes it.
@@ -47,22 +47,14 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
   const hiddenBar = h('div', { class: 'ui-spotlight-hidden', hidden: true }, hiddenBox, hiddenText);
   const list = h('div', { id: `${id}-list`, class: 'ui-spotlight-list', role: 'listbox', 'aria-multiselectable': 'true', 'aria-label': label });
   const emptyEl = h('div', { class: 'ui-spotlight-empty', role: 'status', hidden: true });
-  const addHint = h('span', {}, 'add');
-  const selectedCount = h('span', { class: 'ui-spotlight-count' });
-  const footer = h('footer', { class: 'ui-spotlight-footer' },
-    h('span', { class: 'ui-spotlight-hints' },
-      h('span', {}, Kbd({}, '↑'), Kbd({}, '↓'), ' move'),
-      h('span', {}, Kbd({}, '⇧'), Kbd({}, '↑↓'), ' select'),
-      h('span', {}, Kbd({}, '↵'), ' ', addHint)),
-    selectedCount);
   const root = h('div', { id, class: 'ui-spotlight', popover: 'manual', role: 'dialog', 'aria-label': label },
-    h('div', { class: 'ui-spotlight-search' }, Icon('search'), input), notice, hiddenBar, list, emptyEl, footer);
+    h('div', { class: 'ui-spotlight-search' }, Icon('search'), input), notice, hiddenBar, list, emptyEl);
 
   // One row per item, built once and moved as the query changes (so thumbnails do not reload).
   const rows = new Map();
   items.forEach((item, index) => {
     const url = thumbnail?.(item);
-    const image = url ? h('img', { src: url, alt: '', loading: 'lazy', decoding: 'async', draggable: false }) : null;
+    const image = url ? h('img', { src: url, alt: '', decoding: 'async', draggable: false }) : null;
     image?.addEventListener('error', () => image.remove(), { once: true });
     const row = {
       item, title: h('span', { class: 'ui-spotlight-title' }), pill: Pill({ hidden: true }),
@@ -70,7 +62,7 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     };
     row.el = h('div', { class: 'ui-row ui-spotlight-row', role: 'option', id: `${id}-option-${index}`, dataset: { id: item.id } },
       row.check, h('span', { class: 'ui-spotlight-thumb', 'aria-hidden': 'true' }, image),
-      h('span', { class: 'ui-spotlight-label' }, row.title, h('small', {}, item.description)), row.pill);
+      h('span', { class: 'ui-spotlight-label' }, row.title), row.pill);
     rows.set(item.id, row);
   });
 
@@ -106,7 +98,6 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     root.dataset.state = !items.length ? 'empty' : none ? 'none' : 'results';
     list.hidden = !results.length;
     emptyEl.hidden = !(none || !items.length);
-    footer.hidden = !items.length;
     if (!items.length) emptyEl.replaceChildren(empty ?? 'No pages');
     else if (none) emptyEl.replaceChildren(h('strong', {}, `No results for “${query.trim()}”`), h('p', {}, 'Try a page or group name.'));
     sync();
@@ -130,8 +121,6 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     hiddenText.textContent = `${plural(hiddenIds.length, 'selected page', 'selected pages')} hidden by search`;
     const text = message();
     notice.hidden = !text; notice.textContent = text;
-    selectedCount.textContent = state.size ? `${state.size} selected` : '';
-    addHint.textContent = state.size > 1 ? `add ${state.size} pages` : 'add';
   }
 
   function commit(ids) {
@@ -184,9 +173,14 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
   // Focus stays in the search field; a click never takes it away.
   root.addEventListener('pointerdown', event => { if (event.target !== input) event.preventDefault(); });
   const rowOf = event => event.target.closest?.('.ui-spotlight-row');
+  // Only a real mouse move moves the highlight. Scrolling the list under a resting
+  // pointer makes the browser fire pointermove too; that must not undo the arrow keys.
+  let pointerX = -1, pointerY = -1;
   list.addEventListener('pointermove', event => {
+    const moved = event.clientX !== pointerX || event.clientY !== pointerY;
+    pointerX = event.clientX; pointerY = event.clientY;
     const row = rowOf(event);
-    if (!row || row.hasAttribute('data-disabled') || row.dataset.id === state.active) return;
+    if (!moved || !row || row.hasAttribute('data-disabled') || row.dataset.id === state.active) return;
     state.highlight(row.dataset.id); sync();
   });
   list.addEventListener('click', event => {

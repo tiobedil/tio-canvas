@@ -19,7 +19,7 @@ Install the @tio-canvas/canvas package in this project as a development tool.
 
 1. Add it as a dev dependency with this project's package manager: @tio-canvas/canvas.
 2. Read node_modules/@tio-canvas/canvas/docs/integration.md and follow its "Use it in a project" section.
-3. Create dev/canvas/screens.js listing the real pages of this project (id, kind, title, description, src, x, y, width, height, preset). Give storageKey a name unique to this project. The file must not import anything.
+3. Create dev/canvas/screens.js listing the real pages of this project (id, kind, title, src, x, y, width, height, preset). Give storageKey a name unique to this project. The file must not import anything.
 4. Wire the dev server: serve the package client at /canvas with createCanvasHost from "@tio-canvas/canvas/server" (locate, projectModule, pageScripts, interfaceKitBundle, watchTargets). Do this for development only.
 5. Do not link /canvas from any public page, and do not publish it unless I ask.
 6. Start the dev server, open /canvas, and confirm every screen loads. Tell me the URL and anything you could not verify.

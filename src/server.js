@@ -1,7 +1,8 @@
 import path from "node:path";
-import { readFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { resolveProject, DEFAULT_STORAGE_KEY } from "./project.js";
+import { resolveProject, loadProject, DEFAULT_STORAGE_KEY } from "./project.js";
+import { createCapturer } from "./capture.js";
 
 const CLIENT = fileURLToPath(new URL("../client", import.meta.url));
 const DEFAULT_STORAGE_EXPORT = /export\s+(?:const|let|var)\s+storageKey\b|export\s*\{[^}]*\bstorageKey\b/;
@@ -18,12 +19,18 @@ const DEFAULT_STORAGE_EXPORT = /export\s+(?:const|let|var)\s+storageKey\b|export
  *   projectModule()          the project's config, as the browser must receive it
  *   pageScripts(url, headers) the scripts to add to a page that is being framed
  *   interfaceKitBundle()     the development-only Interface Kit script
+ *   ensureThumbnail(pathname, origin)
+ *                            before serving /canvas/thumbnails/<id>.webp: makes it
+ *                            when the screen has none yet (see below)
  *
  * Nothing here ships: a production build is `copyCanvas` in ./build.js.
  */
 export function createCanvasHost(options = {}) {
   const project = resolveProject(options);
   let kit;
+  // Thumbnails are made on demand, one browser at a time, and a failure is not retried for a while.
+  const shots = createCapturer();
+  const making = new Map(), failed = new Map();
 
   return {
     project,
@@ -55,6 +62,32 @@ export function createCanvasHost(options = {}) {
       const framed = bridge && headers["sec-fetch-dest"] === "iframe";
       const tools = framed ? '<script type="module" src="/__dev/interface-kit.js"></script>' : "";
       return { bridge, tools };
+    },
+
+    /**
+     * Make the thumbnail a request asks for, when it is missing and the screen exists.
+     * Returns true when the file is there afterwards. Without a Chromium on this
+     * computer it returns false and the canvas simply shows no picture.
+     *   origin  where the dev server is, for example "http://localhost:4400"
+     */
+    async ensureThumbnail(pathname, origin) {
+      const match = /^\/canvas\/thumbnails\/([^/]+)\.webp$/.exec(pathname);
+      if (!match) return false;
+      const id = match[1];
+      const file = path.join(project.thumbnailsDir, `${id}.webp`);
+      try { await access(file); return true; } catch { /* missing: make it */ }
+      if (Date.now() - (failed.get(id) ?? 0) < 30000) return false;
+      if (!making.has(id)) {
+        making.set(id, (async () => {
+          const { screens } = await loadProject(project);
+          const source = screens.find(screen => screen.id === id);
+          if (!source) return false;
+          await mkdir(project.thumbnailsDir, { recursive: true });
+          await writeFile(file, await shots.capture(source, origin));
+          return true;
+        })().catch(() => { failed.set(id, Date.now()); return false; }).finally(() => making.delete(id)));
+      }
+      return making.get(id);
     },
 
     async interfaceKitBundle() {

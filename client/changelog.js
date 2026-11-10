@@ -13,6 +13,7 @@ export const entries = [
     unreleased: true,
     items: [
       { type: 'improved', text: 'Add pages is now a search panel above the toolbar: press Cmd+K (Ctrl+K on Windows), type a page or group name, and add one or several pages with Enter.' },
+      { type: 'new', text: 'Pages in Add pages now show a small thumbnail, made automatically for every page.' },
     ],
   },
   {

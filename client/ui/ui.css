@@ -286,14 +286,14 @@ body:has(.ui-menu:popover-open) iframe { pointer-events: none !important; }
 
 /* ---- Spotlight -------------------------------------------------------------------
    Spotlight({ id, groups, items, ... }): a search panel above the bottom toolbar, with
-   no scrim. Search field, two optional bars, the results, and a one-line footer. It has
-   a fixed height (the dialog's), so typing never makes it jump. */
+   no scrim. Search field, two optional bars and the results. It has a fixed size, so
+   typing never makes it jump; rows have one fixed height, whatever the title. */
 .ui-spotlight {
   --spotlight-bottom: var(--canvas-spotlight-bottom);
   position: fixed; inset: auto; left: 50%; bottom: var(--spotlight-bottom); margin: 0; padding: 0;
   display: flex; flex-direction: column; overflow: hidden;
-  width: min(var(--canvas-picker-width), calc(100vw - 2 * var(--canvas-panel-inset)));
-  height: min(var(--canvas-picker-height), calc(100dvh - var(--spotlight-bottom) - var(--canvas-panel-inset)));
+  width: min(var(--canvas-spotlight-width), calc(100vw - 2 * var(--canvas-panel-inset)));
+  height: min(var(--canvas-spotlight-height), calc(100dvh - var(--spotlight-bottom) - var(--canvas-panel-inset)));
   border: var(--canvas-border) solid transparent; border-radius: var(--canvas-panel-radius);
   background: var(--canvas-panel); color: var(--canvas-text); box-shadow: var(--canvas-shadow-modal);
   translate: -50% 0; transform-origin: bottom center; opacity: 0; scale: .97;
@@ -311,7 +311,7 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
 }
 
 .ui-spotlight-search { display: flex; align-items: center; gap: var(--canvas-gap); flex: none; padding-inline: var(--canvas-layers-heading-inset); color: var(--canvas-muted); }
-.ui-spotlight-search .ui-input { flex: 1; min-width: 0; height: 52px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--canvas-text); font-size: 15px; text-align: left; }
+.ui-spotlight-search .ui-input { flex: 1; min-width: 0; height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--canvas-text); font-size: 15px; text-align: left; }
 .ui-spotlight-search .ui-input:focus-visible { outline: 0; }
 .ui-spotlight-search .ui-input::placeholder { color: var(--canvas-muted); }
 .ui-spotlight-search .ui-input:disabled { background: transparent; opacity: .6; }
@@ -321,29 +321,25 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
 .ui-spotlight-hidden .ui-checkbox { margin-inline: calc(-1 * var(--canvas-padding)) 0; }
 
 .ui-spotlight-list { flex: 1; min-height: 0; overflow: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 0 var(--canvas-padding) var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); scrollbar-width: thin; }
+.ui-spotlight-group { display: flex; flex-direction: column; gap: 2px; }
 .ui-spotlight-group + .ui-spotlight-group { margin-top: var(--canvas-padding); }
 .ui-spotlight-heading { display: flex; align-items: baseline; gap: var(--canvas-chevron-gap); padding: var(--canvas-gap) var(--canvas-padding) var(--canvas-menu-gap); color: var(--canvas-muted); font-size: var(--canvas-guide-label); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
 .ui-spotlight-heading-count { font-weight: 400; }
-.ui-spotlight-row { gap: var(--canvas-gap); padding: var(--canvas-padding); cursor: pointer; scroll-margin-block: 36px 8px; }
+.ui-spotlight-row { flex: none; gap: var(--canvas-gap); height: var(--canvas-spotlight-row); padding: 0 var(--canvas-padding); cursor: pointer; scroll-margin-block: 28px 8px; }
 .ui-spotlight-row[data-active]:not([data-disabled]) { background: var(--canvas-button-hover); }
 .ui-spotlight-row[data-active][data-checked="true"] { background: var(--canvas-selected); }
 .ui-spotlight-row[data-disabled] { opacity: .5; cursor: default; }
 .ui-spotlight-row[data-disabled]:hover { background: transparent; }
-.ui-spotlight-thumb { flex: none; width: var(--canvas-thumbnail-size); aspect-ratio: 1; overflow: hidden; border: var(--canvas-border) solid transparent; border-radius: var(--canvas-checkbox-radius); background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); pointer-events: none; }
+.ui-spotlight-thumb { flex: none; width: var(--canvas-spotlight-thumb); aspect-ratio: 1; overflow: hidden; border: var(--canvas-border) solid transparent; border-radius: var(--canvas-checkbox-radius); background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); pointer-events: none; }
 .ui-spotlight-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.ui-spotlight-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.ui-spotlight-label small { display: block; margin-top: 2px; line-height: 1.4; color: var(--canvas-muted); }
+.ui-spotlight-label { flex: 1; min-width: 0; }
+.ui-spotlight-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; line-height: 16px; }
 .ui-spotlight mark { padding: 0; border-radius: 2px; background: color-mix(in oklch, var(--canvas-accent) 24%, transparent); color: inherit; }
 
 .ui-spotlight-empty { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); text-align: center; overflow-wrap: anywhere; }
 .ui-spotlight-empty p { margin: 0; max-width: 36ch; color: var(--canvas-muted); }
 .ui-spotlight-empty > div { display: flex; flex-direction: column; align-items: center; gap: var(--canvas-padding); }
 
-.ui-spotlight-footer { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); height: 32px; padding-inline: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); color: var(--canvas-muted); font-size: var(--canvas-guide-label); white-space: nowrap; }
-.ui-spotlight-hints { display: flex; gap: var(--canvas-gap); min-width: 0; overflow: hidden; }
-.ui-spotlight-hints > span { display: inline-flex; align-items: center; gap: 2px; }
-.ui-spotlight-hints .ui-kbd { height: 16px; min-width: 16px; font-size: var(--canvas-guide-label); box-shadow: none; }
-.ui-spotlight-count { color: var(--canvas-text); font-weight: 500; }
 
 @media (prefers-reduced-motion: reduce) {
   .ui-button:active:not(:disabled), .ui-select:active, .ui-segment:active { transform: none; }

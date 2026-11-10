@@ -1,13 +1,12 @@
 // What the canvas knows about screens, whatever project it runs in. The project
 // owns the list of screens (project.js, served from its own config file); this
 // file owns the shape a screen must have and the device presets.
-// The page picker groups by kind and shows the description under each title, so
-// every page, production or prototype, must carry both. Fail loudly when one does not.
+// The page picker groups by kind, so every page, production or prototype, must
+// carry one. Fail loudly when one does not.
 export const screenKinds = { production: 'Production', prototype: 'Prototypes' };
 export function validateScreens(screens) {
   for (const screen of screens) {
     if (!Object.hasOwn(screenKinds, screen.kind)) throw new Error(`Canvas screen "${screen.id}" needs kind: "production" or "prototype".`);
-    if (typeof screen.description !== 'string' || !screen.description.trim()) throw new Error(`Canvas screen "${screen.id}" needs a short description.`);
   }
 }
 export const presets = {

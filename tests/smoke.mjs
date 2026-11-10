@@ -7,7 +7,7 @@ import { createCanvasHost, copyCanvas, loadProject } from "../src/index.js";
 const root = await mkdtemp(path.join(tmpdir(), "tio-canvas-"));
 try {
   await mkdir(path.join(root, "dev/canvas/thumbnails"), { recursive: true });
-  const screen = (id, extra = "") => `{ id: '${id}', kind: 'production', title: 'T', description: 'D', src: '/', x: 0, y: 0, width: 800, height: 600, preset: 'custom'${extra} }`;
+  const screen = (id, extra = "") => `{ id: '${id}', kind: 'production', title: 'T', src: '/', x: 0, y: 0, width: 800, height: 600, preset: 'custom'${extra} }`;
   await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\n`);
   await writeFile(path.join(root, "dev/canvas/thumbnails/home.webp"), "a");
   await writeFile(path.join(root, "dev/canvas/thumbnails/gone.webp"), "b");
@@ -17,6 +17,10 @@ try {
   assert.equal(host.locate("/canvas/project.js").directory, host.project.projectDir);
   assert.equal(host.locate("/canvas/thumbnails/home.webp").directory, host.project.thumbnailsDir);
   assert.match(await host.projectModule(), /export const storageKey = "tio-canvas:v1"/);
+
+  assert.equal(await host.ensureThumbnail("/canvas/thumbnails/home.webp", "http://x"), true, "an existing thumbnail is left alone");
+  assert.equal(await host.ensureThumbnail("/canvas/thumbnails/nobody.webp", "http://x"), false, "no thumbnail is made for a screen that does not exist");
+  assert.equal(await host.ensureThumbnail("/canvas/canvas.js", "http://x"), false, "only thumbnails are made");
 
   await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const storageKey = 'mine:v1';\n`);
   assert.doesNotMatch(await host.projectModule(), /tio-canvas:v1/);
@@ -34,9 +38,7 @@ try {
   assert.match(await readFile(path.join(target, "project.js"), "utf8"), /storageKey = "mine:v1"/);
   assert.match(await readFile(path.join(target, "index.html"), "utf8"), /noindex, nofollow/);
 
-  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [{ id: 'x', kind: 'prototype', title: 'T', description: ' ' }];\n`);
-  await assert.rejects(loadProject(host.project), /needs a short description/);
-  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [{ id: 'x', kind: 'nope', title: 'T', description: 'D' }];\n`);
+  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [{ id: 'x', kind: 'nope', title: 'T' }];\n`);
   await assert.rejects(loadProject(host.project), /needs kind/);
   console.log("PASS server locate, project module, page scripts, build copy, validation");
 } finally {
