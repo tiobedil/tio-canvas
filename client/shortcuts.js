@@ -56,7 +56,6 @@ const sections = [
     ['Open or close Add pages', [['mod', 'K']]],
     ['Move the highlight', [['↑'], ['↓']]],
     ['Select a range of results', [['shift', '↑'], ['shift', '↓']]],
-    ['Select all results', [['mod', 'A']]],
     ['Add the selected pages, or the highlighted one', [['Enter']]],
     ['Clear the selection, then the search, then close', [['Esc']]],
   ]],

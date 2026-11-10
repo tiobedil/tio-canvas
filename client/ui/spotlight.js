@@ -178,7 +178,7 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
       if (state.size) { state.clear(); sync(); }
       else if (input.value) { input.value = ''; render(); state.reset(reachable); sync(true); }
       else close();
-    } else if (mod && !event.altKey && key.toLowerCase() === 'a') { event.preventDefault(); state.selectAll(reachable); sync(); }
+    }
   });
 
   // Focus stays in the search field; a click never takes it away.
