@@ -11,7 +11,9 @@ import { h, Section, Tag } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
-    items: [],
+    items: [
+      { type: 'fixed', text: 'The empty search result in Add pages no longer repeats what you typed, so a long search no longer breaks the layout.' },
+    ],
   },
   {
     version: '0.3.0',

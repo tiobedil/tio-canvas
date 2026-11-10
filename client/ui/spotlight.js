@@ -103,7 +103,7 @@ export function Spotlight({ id, label, placeholder = 'Search', groups, items, th
     list.hidden = !results.length;
     emptyEl.hidden = !(none || !items.length);
     if (!items.length) emptyEl.replaceChildren(empty ?? 'No pages');
-    else if (none) emptyEl.replaceChildren(h('strong', {}, `No results for “${query.trim()}”`), h('p', {}, 'Try a page or group name.'));
+    else if (none) emptyEl.replaceChildren(h('strong', {}, 'No results'), h('p', {}, 'Try a page or group name.'));
     sync();
   }
 
