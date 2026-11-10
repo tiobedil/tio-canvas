@@ -34,7 +34,7 @@ function Controls() {
     document.documentElement.toggleAttribute('data-dark', theme === 'dark');
   }, [theme]);
   useEffect(() => {
-    const dot = document.querySelector('#layers-more .update-dot');
+    const dot = document.querySelector('#layers-more .ui-badge');
     dot.style.translate = `calc(50% + ${x}px) calc(-50% + ${y}px)`;
   }, [x, y]);
   return <DialRoot theme={theme} />;

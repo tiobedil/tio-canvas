@@ -2,7 +2,7 @@
 // styles anything: it names parts and puts them in order. Ids are the hooks the
 // rest of the canvas finds them by.
 import { h, Button, Toolbar, Divider, Field, Input, Panel, Header, Badge, Icon, SelectField, IconSelect, Menu, MenuItem, MenuFooter,
-  Dialog, DialogBody, DialogFooter, SegmentedControl } from './ui/index.js';
+  Dialog, DialogBody, SegmentedControl } from './ui/index.js';
 
 const moreButton = () => document.querySelector('#layers-more');
 
@@ -52,7 +52,7 @@ function tools() {
       tool('tool-arrow', 'arrow', 'Arrow tool', 'Arrow', 'a', false),
       tool('tool-text', 'text', 'Text tool', 'Text', 't', false),
       Divider(),
-      Button({ id: 'add', variant: 'primary', icon: 'plus', label: 'Add pages', tooltip: true })),
+      Button({ id: 'add', variant: 'primary', icon: 'plus', label: 'Add pages', tooltip: true, shortcut: 'mod+k' })),
     Toolbar({ as: 'nav', id: 'history-tools', label: 'History controls' },
       Button({ id: 'undo', icon: 'undo', label: 'Undo', tooltip: true, shortcut: 'mod+z', disabled: true }),
       Button({ id: 'redo', icon: 'redo', label: 'Redo', tooltip: true, shortcut: 'shift+mod+z', disabled: true })),
@@ -85,14 +85,6 @@ function previewControls() {
 function dialogs() {
   const back = () => moreButton();
   return [
-    Dialog({ id: 'add-pages', title: 'Add pages' },
-      DialogBody({ as: 'section', 'aria-label': 'Available pages' },
-        h('div', { id: 'page-options', role: 'group', 'aria-label': 'Pages' }),
-        h('p', { id: 'page-picker-error', role: 'alert' })),
-      DialogFooter({ hidden: true },
-        Button({ id: 'add-pages-select-all' }, 'Select all'),
-        Button({ id: 'add-pages-unselect-all', disabled: true }, 'Unselect all'),
-        Button({ id: 'add-pages-submit', variant: 'primary', hidden: true, disabled: true, dataset: { align: 'end' } }, 'Add pages'))),
     Dialog({ id: 'shortcuts', title: 'Guide & hotkeys', returnFocus: back,
       headerEnd: [SegmentedControl({ id: 'shortcuts-platform', label: 'Keyboard layout', options: [{ value: 'mac', label: 'macOS' }, { value: 'win', label: 'Windows' }] })] },
       DialogBody({ padded: true, className: 'shortcuts-body' })),

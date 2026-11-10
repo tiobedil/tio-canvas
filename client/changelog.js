@@ -11,7 +11,9 @@ import { h, Section, Tag } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
-    items: [],
+    items: [
+      { type: 'improved', text: 'Add pages is now a search panel above the toolbar: press Cmd+K (Ctrl+K on Windows), type a page or group name, and add one or several pages with Enter.' },
+    ],
   },
   {
     version: '0.2.1',

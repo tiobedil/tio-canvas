@@ -10,3 +10,4 @@ export { Kbd, Tag, Pill, Badge, Section, Callout, CodeBlock, CommandRow, CopyBut
 export { Menu, MenuItem, MenuLabel, MenuFooter, menuKeys, isOpen, closeMenu } from './menu.js';
 export { Dialog, DialogBody, DialogFooter, openDialog } from './dialog.js';
 export { SelectField, IconSelect, closeSelectMenus, positionSelectMenus } from './select.js';
+export { Spotlight } from './spotlight.js';

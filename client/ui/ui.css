@@ -50,6 +50,7 @@ button, select, input { font: inherit; color: inherit; }
 .ui-button[data-variant="primary"] { background: var(--canvas-primary); color: var(--canvas-on-primary); box-shadow: var(--canvas-shadow-primary); }
 .ui-button[data-variant="primary"]:hover:not(:disabled) { background: var(--canvas-primary-hover); }
 .ui-button[data-variant="primary"]:active:not(:disabled) { background: var(--canvas-primary); }
+.ui-button[data-variant="primary"][aria-expanded="true"]:not(:disabled) { background: var(--canvas-primary-hover); }
 
 .ui-button[data-variant="accent"] { background: var(--canvas-accent); color: var(--canvas-on-accent); box-shadow: none; }
 .ui-button[data-variant="accent"]:hover:not(:disabled) { background: color-mix(in oklch, var(--canvas-accent) 88%, black); }
@@ -283,10 +284,71 @@ body:has(.ui-menu:popover-open) iframe { pointer-events: none !important; }
 @starting-style { .ui-tooltip:popover-open { opacity: 0; scale: .97; } }
 .ui-tooltip-shortcut { margin-inline-start: 8px; color: color-mix(in oklab, var(--canvas-on-primary) 60%, var(--canvas-primary)); white-space: nowrap; }
 
+/* ---- Spotlight -------------------------------------------------------------------
+   Spotlight({ id, groups, items, ... }): a search panel above the bottom toolbar, with
+   no scrim. Search field, two optional bars, the results, and a one-line footer. It has
+   a fixed height (the dialog's), so typing never makes it jump. */
+.ui-spotlight {
+  --spotlight-bottom: var(--canvas-spotlight-bottom);
+  position: fixed; inset: auto; left: 50%; bottom: var(--spotlight-bottom); margin: 0; padding: 0;
+  display: flex; flex-direction: column; overflow: hidden;
+  width: min(var(--canvas-picker-width), calc(100vw - 2 * var(--canvas-panel-inset)));
+  height: min(var(--canvas-picker-height), calc(100dvh - var(--spotlight-bottom) - var(--canvas-panel-inset)));
+  border: var(--canvas-border) solid transparent; border-radius: var(--canvas-panel-radius);
+  background: var(--canvas-panel); color: var(--canvas-text); box-shadow: var(--canvas-shadow-modal);
+  translate: -50% 0; transform-origin: bottom center; opacity: 0; scale: .97;
+  transition: opacity var(--tactile-out) var(--tactile-ease), scale var(--tactile-out) var(--tactile-ease),
+    overlay var(--tactile-out) allow-discrete, display var(--tactile-out) allow-discrete;
+}
+.ui-spotlight:not(:popover-open) { display: none; }
+.ui-spotlight:popover-open { opacity: 1; scale: 1; transition-duration: var(--tactile-in); }
+@starting-style { .ui-spotlight:popover-open { opacity: 0; scale: .97; } }
+.ui-spotlight [hidden] { display: none !important; }
+body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
+@media (max-width: 1100px) {
+  /* The toolbar rides above the zoom toolbar here, so the panel rides higher too. */
+  .ui-spotlight { --spotlight-bottom: calc(var(--canvas-spotlight-bottom) + var(--canvas-panel-inset) + var(--canvas-toolbar-height)); }
+}
+
+.ui-spotlight-search { display: flex; align-items: center; gap: var(--canvas-gap); flex: none; padding-inline: var(--canvas-layers-heading-inset); color: var(--canvas-muted); }
+.ui-spotlight-search .ui-input { flex: 1; min-width: 0; height: 52px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--canvas-text); font-size: 15px; text-align: left; }
+.ui-spotlight-search .ui-input:focus-visible { outline: 0; }
+.ui-spotlight-search .ui-input::placeholder { color: var(--canvas-muted); }
+.ui-spotlight-search .ui-input:disabled { background: transparent; opacity: .6; }
+
+.ui-spotlight-notice, .ui-spotlight-hidden { flex: none; display: flex; align-items: center; gap: var(--canvas-gap); margin: 0; padding: var(--canvas-badge-padding) var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); background: var(--canvas-well); color: var(--canvas-muted); }
+.ui-spotlight-hidden { padding-block: 0; min-height: 32px; cursor: pointer; }
+.ui-spotlight-hidden .ui-checkbox { margin-inline: calc(-1 * var(--canvas-padding)) 0; }
+
+.ui-spotlight-list { flex: 1; min-height: 0; overflow: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 0 var(--canvas-padding) var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); scrollbar-width: thin; }
+.ui-spotlight-group + .ui-spotlight-group { margin-top: var(--canvas-padding); }
+.ui-spotlight-heading { display: flex; align-items: baseline; gap: var(--canvas-chevron-gap); padding: var(--canvas-gap) var(--canvas-padding) var(--canvas-menu-gap); color: var(--canvas-muted); font-size: var(--canvas-guide-label); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+.ui-spotlight-heading-count { font-weight: 400; }
+.ui-spotlight-row { gap: var(--canvas-gap); padding: var(--canvas-padding); cursor: pointer; scroll-margin-block: 36px 8px; }
+.ui-spotlight-row[data-active]:not([data-disabled]) { background: var(--canvas-button-hover); }
+.ui-spotlight-row[data-active][data-checked="true"] { background: var(--canvas-selected); }
+.ui-spotlight-row[data-disabled] { opacity: .5; cursor: default; }
+.ui-spotlight-row[data-disabled]:hover { background: transparent; }
+.ui-spotlight-thumb { flex: none; width: var(--canvas-thumbnail-size); aspect-ratio: 1; overflow: hidden; border: var(--canvas-border) solid transparent; border-radius: var(--canvas-checkbox-radius); background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); pointer-events: none; }
+.ui-spotlight-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.ui-spotlight-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ui-spotlight-label small { display: block; margin-top: 2px; line-height: 1.4; color: var(--canvas-muted); }
+.ui-spotlight mark { padding: 0; border-radius: 2px; background: color-mix(in oklch, var(--canvas-accent) 24%, transparent); color: inherit; }
+
+.ui-spotlight-empty { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); text-align: center; overflow-wrap: anywhere; }
+.ui-spotlight-empty p { margin: 0; max-width: 36ch; color: var(--canvas-muted); }
+.ui-spotlight-empty > div { display: flex; flex-direction: column; align-items: center; gap: var(--canvas-padding); }
+
+.ui-spotlight-footer { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); height: 32px; padding-inline: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); color: var(--canvas-muted); font-size: var(--canvas-guide-label); white-space: nowrap; }
+.ui-spotlight-hints { display: flex; gap: var(--canvas-gap); min-width: 0; overflow: hidden; }
+.ui-spotlight-hints > span { display: inline-flex; align-items: center; gap: 2px; }
+.ui-spotlight-hints .ui-kbd { height: 16px; min-width: 16px; font-size: var(--canvas-guide-label); box-shadow: none; }
+.ui-spotlight-count { color: var(--canvas-text); font-weight: 500; }
+
 @media (prefers-reduced-motion: reduce) {
   .ui-button:active:not(:disabled), .ui-select:active, .ui-segment:active { transform: none; }
   .ui-button, .ui-select, .ui-segment { transition-duration: 150ms; }
-  .ui-tooltip, .ui-menu, .ui-dialog, .ui-dialog::backdrop, .ui-select .ui-chevron, .ui-disclosure-panel, .ui-disclosure-toggle .ui-chevron, .ui-disclosure-toggle, .ui-input { transition: none; }
+  .ui-tooltip, .ui-menu, .ui-spotlight, .ui-dialog, .ui-dialog::backdrop, .ui-select .ui-chevron, .ui-disclosure-panel, .ui-disclosure-toggle .ui-chevron, .ui-disclosure-toggle, .ui-input { transition: none; }
   .ui-enter:not([hidden]), .ui-checkbox[aria-checked="true"] .ui-checkbox-mark::after { animation: none; }
 }
 }

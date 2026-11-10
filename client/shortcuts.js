@@ -52,6 +52,14 @@ const sections = [
     ['Reorder screens', [[{ g: 'Drag a center dot' }]]],
     ['Cancel reorder drag', [['Esc']]],
   ]],
+  ['Add pages', [
+    ['Open or close Add pages', [['mod', 'K']]],
+    ['Move the highlight', [['↑'], ['↓']]],
+    ['Select a range of results', [['shift', '↑'], ['shift', '↓']]],
+    ['Select all results', [['mod', 'A']]],
+    ['Add the selected pages, or the highlighted one', [['Enter']]],
+    ['Clear the selection, then the search, then close', [['Esc']]],
+  ]],
   ['Layers', [
     ['Bring forward', [['mod', ']']]],
     ['Send backward', [['mod', '[']]],

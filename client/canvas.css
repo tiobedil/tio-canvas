@@ -106,7 +106,7 @@ body[data-space] #viewport { cursor: grab; } body[data-gesture="pan"] #viewport 
 .layer-ghost[hidden] { display: none; }
 body[data-layer-drag] { cursor: grabbing; user-select: none; }
 body[data-layer-drag] iframe { pointer-events: none; }
-#page-options,.layer-row { user-select: none; touch-action: none; }
+.layer-row { user-select: none; touch-action: none; }
 .layer-grab { display: inline-flex; align-items: center; gap: var(--canvas-layer-gap); align-self: stretch; flex: none; cursor: grab; }
 .layer-grabber { opacity: 0; color: var(--canvas-grabber-ink); }
 .layer-grabber path { stroke-width: var(--canvas-grabber-stroke); }
@@ -140,19 +140,6 @@ body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status)
 #fullscreen-menu { position: absolute; width: min(var(--canvas-preview-menu),calc(100vw - 2 * var(--canvas-preview-inset))); max-height: calc(100dvh - 2 * var(--canvas-preview-inset) - var(--canvas-float-size) - var(--canvas-preview-gap)); overflow: auto; flex-direction: column; align-items: stretch; }
 @media (hover: hover) and (pointer: fine) { #fullscreen-toggle:hover { background: color-mix(in srgb, var(--canvas-float-surface) 90%, var(--canvas-float-ink)); } }
 @media (prefers-reduced-motion: reduce) { #fullscreen-tools, #fullscreen-tools[data-kit-open], #fullscreen-toggle:active { transition: none; transform: none; } }
-
-/* Add pages: the picker's rows. The dialog, its body and its footer are components. */
-#page-picker-error:empty { display: none; }
-#add-pages .ui-dialog-body > p { margin: var(--canvas-padding) var(--canvas-layers-heading-inset); color: var(--canvas-muted); }
-#add-pages .ui-dialog-body { display: flex; flex-direction: column; }
-#page-options { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--canvas-menu-gap); overflow: auto; overflow-x: hidden; overscroll-behavior: contain; overscroll-behavior-x: none; padding: var(--canvas-padding); }
-.page-option { flex: none; gap: var(--canvas-gap); padding: var(--canvas-padding); cursor: pointer; }
-.page-thumbnail { flex: none; width: var(--canvas-thumbnail-size); aspect-ratio: 1; overflow: hidden; border: var(--canvas-border) solid transparent; border-radius: var(--canvas-checkbox-radius); background: var(--canvas-button); box-shadow: var(--canvas-shadow-button); pointer-events: none; }
-.page-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.page-option-add { display: flex; align-items: center; align-self: stretch; flex: 1; min-width: 0; gap: var(--canvas-gap); padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
-.page-option-add:focus-visible { outline: var(--canvas-ring) solid var(--canvas-focus); outline-offset: calc(-1 * var(--canvas-ring)); }
-.page-option-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.page-option small { display: block; margin-top: 2px; line-height: 1.4; color: var(--canvas-muted); }
 
 /* Guide and hotkeys: the shortcut table inside the dialog body. */
 .shortcuts-body { min-height: 0; }

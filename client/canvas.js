@@ -12,7 +12,8 @@ import { Button, menuKeys, openDialog, closeSelectMenus, positionSelectMenus } f
 import { smartLayout, reorderSmartLayout, nearestSmartSlot } from './smart-selection.js';
 import { createSmartHandles } from './smart-handles.js';
 import { arrangeScreens, arrangeShortcut } from './arrange.js';
-import { createPagePicker } from './page-picker.js';
+import { Spotlight } from './ui/index.js';
+import { emptyPages } from './pages-empty.js';
 import { groupSpacing, spaceGroup } from './spacing.js';
 import { createFullscreen } from './fullscreen.js';
 import { createLayerDrawer } from './layers.js';
@@ -880,13 +881,20 @@ function duplicateSelection() {
   if(!copies.length)return;
   selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection(true);textTool?.duplicateSelected(offset.x,offset.y);fitEntries(copies);commitEdit(before);
 }
-createPagePicker({dialog:$('#add-pages'),trigger:$('#add'),sources:screens,
+const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
+document.body.append(Spotlight({id:'add-pages',label:'Add pages',placeholder:'Search pages and groups',trigger:$('#add'),
   groups:Object.entries(screenKinds).map(([id,label])=>({id,label})),
+  items:screens.map(source=>({id:source.id,group:source.kind,title:source.title,description:source.description})),
+  thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(item.id)}.webp`,
   count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
+  remaining:()=>200-sourceCount(),
+  empty:emptyPages(),
+  enabled:()=>!document.body.hasAttribute('data-fullscreen')&&!document.querySelector('dialog[open]')&&!document.documentElement.hasAttribute('data-device-blocked'),
   onOpen(){closeContext();stop();clearContact();delete document.body.dataset.space;},
+  onClose(){viewport.focus({preventScroll:true});},
   onAdd(ids){
     const sources=ids.map(id=>screens.find(source=>source.id===id)).filter(Boolean);
-    if(entries.filter(entry=>entry.model.sourceId).length+sources.length>200)return false;
+    if(sourceCount()+sources.length>200)return false;
     const positions=addedPagePositions(sources,[...entries.map(entry=>entry.model),...(textTool?.objects()??[])],extent);
     if(!positions)return false;
     const before=history.checkpoint(),copies=[];
@@ -897,7 +905,7 @@ createPagePicker({dialog:$('#add-pages'),trigger:$('#add'),sources:screens,
     }
     selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection();fitEntries(copies);commitEdit(before);return true;
   }
-});
+}));
 // Native popover dismissal and dialog focus handling keep overlays keyboard-safe.
 const context=$('#screen-context');
 let contextTrigger=null;

@@ -7,6 +7,7 @@ const shapes = {
   arrow: '<path d="M4 16 16 4M6 4h10v10"/>',
   text: '<path d="M4 5.5V4h12v1.5M10 4v12M7.5 16h5"/>',
   plus: '<path d="M10 4v12M4 10h12"/>',
+  search: '<circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/>',
   undo: '<path d="m7 4-4 4 4 4M3 8h8a5 5 0 0 1 0 10"/>',
   redo: '<path d="m13 4 4 4-4 4m4-4H9a5 5 0 0 0 0 10"/>',
   'zoom-out': '<circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4M6 8.5h5"/>',
