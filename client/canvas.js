@@ -1,3 +1,4 @@
+import './boot.js';
 import './tooltip.js';
 import './shortcuts.js';
 import {renderChangelog} from './changelog.js';
@@ -7,7 +8,7 @@ import {compareVersions,fetchLatestVersion,isLocalHost} from './update-check.js'
 import {renderUpdate,renderUpdateMessage} from './update-guide.js';
 import './device-gate.js';
 import './onboarding.js';
-import { setupSelectFields, closeSelectMenus, positionSelectMenus } from './select-field.js';
+import { Button, menuKeys, openDialog, closeSelectMenus, positionSelectMenus } from './ui/index.js';
 import { smartLayout, reorderSmartLayout, nearestSmartSlot } from './smart-selection.js';
 import { createSmartHandles } from './smart-handles.js';
 import { arrangeScreens, arrangeShortcut } from './arrange.js';
@@ -71,20 +72,13 @@ function createEntry(definition, loadSaved = true) {
   if (typeof value?.name === 'string' && value.name.trim()) {model.name=value.name.trim().slice(0,200);model.title=model.name;}
   const element = document.createElement('section'); element.className = 'screen'; element.dataset.id = model.id;
   const title = document.createElement('button'); title.className = 'screen-title'; title.textContent = model.title; title.setAttribute('aria-label', `Select or move ${model.title}`);
-  const refresh=document.createElement('button');refresh.className='screen-refresh';refresh.type='button';
-  refresh.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7a6.5 6.5 0 1 0 .3 5M16 3v4h-4"/></svg>';
-  refresh.setAttribute('aria-label',`Refresh ${model.title}`);refresh.title=`Refresh ${model.title}`;
-  const theme=document.createElement('button');theme.className='screen-theme';theme.type='button';
-  theme.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" style="fill:currentColor;stroke:none"/></svg>';
-  theme.setAttribute('aria-label',`Toggle dark mode for ${model.title}`);theme.title='Toggle screen theme';theme.setAttribute('aria-pressed','false');
-  const more=document.createElement('button');more.className='screen-more';more.type='button';
-  more.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1" style="fill:currentColor;stroke:none"/><circle cx="10" cy="10" r="1" style="fill:currentColor;stroke:none"/><circle cx="15.5" cy="10" r="1" style="fill:currentColor;stroke:none"/></svg>';
-  more.setAttribute('aria-label',`More actions for ${model.title}`);more.title='More';
-  const fullscreen=document.createElement('button');fullscreen.className='screen-fullscreen';fullscreen.type='button';
-  fullscreen.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4"/></svg>';
-  fullscreen.setAttribute('aria-label',`Open ${model.title} fullscreen`);fullscreen.title='Open fullscreen';
-  const orientation=document.createElement('button');orientation.className='screen-orientation';orientation.type='button';
-  orientation.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="2" width="10" height="16" rx="2"/></svg>';
+  // The row of small controls above a screen: bare buttons that bring their own skin (canvas.css).
+  const action=(name,icon,label,tooltip,pressed)=>Button({variant:'bare',className:`screen-action screen-${name}`,icon,label,title:tooltip,pressed});
+  const refresh=action('refresh','refresh',`Refresh ${model.title}`,`Refresh ${model.title}`);
+  const theme=action('theme','theme',`Toggle dark mode for ${model.title}`,'Toggle screen theme',false);
+  const more=action('more','dots-horizontal',`More actions for ${model.title}`,'More');
+  const fullscreen=action('fullscreen','fullscreen',`Open ${model.title} fullscreen`,'Open fullscreen');
+  const orientation=action('orientation','portrait');
   element.append(title,orientation,theme,refresh,fullscreen,more); world.append(element);
   const entry = { model, element, title, orientation, theme, more, refresh, fullscreen, iframe: null, visible: false };
   orientation.addEventListener('click',()=>{
@@ -453,7 +447,7 @@ function updateSelection(preserveArrows=false) {
   updateGap();
   if (selected) {
     const m = selected.model;
-    $('#preset-label').textContent = presets[m.preset].label; $('#preset').value = m.preset; $('#width').value = m.width; $('#height').value = m.height;
+    $('#preset').value = m.preset; presetField.sync(); $('#width').value = m.width; $('#height').value = m.height;
     $('#width').disabled = $('#height').disabled = m.preset !== 'custom';
   }
   syncLayers(true);
@@ -492,7 +486,8 @@ for (const [id,preset] of Object.entries(presets)) {
   const option = document.createElement('option'); option.value=id; option.textContent=preset.label;
   (preset.group ? $('#preset').lastElementChild : $('#preset')).append(option);
 }
-setupSelectFields();
+const presetField = $('#preset').closest('.ui-select-field');
+presetField.sync();
 $('#preset').addEventListener('change', event => {
   if (!selected) return; const before=history.checkpoint();selected.model.preset = event.target.value;
   if (event.target.value !== 'custom') {
@@ -924,14 +919,7 @@ context.addEventListener('click',event=>{
   const action=event.target.closest('[data-action]')?.dataset.action;if(!action)return;
   closeContext();if(action==='duplicate')duplicateSelection();else deleteSelection();viewport.focus();
 });
-context.addEventListener('keydown',event=>{
-  event.stopPropagation();
-  const buttons=[...context.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);
-  if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
-    event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:index<0?(event.key==='ArrowDown'?0:buttons.length-1):(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
-  }
-  if(event.key==='Escape'){event.preventDefault();closeContext();if(contextTrigger?.isConnected)contextTrigger.focus();else viewport.focus();}
-});
+menuKeys(context,{onEscape:()=>{closeContext();if(contextTrigger?.isConnected)contextTrigger.focus();else viewport.focus();}});
 document.addEventListener('contextmenu',event=>{
   if(event.target.closest('input,textarea,[contenteditable="plaintext-only"],[contenteditable="true"],dialog'))return;
   const textObject=event.target.closest('.text-object');
@@ -941,33 +929,11 @@ document.addEventListener('contextmenu',event=>{
   if(!entry && event.target!==groupGrab && event.target!==viewport && event.target!==world)return;
   event.preventDefault();openContext(entry,event.clientX,event.clientY);
 });
-const shortcuts=$('#shortcuts');
-$('#shortcuts-open').onclick=()=>{closeContext();stop();clearContact();delete document.body.dataset.space;shortcuts.showModal();};
-$('#shortcuts-close').onclick=()=>shortcuts.close();
-shortcuts.addEventListener('click',event=>{
-  if(event.target!==shortcuts)return;
-  const rect=shortcuts.getBoundingClientRect();
-  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)shortcuts.close();
-});
-shortcuts.addEventListener('close',()=>$('#layers-more').focus());
-const changelog=$('#changelog');
-$('#changelog-open').onclick=()=>{closeContext();stop();clearContact();delete document.body.dataset.space;renderChangelog(changelog.querySelector('.changelog-body'));changelog.showModal();};
-$('#changelog-close').onclick=()=>changelog.close();
-changelog.addEventListener('click',event=>{
-  if(event.target!==changelog)return;
-  const rect=changelog.getBoundingClientRect();
-  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)changelog.close();
-});
-changelog.addEventListener('close',()=>$('#layers-more').focus());
-const installGuide=$('#install');
-$('#install-open').onclick=()=>{closeContext();stop();clearContact();delete document.body.dataset.space;renderInstallGuide(installGuide.querySelector('.install-body'));installGuide.showModal();};
-$('#install-close').onclick=()=>installGuide.close();
-installGuide.addEventListener('click',event=>{
-  if(event.target!==installGuide)return;
-  const rect=installGuide.getBoundingClientRect();
-  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)installGuide.close();
-});
-installGuide.addEventListener('close',()=>$('#layers-more').focus());
+// Opening a dialog hands the canvas back its keys: stop any gesture, hide the touch contact.
+function openGuide(dialog,render){closeContext();stop();clearContact();delete document.body.dataset.space;render?.();openDialog(dialog);}
+$('#shortcuts-open').onclick=()=>openGuide($('#shortcuts'));
+$('#changelog-open').onclick=()=>openGuide($('#changelog'),()=>renderChangelog($('#changelog .changelog-body')));
+$('#install-open').onclick=()=>openGuide($('#install'),()=>renderInstallGuide($('#install .install-body')));
 $('#undo').onclick=()=>runHistory('undo');
 $('#redo').onclick=()=>runHistory('redo');
 $('#fit').onclick=()=>fitEntries(fitAll());
@@ -1015,21 +981,7 @@ moreMenu.addEventListener('beforetoggle',event=>{
 });
 moreMenu.addEventListener('toggle',event=>{if(event.newState==='open')moreMenu.focus({preventScroll:true});moreButton.setAttribute('aria-expanded',String(event.newState==='open'));});
 moreMenu.addEventListener('click',event=>{if(event.target.closest('#shortcuts-open,#onboarding-open,#changelog-open,#install-open'))moreMenu.hidePopover();});
-moreMenu.addEventListener('keydown',event=>{
-  event.stopPropagation();
-  if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
-  event.preventDefault();
-  const buttons=[...moreMenu.querySelectorAll('button')].filter(button=>!button.hidden),index=buttons.indexOf(document.activeElement);
-  buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:index<0?(event.key==='ArrowDown'?0:buttons.length-1):(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
-});
-// Every modal opens at the top: scrolling is reset on open, not on close, so a dialog fading out keeps its place.
-{
-  const showModal=HTMLDialogElement.prototype.showModal;
-  HTMLDialogElement.prototype.showModal=function(){
-    showModal.call(this);
-    for(const node of [this,...this.querySelectorAll('*')])if(node.scrollTop)node.scrollTop=0;
-  };
-}
+menuKeys(moreMenu);
 // ---- Version and updates ----------------------------------------------------
 // The version row in the More menu. A canvas on the developer's machine asks npm
 // for the newest version now, again when the tab is shown, and every half hour,
@@ -1041,9 +993,9 @@ const updateAvailable=()=>latestVersion!==null && compareVersions(latestVersion,
 $('#version-label').textContent=`v${version}`;
 function showUpdateState(){
   const available=updateAvailable();
-  moreButton.querySelector('.update-dot').hidden=!available;
+  moreButton.querySelector('.ui-badge').hidden=!available;
   updateButton.textContent=available?'Update':'Check for update';
-  updateButton.toggleAttribute('data-primary',available);
+  updateButton.dataset.variant=available?'accent':'secondary';
 }
 function checkForUpdate(){
   updateChecking??=fetchLatestVersion().then(found=>{latestVersion=found;lastCheck=Date.now();}).finally(()=>{updateChecking=null;showUpdateState();});
@@ -1059,18 +1011,10 @@ async function runUpdateCheck(){
   try{await checkForUpdate();renderUpdateDialog();}catch{renderUpdateDialog(true);}
 }
 updateButton.onclick=()=>{
-  closeContext();stop();clearContact();delete document.body.dataset.space;
   moreMenu.hidePopover();
-  updateDialog.showModal();
+  openGuide(updateDialog);
   if(updateAvailable())renderUpdateDialog();else runUpdateCheck();
 };
-$('#update-close').onclick=()=>updateDialog.close();
-updateDialog.addEventListener('click',event=>{
-  if(event.target!==updateDialog)return;
-  const rect=updateDialog.getBoundingClientRect();
-  if(event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)updateDialog.close();
-});
-updateDialog.addEventListener('close',()=>moreButton.focus());
 showUpdateState();
 if(canCheckUpdates){
   const quietCheck=()=>{if(Date.now()-lastCheck>10*60*1000)checkForUpdate().catch(()=>{});};

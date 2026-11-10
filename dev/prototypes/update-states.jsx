@@ -5,7 +5,21 @@ import { createRoot } from 'react-dom/client';
 import { DialRoot, useDialKit } from 'dialkit';
 import 'dialkit/styles.css';
 import { renderUpdate } from '../../client/update-guide.js';
+import { buildShell } from '../../client/shell.js';
 
+// The canvas's own parts, built by the same components the canvas uses: the drawer
+// with the update dot, the More menu open on an available update, and the dialog.
+const parts = buildShell();
+const pick = id => parts.find(node => node.id === id);
+document.body.prepend(pick('layers'), pick('layers-menu'), pick('update'));
+pick('layers').querySelector('#layers-toggle').hidden = true;
+pick('layers').querySelector('#layers-list').hidden = true;
+pick('layers').querySelector('.ui-badge').hidden = false;
+pick('layers-menu').popover = 'manual';
+pick('layers-menu').querySelector('#version-label').textContent = 'v0.1.3';
+pick('layers-menu').querySelector('#update-open').dataset.variant = 'accent';
+pick('layers-menu').querySelector('#update-open').textContent = 'Update';
+pick('update').setAttribute('open', '');
 renderUpdate(document.querySelector('.update-body'), { current: '0.1.3', latest: '0.2.0' });
 document.querySelector('#layers-menu').showPopover();
 

@@ -1,4 +1,5 @@
 import { platform, setPlatform } from './platform.js';
+import { h, Kbd, Icon, Section } from './ui/index.js';
 
 // One table, written once. A key is a name resolved for the chosen keyboard
 // (mod, alt, shift, backspace), a plain label, or a mouse gesture {g}. A row is
@@ -72,8 +73,7 @@ const names = {
   mac: { mod: ['⌘', 'Command'], alt: ['⌥', 'Option'], shift: ['⇧', 'Shift'], ctrl: ['Ctrl', 'Control'], backspace: ['⌫', 'Backspace'] },
   win: { mod: ['Ctrl', 'Control'], alt: ['Alt', 'Alt'], shift: ['Shift', 'Shift'], ctrl: ['Ctrl', 'Control'], backspace: ['Backspace', 'Backspace'] },
 };
-const mouse = '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="2" width="10" height="16" rx="5"/><path d="M10 2v6"/></svg>';
-const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node; };
+const el = (tag, className, text) => h(tag, { class: className || undefined }, text ?? null);
 
 // The four arrow keys laid out as on a keyboard: one above, three below.
 const arrowKeys = [['↑', 'Up arrow', 'up'], ['←', 'Left arrow', 'left'], ['↓', 'Down arrow', 'down'], ['→', 'Right arrow', 'right']];
@@ -82,33 +82,21 @@ function key(token, kind) {
     const cluster = el('span', 'shortcut-arrows');
     cluster.setAttribute('role', 'group');
     cluster.setAttribute('aria-label', 'Arrow keys');
-    for (const [glyph, name, place] of arrowKeys) {
-      const cap = el('kbd', '', glyph);
-      cap.dataset.arrow = place;
-      cap.setAttribute('aria-label', name);
-      cluster.append(cap);
-    }
+    for (const [glyph, name, place] of arrowKeys) cluster.append(Kbd({ 'aria-label': name, dataset: { arrow: place } }, glyph));
     return cluster;
   }
   if (typeof token === 'object') {
-    const gesture = el('span', 'shortcut-gesture');
-    gesture.innerHTML = mouse;
-    gesture.append(token.g);
-    return gesture;
+    return Kbd({ gesture: true }, Icon('mouse'), token.g);
   }
   const named = names[kind][token];
-  const cap = el('kbd', '', named ? named[0] : token);
-  if (named && named[0] !== named[1]) cap.setAttribute('aria-label', named[1]);
-  return cap;
+  return Kbd({ 'aria-label': named && named[0] !== named[1] ? named[1] : undefined }, named ? named[0] : token);
 }
 
 function render(body, kind) {
   body.replaceChildren();
   sections.forEach(([title, rows], index) => {
-    const section = el('section', 'shortcut-section');
-    const heading = el('h3', '', title);
-    heading.id = `shortcut-group-${index}`;
-    section.setAttribute('aria-labelledby', heading.id);
+    const titleId = `shortcut-group-${index}`;
+    const section = Section({ title, titleId, tone: 'muted', 'aria-labelledby': titleId });
     const list = el('dl');
     for (const [label, spec] of rows) {
       const options = Array.isArray(spec) ? spec : spec[kind];
@@ -128,7 +116,7 @@ function render(body, kind) {
       row.append(el('dt', '', label), keys);
       list.append(row);
     }
-    section.append(heading, list);
+    section.append(list);
     body.append(section);
   });
 }
@@ -141,18 +129,8 @@ function sync() {
   const scroll = body.scrollTop;
   render(body, kind);
   body.scrollTop = scroll;
-  for (const option of toggle.querySelectorAll('[data-platform]')) option.setAttribute('aria-checked', String(option.dataset.platform === kind));
+  toggle.setValue(kind);
 }
-toggle.addEventListener('click', event => {
-  const option = event.target.closest('[data-platform]');
-  if (option) setPlatform(option.dataset.platform);
-});
-toggle.addEventListener('keydown', event => {
-  if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-  event.preventDefault(); event.stopPropagation();
-  const next = platform() === 'mac' ? 'win' : 'mac';
-  setPlatform(next);
-  toggle.querySelector(`[data-platform="${next}"]`).focus();
-});
+toggle.addEventListener('change', event => setPlatform(event.detail));
 window.addEventListener('tio-canvas:platform', sync);
 sync();

@@ -1,0 +1,159 @@
+/* Design tokens for the canvas chrome. The one place a colour, size, shadow or
+   duration is defined: components (ui.css) and the canvas (canvas.css) only read
+   them. Light values live on :root, dark overrides on :root[data-dark]. */
+
+/* Colour tokens are typed, so the browser can interpolate them on the root and
+   the whole canvas fades between themes as one. Everything else is a mix of
+   these tokens or reads them directly. */
+@property --canvas-surface { syntax: '<color>'; inherits: true; initial-value: oklch(0.965 0 0); }
+@property --canvas-text { syntax: '<color>'; inherits: true; initial-value: oklch(0.32 0.005 265); }
+@property --canvas-muted { syntax: '<color>'; inherits: true; initial-value: oklch(0.53 0.01 265); }
+@property --canvas-panel { syntax: '<color>'; inherits: true; initial-value: oklch(1 0 0); }
+@property --canvas-line { syntax: '<color>'; inherits: true; initial-value: oklch(0.89 0.003 265); }
+@property --canvas-button { syntax: '<color>'; inherits: true; initial-value: oklch(1 0 0); }
+@property --canvas-button-hover { syntax: '<color>'; inherits: true; initial-value: oklch(0.975 0.002 265); }
+@property --canvas-button-pressed { syntax: '<color>'; inherits: true; initial-value: oklch(0.95 0.002 265); }
+@property --canvas-well { syntax: '<color>'; inherits: true; initial-value: oklch(0.955 0.002 265); }
+@property --canvas-primary { syntax: '<color>'; inherits: true; initial-value: oklch(0.25 0.005 265); }
+@property --canvas-on-primary { syntax: '<color>'; inherits: true; initial-value: oklch(0.985 0 0); }
+@property --canvas-focus { syntax: '<color>'; inherits: true; initial-value: oklch(0.58 0.008 265); }
+@property --canvas-danger { syntax: '<color>'; inherits: true; initial-value: oklch(0.55 0.2 25); }
+@property --canvas-selected { syntax: '<color>'; inherits: true; initial-value: oklch(0.955 0.002 265); }
+@property --canvas-edge { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .08); }
+@property --canvas-edge-modal { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .07); }
+@property --canvas-edge-primary { syntax: '<color>'; inherits: true; initial-value: oklch(1 0 0); }
+@property --canvas-edge-w { syntax: '<length>'; inherits: true; initial-value: 1px; }
+@property --canvas-drop { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .12); }
+@property --canvas-drop-modal { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .14); }
+@property --canvas-drop-primary { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .24); }
+@property --canvas-lift { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .16); }
+
+:root {
+  color-scheme: light;
+
+  /* Colour */
+  --canvas-surface: oklch(0.965 0 0);
+  --canvas-text: oklch(0.32 0.005 265);
+  --canvas-muted: oklch(0.53 0.01 265);
+  --canvas-panel: oklch(1 0 0);
+  --canvas-line: oklch(0.89 0.003 265);
+  --canvas-accent: oklch(0.6 0.24 330);
+  --canvas-on-accent: oklch(1 0 0);
+  --canvas-danger: oklch(0.55 0.2 25);
+  --canvas-focus: oklch(0.58 0.008 265);
+  --canvas-button: oklch(1 0 0);
+  --canvas-button-hover: oklch(0.975 0.002 265);
+  --canvas-button-pressed: oklch(0.95 0.002 265);
+  --canvas-well: oklch(0.955 0.002 265);
+  /* The chosen row, tool or option: clearly above hover in both themes. */
+  --canvas-selected: oklch(0.955 0.002 265);
+  --canvas-primary: oklch(0.25 0.005 265);
+  --canvas-on-primary: oklch(0.985 0 0);
+  --canvas-primary-hover: color-mix(in oklab, var(--canvas-primary) 93%, var(--canvas-on-primary));
+  --canvas-scrim: oklch(0 0 0 / .3);
+  --canvas-dot: color-mix(in oklch, var(--canvas-muted) 12%, transparent);
+  --canvas-checkbox-line: color-mix(in oklch, var(--canvas-muted) 45%, var(--canvas-panel));
+  --canvas-grabber-ink: color-mix(in oklch, var(--canvas-muted) 65%, transparent);
+  --canvas-contact-fill: oklch(0.535 0 0 / .22);
+  --canvas-contact-line: oklch(0.535 0 0 / .35);
+  --canvas-smart-ink: var(--canvas-accent);
+  /* The floating preview button floats over a page, not over the canvas: the same in both themes. */
+  --canvas-float-surface: #242424;
+  --canvas-float-ink: #fff;
+  --canvas-preview-dark: oklch(0.255 0.005 265);
+  --canvas-preview-ink: oklch(0.96 0.002 265);
+
+  /* Edges and drops: shadows are built from these, so they fade with the theme. */
+  --canvas-edge: oklch(0.2 0.005 265 / .08);
+  --canvas-edge-modal: oklch(0.2 0.005 265 / .07);
+  --canvas-edge-primary: oklch(1 0 0);
+  --canvas-edge-w: 1px;
+  --canvas-drop: oklch(0.2 0.005 265 / .12);
+  --canvas-drop-modal: oklch(0.2 0.005 265 / .14);
+  --canvas-drop-primary: oklch(0.2 0.005 265 / .24);
+  --canvas-lift: oklch(0.2 0.005 265 / .16);
+
+  /* Size and space */
+  --canvas-control: 36px; --canvas-handle: 8px; --canvas-side: 22px;
+  --canvas-padding: 8px; --canvas-gap: 10px; --canvas-menu-gap: 4px; --canvas-menu-offset: 12px;
+  --canvas-radius: 8px; --canvas-border: 1px; --canvas-hairline: 0.5px; --canvas-ring: 2px;
+  --canvas-panel-radius: calc(var(--canvas-radius) + var(--canvas-padding) + var(--canvas-border));
+  --canvas-panel-inset: 12px;
+  --canvas-rename-padding: 4px; --canvas-badge-padding: 4px;
+  --canvas-font: 12px; --canvas-guide-label: 10px;
+  --canvas-icon-size: 16px; --canvas-chevron-size: 12px; --canvas-chevron-gap: 6px;
+  --canvas-field-width: 64px; --canvas-select-min-width: 150px; --canvas-select-max-height: 350px;
+  --canvas-toolbar-bottom: var(--canvas-panel-inset);
+  --canvas-layers-width: 260px; --canvas-layer-height: 38px; --canvas-layer-gap: 4px;
+  --canvas-layers-heading-inset: 18px; --canvas-layer-indent: 10px; --canvas-grabber-stroke: 3px;
+  --canvas-picker-width: 500px; --canvas-picker-height: 700px; --canvas-thumbnail-size: 44px;
+  --canvas-checkbox-size: 16px; --canvas-checkbox-target: 44px; --canvas-checkbox-radius: 4px;
+  --canvas-check-width: 5px; --canvas-check-height: 9px; --canvas-check-stroke: 2px;
+  --canvas-preview-inset: var(--canvas-panel-inset); --canvas-preview-gap: var(--canvas-menu-offset); --canvas-preview-menu: 232px;
+  --canvas-float-size: 44px; --canvas-float-icon: 20px;
+  --canvas-contact-size: 24px; --canvas-tick: 6px;
+  --canvas-shortcut-key-size: 24px; --canvas-shortcut-key-radius: 4px;
+  --canvas-smart-dot: 10px; --canvas-smart-target: 24px;
+  --canvas-arrow-fade: .55;
+
+  /* Stacking: objects share one stack; all canvas chrome sits above it. */
+  --canvas-object-layer: 0; --canvas-node-layer: 10; --canvas-selection-layer: 20; --canvas-toolbar-layer: 30;
+  --canvas-contact-layer: 100; --canvas-layer-z: 110; --canvas-preview-layer: 200; --canvas-smart-drag-layer: 1000;
+
+  /* Motion: one curve (ease-out-quint). 120ms for a press, 150ms in, 110ms out
+     (exits are faster). Transform and opacity only. */
+  --tactile-ease: cubic-bezier(.23,1,.32,1);
+  --tactile-press: 120ms; --tactile-in: 150ms; --tactile-out: 110ms;
+  --canvas-camera-duration: 260ms;
+  --canvas-snap-duration: 260ms; --canvas-snap-ease: cubic-bezier(0.23,1,0.32,1);
+  --canvas-theme-duration: 250ms;
+
+  transition: --canvas-surface var(--canvas-theme-duration), --canvas-text var(--canvas-theme-duration), --canvas-muted var(--canvas-theme-duration),
+    --canvas-panel var(--canvas-theme-duration), --canvas-line var(--canvas-theme-duration), --canvas-button var(--canvas-theme-duration),
+    --canvas-button-hover var(--canvas-theme-duration), --canvas-button-pressed var(--canvas-theme-duration), --canvas-well var(--canvas-theme-duration),
+    --canvas-primary var(--canvas-theme-duration), --canvas-on-primary var(--canvas-theme-duration), --canvas-focus var(--canvas-theme-duration),
+    --canvas-danger var(--canvas-theme-duration), --canvas-edge var(--canvas-theme-duration), --canvas-edge-modal var(--canvas-theme-duration),
+    --canvas-edge-primary var(--canvas-theme-duration), --canvas-edge-w var(--canvas-theme-duration), --canvas-drop var(--canvas-theme-duration),
+    --canvas-drop-modal var(--canvas-theme-duration), --canvas-drop-primary var(--canvas-theme-duration), --canvas-lift var(--canvas-theme-duration),
+    --canvas-selected var(--canvas-theme-duration);
+}
+
+:root[data-dark] {
+  color-scheme: dark;
+  --canvas-surface: oklch(0.2 0.004 265);
+  --canvas-text: oklch(0.92 0.002 265);
+  --canvas-muted: oklch(0.7 0.008 265);
+  --canvas-panel: oklch(0.255 0.005 265);
+  --canvas-line: oklch(0.38 0.006 265);
+  --canvas-danger: oklch(0.75 0.15 25);
+  --canvas-focus: oklch(0.66 0.008 265);
+  --canvas-button: oklch(0.31 0.005 265);
+  --canvas-button-hover: oklch(0.345 0.006 265);
+  --canvas-button-pressed: oklch(0.37 0.006 265);
+  --canvas-well: oklch(0.3 0.005 265);
+  --canvas-selected: oklch(0.43 0.006 265);
+  --canvas-primary: oklch(0.92 0.002 265);
+  --canvas-on-primary: oklch(0.2 0.004 265);
+  --canvas-scrim: oklch(0 0 0 / .6);
+  --canvas-edge: oklch(0.45 0.006 265);
+  --canvas-edge-modal: oklch(0.45 0.006 265);
+  --canvas-edge-primary: oklch(0.92 0.002 265);
+  --canvas-edge-w: 0.5px;
+  --canvas-drop: oklch(0 0 0 / .5);
+  --canvas-drop-modal: oklch(0 0 0 / .5);
+  --canvas-drop-primary: oklch(0 0 0 / .5);
+  --canvas-lift: oklch(0 0 0 / .5);
+}
+
+/* Shadows, in both themes: a fine ring (the edge) and a crisp drop. */
+:root, :root[data-dark] {
+  --canvas-shadow-button: 0 0 0 var(--canvas-edge-w) var(--canvas-edge), 0 1px 2px 0 var(--canvas-drop);
+  --canvas-shadow-primary: 0 0 0 var(--canvas-edge-w) var(--canvas-edge-primary), 0 1px 2px 0 var(--canvas-drop-primary);
+  --canvas-shadow: 0 0 0 var(--canvas-edge-w) var(--canvas-edge), 0 1px 2px 0 var(--canvas-drop), 0 4px 8px -4px var(--canvas-lift);
+  --canvas-shadow-modal: 0 0 0 var(--canvas-edge-w) var(--canvas-edge-modal), 0 1px 2px 0 var(--canvas-drop-modal), 0 6px 8px -4px var(--canvas-drop-modal);
+  --canvas-inset: inset 0 1px 2px 0 var(--canvas-drop);
+}
+
+/* A theme change is not a hover: while the theme fades, nothing runs its own colour transition. */
+:root[data-theming] body, :root[data-theming] body *, :root[data-theming] body *::before, :root[data-theming] body *::after { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { :root { transition: none; } }

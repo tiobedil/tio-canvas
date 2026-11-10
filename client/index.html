@@ -7,123 +7,12 @@
   <link rel="icon" href="/favicon-light.png" type="image/png" sizes="64x64">
   <link rel="icon" href="/favicon-dark.png" type="image/png" sizes="64x64" media="(prefers-color-scheme: dark)">
   <script>try{if(localStorage.getItem('canvas:theme')==='dark')document.documentElement.setAttribute('data-dark','')}catch{}</script>
+  <link rel="stylesheet" href="/canvas/ui/tokens.css">
+  <link rel="stylesheet" href="/canvas/ui/ui.css">
   <link rel="stylesheet" href="/canvas/canvas.css">
 </head>
 <body>
-  <main id="viewport" aria-label="Exploration canvas" tabindex="0">
-    <div id="world"></div>
-    <form id="arrow-inspector" class="canvas-tools" aria-label="Arrow settings" hidden>
-      <button type="button" class="select-field icon-select" data-arrow-field="startStyle" value="line" aria-label="Arrow endpoint style"><svg class="field-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14"/></svg><svg class="chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg></button>
-      <button type="button" class="select-field icon-select" data-arrow-field="endStyle" value="line" aria-label="Arrow endpoint style"><svg class="field-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14m-5-5 5 5-5 5"/></svg><svg class="chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg></button>
-      <span class="tool-divider" aria-hidden="true"></span>
-      <span class="select-field"><span data-field-label aria-hidden="true"></span><svg class="chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg><select data-arrow-field="pattern" aria-label="Arrow line pattern"><option value="" disabled hidden>Mixed</option><option value="solid">Solid</option><option value="dashed">Dashed</option></select></span>
-      <span class="select-field"><span data-field-label aria-hidden="true"></span><svg class="chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg><select data-arrow-field="width" aria-label="Arrow line thickness"><option value="" disabled hidden>Mixed</option><option value="2">2px</option><option value="4">4px</option><option value="6">6px</option><option value="8">8px</option><option value="10">10px</option></select></span>
-      <span class="tool-divider" data-curved-only aria-hidden="true" hidden></span>
-      <button id="arrow-straight" class="secondary-button" type="button" data-curved-only hidden>Reset to straight</button>
-    </form>
-    <form id="text-inspector" class="canvas-tools" aria-label="Text settings" hidden>
-      <span class="select-field"><span data-field-label aria-hidden="true"></span><svg class="chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg><select id="text-size" data-text-field="size" aria-label="Text size"><option value="" disabled hidden>Mixed</option><option value="sm">16 px</option><option value="md">24 px</option><option value="lg">40 px</option><option value="xl">64 px</option></select></span>
-      <span class="tool-divider" aria-hidden="true"></span>
-      <button id="text-bold" type="button" class="secondary-button icon-button" data-text-format aria-label="Bold" data-tooltip="Bold" data-shortcut="mod+b" aria-pressed="false"><svg class="field-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4h5a3 3 0 0 1 0 6H6zm0 6h6a3 3 0 0 1 0 6H6z"/></svg></button>
-      <button id="text-italic" type="button" class="secondary-button icon-button" data-text-format aria-label="Italic" data-tooltip="Italic" data-shortcut="mod+i" aria-pressed="false"><svg class="field-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4h6M6 16h6M11.5 4l-3 12"/></svg></button>
-    </form>
-    <div id="selection" hidden>
-      <div id="handles"></div>
-      <form id="inspector" class="canvas-tools">
-        <label>Preset <span class="select-field"><span id="preset-label" aria-hidden="true">Custom</span><svg class="chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg><select id="preset"></select></span></label>
-        <span class="tool-divider" aria-hidden="true"></span>
-        <label>W <input id="width" data-tooltip-disabled="Select Custom in Preset to edit the width" type="number" min="160" max="3840" required></label>
-        <label>H <input id="height" data-tooltip-disabled="Select Custom in Preset to edit the height" type="number" min="160" max="3840" required></label>
-      </form>
-      <form id="group-inspector" class="canvas-tools" hidden>
-        <label><span id="gap-label">Gap X</span> <input id="gap" type="number" min="0" step="1" aria-label="Gap between selected screens" required></label>
-        <label hidden><span>Gap Y</span> <input id="gap-y" type="number" min="0" step="1" aria-label="Vertical gap between selected screens" required></label>
-      </form>
-    </div>
-  </main>
-  <nav id="edit-tools" class="canvas-tools" aria-label="Canvas controls">
-    <button id="tool-cursor" class="icon-button" aria-label="Cursor tool" data-tooltip="Cursor" data-shortcut="v" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 3 12 8-6 1-3 5Z"/></svg></button>
-    <button id="tool-arrow" class="icon-button" aria-label="Arrow tool" data-tooltip="Arrow" data-shortcut="a" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16 16 4M6 4h10v10"/></svg></button>
-    <button id="tool-text" class="icon-button" aria-label="Text tool" data-tooltip="Text" data-shortcut="t" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5V4h12v1.5M10 4v12M7.5 16h5"/></svg></button>
-    <span class="tool-divider" aria-hidden="true"></span>
-    <button id="add" class="icon-button" aria-label="Add pages" data-tooltip="Add pages"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg></button>
-  </nav>
-  <nav id="history-tools" class="canvas-tools" aria-label="History controls">
-    <button id="undo" class="icon-button" aria-label="Undo" data-tooltip="Undo" data-shortcut="mod+z" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4-4 4 4 4M3 8h8a5 5 0 0 1 0 10"/></svg></button>
-    <button id="redo" class="icon-button" aria-label="Redo" data-tooltip="Redo" data-shortcut="shift+mod+z" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m13 4 4 4-4 4m4-4H9a5 5 0 0 0 0 10"/></svg></button>
-  </nav>
-  <nav id="zoom-tools" class="canvas-tools" aria-label="Canvas zoom controls">
-    <button id="zoom-out" class="icon-button" aria-label="Zoom out" data-tooltip="Zoom out"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4M6 8.5h5"/></svg></button>
-    <label class="zoom-field"><input id="zoom" type="text" inputmode="decimal" aria-label="Zoom percentage" value="80%"></label>
-    <button id="zoom-in" class="icon-button" aria-label="Zoom in" data-tooltip="Zoom in"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4M6 8.5h5M8.5 6v5"/></svg></button>
-    <span class="tool-divider" aria-hidden="true"></span>
-    <button id="zoom-reset" aria-label="Zoom to 100%" data-tooltip="Zoom to 100%">100%</button>
-    <button id="fit" aria-keyshortcuts="Shift+1" data-tooltip="Fit all screens" data-shortcut="shift+1">Fit all</button>
-    <button id="fit-screen" aria-keyshortcuts="Shift+2" data-tooltip="Fit selected screens" data-shortcut="shift+2" hidden>Fit to screen</button>
-  </nav>
-  <aside id="layers" class="canvas-tools layers-drawer" aria-label="Screens">
-    <header class="layers-header">
-      <h2 id="layers-title"><span class="layers-logo" role="img" aria-label="Tio"></span><span id="screens-count" hidden>0</span></h2>
-      <button id="layers-more" type="button" aria-label="More" aria-haspopup="menu" aria-controls="layers-menu" popovertarget="layers-menu" data-tooltip="More"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.5h.01M10 10h.01M10 15.5h.01" stroke-width="2.5"/></svg><span class="update-dot" hidden></span></button>
-      <button id="layers-toggle" type="button" aria-label="Minimize Layers" aria-controls="layers-list" aria-expanded="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path/></svg></button>
-    </header>
-    <ol id="layers-list" aria-label="Layers, top layer first"></ol>
-  </aside>
-  <div id="fullscreen-tools" hidden>
-    <button id="fullscreen-toggle" type="button" aria-label="Preview controls" aria-expanded="false" aria-controls="fullscreen-menu"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12"/></svg></button>
-    <section id="fullscreen-menu" class="canvas-tools" aria-label="Preview controls" hidden>
-      <button id="fullscreen-back" type="button">Back to canvas</button>
-    </section>
-  </div>
-  <dialog id="add-pages" class="page-picker" aria-labelledby="add-pages-title">
-    <header class="layers-header">
-      <h2 id="add-pages-title">Add pages</h2>
-      <button id="add-pages-close" type="button" aria-label="Close Add pages" data-tooltip="Close" data-shortcut="esc"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
-    </header>
-    <section class="page-picker-body" aria-label="Available pages">
-      <div id="page-options" role="group" aria-label="Pages"></div>
-      <p id="page-picker-error" role="alert"></p>
-    </section>
-    <footer hidden><button id="add-pages-select-all" type="button">Select all</button><button id="add-pages-unselect-all" type="button" disabled>Unselect all</button><button id="add-pages-submit" type="button" hidden disabled>Add pages</button></footer>
-  </dialog>
-  <div id="layers-menu" class="canvas-tools" popover="auto" role="menu" aria-label="More" tabindex="-1">
-    <button id="theme" type="button" role="menuitem"><svg class="theme-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z"/></svg><span id="theme-label">Dark mode</span></button>
-    <button id="shortcuts-open" type="button" role="menuitem"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 5.5C8.6 4.4 6.6 4 3.5 4v11c3.1 0 5.1.4 6.5 1.5m0-11C11.4 4.4 13.4 4 16.5 4v11c-3.1 0-5.1.4-6.5 1.5m0-11v11"/></svg>Guide &amp; hotkeys</button>
-    <button id="onboarding-open" type="button" role="menuitem"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M8.2 8a1.9 1.9 0 1 1 2.9 1.6c-.7.4-1.1.8-1.1 1.6M10 14h.01"/></svg>Onboarding</button>
-    <hr role="separator">
-    <button id="changelog-open" type="button" role="menuitem"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 3h9a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM7.5 7h5M7.5 10h5M7.5 13h3"/></svg>Change log</button>
-    <button id="install-open" type="button" role="menuitem"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2"/></svg>Install in a project</button>
-    <hr role="separator">
-    <div class="menu-version"><span id="version-label"></span><button id="update-open" type="button" role="menuitem">Check for update</button></div>
-  </div>
-  <div id="screen-context" class="canvas-tools" popover="auto" role="menu" aria-label="Screen actions" tabindex="-1">
-    <button type="button" role="menuitem" data-action="duplicate"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M12 7V3H3v9h4"/></svg>Duplicate</button>
-    <button type="button" role="menuitem" data-action="delete"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M8 5V3h4v2M5 5l1 12h8l1-12M8 8v6M12 8v6"/></svg>Delete</button>
-  </div>
-  <dialog id="shortcuts" class="page-picker" aria-labelledby="shortcuts-title">
-    <header class="layers-header"><h2 id="shortcuts-title">Guide &amp; hotkeys</h2><div id="shortcuts-platform" class="segmented" role="radiogroup" aria-label="Keyboard layout"><button type="button" role="radio" data-platform="mac" aria-checked="false">macOS</button><button type="button" role="radio" data-platform="win" aria-checked="false">Windows</button></div><button id="shortcuts-close" type="button" aria-label="Close Guide &amp; hotkeys" data-tooltip="Close" data-shortcut="esc">✕</button></header>
-    <div class="shortcuts-body"></div>
-  </dialog>
-  <dialog id="changelog" class="page-picker" aria-labelledby="changelog-title">
-    <header class="layers-header"><h2 id="changelog-title">Change log</h2><button id="changelog-close" type="button" aria-label="Close Change log" data-tooltip="Close" data-shortcut="esc">✕</button></header>
-    <div class="shortcuts-body changelog-body"></div>
-  </dialog>
-  <dialog id="install" class="page-picker" aria-labelledby="install-title">
-    <header class="layers-header"><h2 id="install-title">Install in a project</h2><button id="install-close" type="button" aria-label="Close Install in a project" data-tooltip="Close" data-shortcut="esc">✕</button></header>
-    <div class="shortcuts-body install-body"></div>
-  </dialog>
-  <dialog id="update" class="page-picker" aria-labelledby="update-title">
-    <header class="layers-header"><h2 id="update-title">Update</h2><button id="update-close" type="button" aria-label="Close Update" data-tooltip="Close" data-shortcut="esc">✕</button></header>
-    <div class="shortcuts-body update-body" aria-live="polite"></div>
-  </dialog>
-  <div id="device-gate" popover="manual" role="alert">
-    <div class="device-gate-icons" aria-hidden="true">
-      <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="10" rx="1"/><path d="M10 13v4m-4 0h8"/></svg>
-      <svg viewBox="0 0 20 20"><rect x="4" y="2" width="12" height="16" rx="2"/><path d="M9 15h2"/></svg>
-    </div>
-    <p>The canvas works best on a desktop or tablet. Open it on a larger screen.</p>
-  </div>
-  <p id="canvas-status" role="status"></p>
+  <!-- The interface is built by shell.js from the component library in ui/. -->
   <script type="module" src="/canvas/canvas.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 import { PACKAGE_NAME } from './update-check.js';
-import { el, codeBlock, copyButton, commandRow } from './install-guide.js';
+import { h, Button, Section, Callout, CodeBlock, CommandRow, CopyButton } from './ui/index.js';
 
 export const updatePrompt = (current, latest) => `Update the ${PACKAGE_NAME} package in this project from ${current} to ${latest}.
 
@@ -18,28 +18,21 @@ const manualSteps = latest => [
 
 export function renderUpdate(body, { current, latest }) {
   body.replaceChildren();
-  const summary = el('p', 'update-summary');
-  summary.append('Version ', el('strong', '', latest), ` is available. You have ${current}.`);
-
-  const agent = el('section', 'install-section');
-  const head = el('div', 'install-head'); head.append(el('h3', '', 'Ask an agent to do it'), copyButton('Copy prompt', updatePrompt(current, latest)));
-  agent.append(head, el('p', '', 'Paste this into your coding agent while it is in the project.'), codeBlock(updatePrompt(current, latest)));
-
-  const manual = el('section', 'install-section');
-  manual.append(el('h3', '', 'Update it yourself'));
-  const list = el('ol', 'install-steps');
+  const list = h('ol', { class: 'install-steps' });
   for (const step of manualSteps(latest)) {
-    const item = el('li'); item.append(el('strong', '', step.title), el('p', '', step.text));
-    if (step.command) item.append(commandRow(step.command));
+    const item = h('li', {}, h('strong', {}, step.title), h('p', {}, step.text));
+    if (step.command) item.append(CommandRow(step.command));
     list.append(item);
   }
-  manual.append(list);
-  body.append(summary, agent, manual);
+  body.append(
+    Callout({ className: 'update-summary' }, 'Version ', h('strong', {}, latest), ` is available. You have ${current}.`),
+    Section({ className: 'install-section' },
+      h('div', { class: 'install-head' }, h('h3', {}, 'Ask an agent to do it'), CopyButton('Copy prompt', updatePrompt(current, latest))),
+      h('p', {}, 'Paste this into your coding agent while it is in the project.'), CodeBlock(updatePrompt(current, latest))),
+    Section({ title: 'Update it yourself', className: 'install-section' }, list));
 }
 
 export function renderUpdateMessage(body, { title, text, action }) {
-  body.replaceChildren();
-  const state = el('div', 'update-state'); state.append(el('strong', '', title), el('p', '', text));
-  if (action) { const button = el('button', 'install-copy', action.label); button.type = 'button'; button.onclick = action.run; state.append(button); }
-  body.append(state);
+  body.replaceChildren(h('div', { class: 'update-state' }, h('strong', {}, title), h('p', {}, text),
+    action ? Button({ size: 'sm', onClick: action.run }, action.label) : null));
 }

@@ -221,7 +221,7 @@ and a clear keyboard focus ring. It is inspired by the reference, not an exact
 port of its React components. No React, Tailwind, Untitled UI package, copied
 proprietary component source, external stylesheet, or external font is used.
 
-`dev/canvas/canvas.css` owns the canvas-only tokens and controls. It is loaded
+The canvas chrome is built from the reusable components in `client/ui/` (`tokens.css` holds every design token for light and dark, `ui.css` every component style and state, and the `.js` modules build the elements; `client/shell.js` assembles the whole interface). `canvas.css` only holds canvas-specific layout. Add new UI by composing these components, not by writing new one-off classes. It is loaded
 only by the canvas document; iframe documents keep their own design systems.
 No portfolio styles or tokens are changed. No tool assets reach production. The canvas background has a subtle dotted grid (muted ink at 12%, reduced from 28%), anchored to camera movement and zoom with minimum spacing to avoid a dense pattern at low zoom. Dots remain behind the iframe surfaces; each screen has a thin shadow to distinguish it from the workspace.
 

@@ -1,3 +1,5 @@
+import { h, Section, Tag } from './ui/index.js';
+
 // What changed for the person using the canvas, newest first. Only user-visible
 // changes belong here: new things you can do, things that work differently,
 // fixes you would have noticed, and speed. Build, release and refactor work
@@ -60,28 +62,16 @@ const formatDate = value => {
     ? new Date(value).toLocaleDateString('en-GB', options)
     : new Date(`${value}T00:00:00Z`).toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' });
 };
-const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node; };
+const tagHues = { new: 150, improved: 250, fixed: 60, faster: 330 };
 
 export function renderChangelog(body, list = entries) {
   body.replaceChildren();
-  if (!list.some(entry => entry.items.length)) { body.append(el('p', '', 'Nothing to show yet.')); return; }
+  if (!list.some(entry => entry.items.length)) { body.append(h('p', {}, 'Nothing to show yet.')); return; }
   for (const entry of list.filter(entry => entry.items.length)) {
-    const section = el('section', 'changelog-entry');
-    const heading = el('h3', '', entry.unreleased ? 'Unreleased' : entry.version);
-    if (entry.date) {
-      const time = el('time', '', formatDate(entry.date));
-      time.dateTime = entry.date;
-      heading.append(time);
-    }
-    const items = el('ul', 'changelog-items');
-    for (const item of entry.items) {
-      const row = el('li');
-      const tag = el('span', 'changelog-tag', labels[item.type] ?? item.type);
-      tag.dataset.type = item.type;
-      row.append(tag, el('span', '', item.text));
-      items.append(row);
-    }
-    section.append(heading, items);
-    body.append(section);
+    const title = [entry.unreleased ? 'Unreleased' : entry.version];
+    if (entry.date) title.push(h('time', { dateTime: entry.date }, formatDate(entry.date)));
+    body.append(Section({ title, className: 'changelog-entry' },
+      h('ul', { class: 'changelog-items' }, ...entry.items.map(item =>
+        h('li', {}, Tag({ hue: tagHues[item.type] }, labels[item.type] ?? item.type), h('span', {}, item.text))))));
   }
 }

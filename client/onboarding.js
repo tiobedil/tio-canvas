@@ -2,6 +2,8 @@
 // step ends when the user does the thing the step is about, so there is no
 // Back, and no Next except where there is nothing to do (a tip, or the finish).
 // While it is up, every press and key outside what is highlighted is swallowed.
+import { h, Button } from './ui/index.js';
+
 const KEY = 'tio-canvas:onboarding';
 const PAD = 6, GAP = 12, MARGIN = 12, RADIUS = 14;
 const $ = selector => document.querySelector(selector);
@@ -23,7 +25,7 @@ const steps = [
   },
   {
     targets: () => [$('#page-options .page-option')],
-    deny: '.page-checkbox-target', modal: true,
+    deny: '.ui-checkbox', modal: true,
     title: 'Pick a page',
     body: 'Click a page to add it to the canvas.',
   },
@@ -36,7 +38,7 @@ const steps = [
     action: 'Next',
   },
   {
-    targets: () => [$('#inspector button.select-field')],
+    targets: () => [$('#inspector .ui-select')],
     ready: inspectorReady, fallback: selectScreen, pan: true,
     title: 'Change the size',
     body: 'Open Preset and pick a device. The screen resizes to match.',
@@ -87,15 +89,12 @@ function build() {
   card.popover = 'manual';
   card.setAttribute('role', 'group');
   card.setAttribute('aria-label', 'Canvas tour');
-  card.innerHTML = '<div class="onboarding-copy" aria-live="polite"><h2></h2><p></p></div>'
-    + '<div class="onboarding-footer"><div class="onboarding-dots" role="img"></div><div class="onboarding-actions">'
-    + '<button type="button" class="secondary-button" data-tooltip="Skip the tour" data-shortcut="esc">Skip</button>'
-    + '<button type="button" class="primary-button" hidden></button></div></div>';
-  titleEl = card.querySelector('h2');
-  bodyEl = card.querySelector('p');
-  dotsEl = card.querySelector('.onboarding-dots');
-  skipEl = card.querySelector('.secondary-button');
-  actionEl = card.querySelector('.primary-button');
+  skipEl = Button({ size: 'sm', tooltip: 'Skip the tour', shortcut: 'esc' }, 'Skip');
+  actionEl = Button({ size: 'sm', variant: 'primary', hidden: true });
+  titleEl = h('h2'); bodyEl = h('p'); dotsEl = h('div', { class: 'onboarding-dots', role: 'img' });
+  card.append(
+    h('div', { class: 'onboarding-copy', 'aria-live': 'polite' }, titleEl, bodyEl),
+    h('div', { class: 'onboarding-footer' }, dotsEl, h('div', { class: 'onboarding-actions' }, skipEl, actionEl)));
   for (let n = 0; n < steps.length; n++) dotsEl.append(document.createElement('span'));
   skipEl.addEventListener('click', end);
   actionEl.addEventListener('click', () => (index === LAST ? end() : go(index + 1)));
@@ -252,7 +251,7 @@ function blocking() { return active && !paused && dim?.dataset.on === 'true'; }
 function allowed(event) {
   const target = event.target instanceof Element ? event.target : null;
   if (!target) return true;
-  if (card.contains(target) || target.closest('.canvas-tooltip, .icon-options:popover-open')) return true;
+  if (card.contains(target) || target.closest('.ui-tooltip, .ui-menu:is([data-variant="options"], [data-variant="icons"]):popover-open')) return true;
   if (activeDeny && target.closest(activeDeny)) return false;
   return activeTargets.some(element => element?.contains(target));
 }
@@ -266,7 +265,7 @@ function guardKey(event) {
   if (event.key === 'Escape') {
     if (document.body.hasAttribute('data-fullscreen')) return;
     // Dialogs and menus close themselves; otherwise Escape skips the tour.
-    if ($('dialog[open], .icon-options:popover-open, #screen-context:popover-open')) return;
+    if ($('dialog[open], .ui-menu:popover-open:not(#layers-menu)')) return;
     event.preventDefault(); event.stopImmediatePropagation(); end();
     return;
   }
