@@ -105,11 +105,56 @@ like a page. Inside it, on the right, sit the dials: one control for every prop,
 variant and state you list. They are added from the same panel as pages (Cmd+K), in the
 Components tab.
 
-Only the components your project lists are shown. The canvas never shows its own.
+The canvas finds your components by itself and reads their props to build the
+dials. You only write something down when it cannot be worked out. It never shows
+its own components.
 
-### 1. List your components
+### 1. Finding components by themselves
 
-Add `components` to the same config file as `screens`. The file still imports
+In development the canvas scans these folders, relative to the project root:
+`src/components`, `components`, `app/components`, `src/app/components`, `src/ui`,
+`ui`, `src/shared/components` and `src/lib/components`. Add your own, and leave
+files out, in the config file (both are lists of paths, and the file still imports nothing):
+
+```js
+export const componentDirs = ['src/widgets', 'packages/ui/src'];   // added to the folders above
+export const componentExclude = ['src/components/legacy'];         // files or folders to leave alone
+```
+
+- **What counts as a component.** A `.tsx` or `.jsx` file (not a test, story or
+  `.d.ts`, not marked server-only) whose export is written as a React component: a
+  capitalised function, an arrow function, a class that extends `Component`, or a
+  `forwardRef` / `memo` around one. With TypeScript installed in the project, any
+  other export that TypeScript proves is a function returning an element counts too.
+- **Dials come from the props.** With TypeScript, a union of literals becomes a
+  choice, `boolean` a switch, `string` a text field, `number` a number field, and
+  `children` a text field. Defaults come from the destructured parameters
+  (`{ variant = 'ghost' }`). Functions, objects and the props an HTML element adds
+  (`onClick`, `aria-*`) get no dial. TypeScript is the project's own, found from its
+  root, never bundled. Without it, components are listed with no dials.
+- **Changes show at once.** The component folders are part of `watchTargets()`, so a
+  new component, a changed prop or an edit to the source reloads the workspace and
+  the list and the dials are read again.
+- A component you list by hand (below) is never listed twice, and the scan leaves
+  it as you wrote it.
+
+When something cannot be settled, the Components tab shows one notice, "N things
+to check in your components", with a button that opens a prompt for your coding
+agent. It covers every case at once, and the notice is gone as soon as the config
+matches the source. The notice only appears for something certain:
+
+- a listed component whose `module` file is gone, or no longer exports `export`;
+- a listed component (without `render`) whose `controls` miss a prop the
+  component has, or name a prop it no longer has. To leave a prop out on purpose,
+  add `ignore: ['propName']` to the entry;
+- a file with functions that may be components, but whose return type TypeScript
+  cannot work out (list it by hand, or add it to `componentExclude`);
+- TypeScript is not installed, so no dials could be built.
+
+### 2. List a component by hand
+
+Do this for a component the scan cannot draw as it stands (it needs a provider or
+a `render` function), or to choose its dials yourself. Add `components` to the same config file as `screens`. The file still imports
 nothing: you name the file that exports the component, and the canvas does the
 importing when it builds the frame.
 
@@ -141,6 +186,8 @@ export const components = [
   `{ type: 'select' | 'boolean' | 'text' | 'number', value, label, options, min, max, step }`;
   a number with both `min` and `max` is a slider. Options may be strings, numbers
   or booleans, or `{ value, label }`.
+- `ignore` is a list of prop names the controls leave out on purpose, so the
+  notice does not ask for them.
 - `width` and `height` set the size a new frame starts with (1100 × 600).
 - `fill: true` stretches the component to the frame's width (a navigation bar,
   say). Without it the component keeps its own size and is centred in the room
@@ -155,7 +202,7 @@ export const components = [
 What a frame shows is saved with the layout, per frame, so the same component can
 be on the canvas several times with different props.
 
-### 2. Styles and theme
+### 3. Styles and theme
 
 A frame is an empty page, so it needs your styles. Styles a component imports
 (`import './button.css'`, CSS modules) come along by themselves. For global
@@ -174,7 +221,7 @@ export const componentPreview = {
 Without `theme`, the frame's theme button sets `color-scheme`, toggles the
 `dark` class and sets `data-theme="dark" | "light"` on `<html>`.
 
-### 3. Serve them
+### 4. Serve them
 
 One more branch in your dev server (see the snippet in "Serve it from your dev
 server"): a request for `/canvas/components/<id>.js` is answered with

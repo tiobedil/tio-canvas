@@ -14,12 +14,13 @@ import { createSmartHandles } from './smart-handles.js';
 import { arrangeScreens, arrangeShortcut } from './arrange.js';
 import { Spotlight } from './ui/index.js';
 import { emptyPages, emptyComponents } from './pages-empty.js';
+import { renderComponentIssues, issuesBanner } from './component-issues.js';
 import { groupSpacing, spaceGroup } from './spacing.js';
 import { createFullscreen } from './fullscreen.js';
 import { createLayerDrawer } from './layers.js';
 import { layerShortcut, reorderLayers, dropLayers } from './layer-order.js';
 import { createScreenLoader } from './screen-loader.js';
-import { screens, components, presets, screenKinds, storageKey } from './screens.js';
+import { screens, components, componentIssues, presets, screenKinds, storageKey } from './screens.js';
 import { componentSourceId, componentThumbnailId, normalizeControls, componentProps } from './registry.js';
 import { createDialFloat } from './dial-float.js';
 import { bounds, intersects, snapRect, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
@@ -937,7 +938,7 @@ function duplicateSelection() {
 const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
 // Pages and components are added from one panel, each in its own tab.
 const componentGroups=[...new Set(componentSources.map(source=>source.group))];
-document.body.append(Spotlight({id:'add-pages',label:'Add pages and components',placeholder:'Search',trigger:$('#add'),
+const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeholder:'Search',trigger:$('#add'),
   tabs:[
     {id:'pages',label:'Pages',noun:['page','pages'],
       groups:Object.entries(screenKinds).map(([id,label])=>({id,label})),
@@ -950,7 +951,9 @@ document.body.append(Spotlight({id:'add-pages',label:'Add pages and components',
       items:componentSources.map(source=>({id:source.id,group:source.group,title:source.title})),
       thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(componentThumbnailId(item.id.slice('component:'.length)))}.webp`,
       count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
-      empty:emptyComponents()},
+      empty:emptyComponents(),
+      // What the scan could not settle: one notice, one prompt that covers all of it.
+      banner:componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),()=>renderComponentIssues($('#component-issues .issues-body'),componentIssues));}}:null},
   ],
   remaining:()=>200-sourceCount(),
   enabled:()=>!document.body.hasAttribute('data-fullscreen')&&!document.querySelector('dialog[open]')&&!document.documentElement.hasAttribute('data-device-blocked'),
@@ -969,7 +972,8 @@ document.body.append(Spotlight({id:'add-pages',label:'Add pages and components',
     }
     selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection();fitEntries(copies);commitEdit(before);return true;
   }
-}));
+});
+document.body.append(addPanel);
 // Native popover dismissal and dialog focus handling keep overlays keyboard-safe.
 const context=$('#screen-context');
 let contextTrigger=null;

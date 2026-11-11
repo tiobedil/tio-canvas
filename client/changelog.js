@@ -1,9 +1,11 @@
-import { h, Section, Tag } from './ui/index.js';
+import { h, Section, Tag, Button } from './ui/index.js';
 
 // What changed for the person using the canvas, newest first. Only user-visible
 // changes belong here: new things you can do, things that work differently,
 // fixes you would have noticed, and speed. Build, release and refactor work
 // never gets an entry. `type` is one of: new, improved, fixed, faster.
+//
+// An entry's `summary` is for the GitHub release notes only; this dialog does not show it.
 //
 // New items go in the `unreleased` entry on top. On release,
 // scripts/stamp-changelog.mjs gives it the real version and date and adds a fresh
@@ -11,10 +13,15 @@ import { h, Section, Tag } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
+    summary: 'Components can now be previewed on the canvas: they are found in your project by themselves, each sits in a frame with a control for every prop, and one notice with a ready prompt covers anything the canvas cannot settle alone. Add pages gets tabs and a faster, more forgiving search.',
     items: [
       { type: 'new', text: 'Components can now be previewed on the canvas: each one sits alone in a frame you can resize, open fullscreen and switch to dark mode on its own.' },
       { type: 'new', text: 'A component frame has controls inside it for every prop, variant and state, so you can try them all without touching code. Minimize them into a floating button when they are in the way.' },
-      { type: 'new', text: 'Add pages now has two small tabs, Pages and Components (under the search bar; press Tab to switch). Each tab keeps its own selection.' },
+      { type: 'new', text: 'Add pages now has two small tabs, Pages and Components (under the search bar, below a divider; press Tab to switch). Each tab keeps its own selection.' },
+      { type: 'new', text: 'Components are found automatically in your usual folders (src/components and a few more), and their controls are read from the code, so nothing has to be listed by hand.' },
+      { type: 'new', text: 'When a component is new, moved or changed in a way the canvas cannot sort out, the Components tab shows one notice with a prompt for your coding agent that fixes everything at once.' },
+      { type: 'new', text: 'Once you have checked something in Add pages, an Add to canvas button appears at the end of the search bar.' },
+      { type: 'improved', text: 'Changing a component or its props updates the canvas without any extra step.' },
       { type: 'improved', text: 'The controls panel in a component frame now fills the frame height, and its select menus open as wide as their field.' },
       { type: 'improved', text: 'The Add pages panel is taller, so more results fit without scrolling.' },
       { type: 'improved', text: 'Search in Add pages now finds a page when you skip letters, like "updte" for "update".' },
@@ -78,16 +85,24 @@ const formatDate = value => {
     ? new Date(value).toLocaleDateString('en-GB', options)
     : new Date(`${value}T00:00:00Z`).toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' });
 };
+const RELEASES_URL = 'https://github.com/tiobedil/tio-canvas/releases';
+// The dialog lists the newest releases only; the rest is on GitHub.
+const SHOWN_RELEASES = 7;
 const tagHues = { new: 150, improved: 250, fixed: 60, faster: 330 };
 
 export function renderChangelog(body, list = entries) {
   body.replaceChildren();
   if (!list.some(entry => entry.items.length)) { body.append(h('p', {}, 'Nothing to show yet.')); return; }
+  let released = 0;
   for (const entry of list.filter(entry => entry.items.length)) {
+    if (!entry.unreleased && ++released > SHOWN_RELEASES) break;
     const title = [entry.unreleased ? 'Unreleased' : entry.version];
     if (entry.date) title.push(h('time', { dateTime: entry.date }, formatDate(entry.date)));
     body.append(Section({ title, className: 'changelog-entry' },
       h('ul', { class: 'changelog-items' }, ...entry.items.map(item =>
         h('li', {}, Tag({ hue: tagHues[item.type] }, labels[item.type] ?? item.type), h('span', {}, item.text))))));
   }
+  body.append(h('div', { class: 'changelog-more' },
+    h('span', {}, 'Older releases are on GitHub.'),
+    Button({ as: 'a', size: 'sm', href: RELEASES_URL, target: '_blank', rel: 'noopener noreferrer' }, 'View all releases')));
 }

@@ -1,6 +1,7 @@
 import { h } from './dom.js';
 import { Icon, Chevron } from './icons.js';
 import { Input } from './field.js';
+import { Button } from './button.js';
 import { Checkbox } from './list.js';
 import { Pill } from './content.js';
 import { searchGroups, createSpotlightState } from './spotlight-model.js';
@@ -26,8 +27,9 @@ function marked(text, range) {
  *   document.body.append(spotlight)
  *
  * Several lists share one panel as tabs: pass `tabs` in place of groups and items.
- *   tabs: [{ id: 'pages', label: 'Pages', noun: ['page', 'pages'], groups, items, thumbnail, count, empty }]
- * Small tabs sit under the search field and Tab moves between them. Each tab keeps
+ *   tabs: [{ id: 'pages', label: 'Pages', noun: ['page', 'pages'], groups, items, thumbnail, count, empty, banner }]
+ * A tab may carry a banner, { text, action, onAction }: a line with one button, shown above that tab's list.
+ * Small tabs sit under the divider below the search field and Tab moves between them. Each tab keeps
  * its own highlight and its own selection: a selection never follows you to
  * another tab, and it is still there when you come back. Enter adds from the tab
  * in view only, and onAdd gets that tab's id as its second argument.
@@ -54,7 +56,14 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
   let reachable = [], error = '', opened = false;
 
   const input = Input({ id: `${id}-search`, role: 'combobox', 'aria-label': label, 'aria-controls': `${id}-list`, 'aria-expanded': 'true', 'aria-autocomplete': 'list', autocomplete: 'off', spellcheck: 'false', placeholder, disabled: !tabbed && !current.items.length });
+  // Shown at the end of the search row while something is selected: adds the selection, like Enter.
+  const addButton = Button({ variant: 'accent', size: 'sm', tabIndex: -1, hidden: true }, 'Add to canvas');
   const notice = h('p', { class: 'ui-spotlight-notice', role: 'status', hidden: true });
+  // A tab's own banner: one line and one action (the button never takes focus, like the tabs).
+  const bannerText = h('span', {}), bannerAction = Button({ size: 'xs', tabIndex: -1 });
+  const bannerEl = h('div', { class: 'ui-spotlight-banner', role: 'status', hidden: true }, bannerText, bannerAction);
+  addButton.addEventListener('click', () => commit());
+  bannerAction.addEventListener('click', () => current.banner?.onAction?.());
   // Shown while a search hides some selected pages: counts the ones the results do not show and unfolds to list them.
   const chosenBox = Checkbox({ label: 'Unselect the other selected items', checked: true, tabIndex: -1 });
   const chosenText = h('span', {});
@@ -70,7 +79,7 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
   }
   const tabBar = h('div', { class: 'ui-spotlight-tabs', role: 'tablist', 'aria-label': label, hidden: !tabbed }, ...panes.map(pane => pane.tab));
   const root = h('div', { id, class: 'ui-spotlight', popover: 'manual', role: 'dialog', 'aria-label': label },
-    h('div', { class: 'ui-spotlight-search' }, Icon('search'), input), tabBar, notice, hiddenBar, list, emptyEl);
+    h('div', { class: 'ui-spotlight-search' }, Icon('search'), input, addButton), tabBar, bannerEl, notice, hiddenBar, list, emptyEl);
 
   // One row per item, built once and moved as the query changes (so thumbnails do not reload).
   // A thumbnail is asked for only when its row is first shown.
@@ -103,6 +112,8 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
     const query = input.value;
     const results = searchGroups(groups, items, query);
     root.dataset.tab = current.id;
+    bannerEl.hidden = !current.banner;
+    if (current.banner) { bannerText.textContent = current.banner.text; bannerAction.textContent = current.banner.action; }
     for (const pane of panes) pane.tab.setAttribute('aria-selected', String(pane === current));
     list.setAttribute('aria-labelledby', current.tab.id);
     const full = remaining() <= 0;
@@ -155,6 +166,7 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
       chosenList.replaceChildren(...order.filter(key => hiddenIds.includes(key)).map(key => h('div', { class: 'ui-spotlight-chosen-row', dataset: { id: key } },
         Checkbox({ label: `Unselect ${rows.get(key).item.title}`, checked: true, tabIndex: -1, 'aria-hidden': 'true' }), h('span', {}, rows.get(key).item.title))));
     }
+    addButton.hidden = !state.size;
     const text = message();
     notice.hidden = !text; notice.textContent = text;
   }

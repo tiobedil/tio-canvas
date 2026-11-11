@@ -106,6 +106,7 @@ export function validateComponents(components) {
     if (typeof component.title !== 'string' || !component.title.trim()) throw new Error(`Canvas component "${id}" needs a title.`);
     if (typeof component.module !== 'string' || !component.module) throw new Error(`Canvas component "${id}" needs "module": the file that exports it.`);
     if (component.framework !== undefined && !componentFrameworks.includes(component.framework)) throw new Error(`Canvas component "${id}" has framework "${component.framework}". Use "react" or "dom".`);
+    if (component.ignore !== undefined && !(Array.isArray(component.ignore) && component.ignore.every(item => typeof item === 'string'))) throw new Error(`Canvas component "${id}": "ignore" must be a list of prop names.`);
     try { normalizeControls(component.controls); } catch (error) { throw new Error(`Canvas component "${id}": ${error.message}`); }
   }
 }

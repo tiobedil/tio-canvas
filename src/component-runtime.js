@@ -9,8 +9,9 @@ function defaultTheme(dark, doc) {
   doc.documentElement.dataset.theme = dark ? "dark" : "light";
 }
 
-export function startComponent({ id, config, exports, react }) {
-  const definition = config.components.find(component => component.id === id);
+export function startComponent({ id, config, definition: found, exports, react }) {
+  // A component the project lists is read from its config (it may carry a render function); one the scan found is passed in.
+  const definition = (config.components ?? []).find(component => component.id === id) ?? found;
   const preview = config.componentPreview ?? {};
   const root = document.getElementById("component-root");
   const controls = normalizeControls(definition.controls);

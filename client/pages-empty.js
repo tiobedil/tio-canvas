@@ -20,7 +20,7 @@ export function emptyPages() {
 export const addComponentsPrompt = `This project uses the @tio-canvas/canvas package. Its canvas can show single components, each in a frame with a control for every prop, but the Components tab is empty. Help me add my components, or find out why they do not show.
 
 1. Read node_modules/@tio-canvas/canvas/docs/integration.md, section "Components", first. It has the format and the rules.
-2. Open dev/canvas/screens.js (or the file the dev server passes as "config" to createCanvasHost). It must stay a standalone ES module that imports nothing. Components go in "export const components = [...]".
+2. Open dev/canvas/screens.js (or the file the dev server passes as "config" to createCanvasHost). It must stay a standalone ES module that imports nothing. The canvas finds components by itself in the usual folders (src/components, components, app/components and a few more): if mine live elsewhere, add the folders to "export const componentDirs = [...]". Components can also be listed by hand in "export const components = [...]".
 3. If I already listed components that do not show up, find the cause before adding anything. Check that the dev server answers /canvas/components/<id>.js with canvas.componentModule(id), that every "id" is unique and uses lowercase letters, digits and dashes, that every "module" path is right, and that the dev server was restarted. Tell me what was wrong.
 4. Otherwise add one entry for each reusable component of this project (not for whole pages). Read each component's source and give it a control for every prop, variant and state it really has: a list of options for a variant, true or false for a state, a string for text. Do not invent props.
 5. Reload /canvas, press Cmd+K, open the Components tab and add one component. Confirm it draws and that its controls change it. Tell me what you changed.`;
@@ -28,6 +28,6 @@ export const addComponentsPrompt = `This project uses the @tio-canvas/canvas pac
 export function emptyComponents() {
   return h('div', {},
     h('strong', {}, 'No components in this project yet'),
-    h('p', {}, 'List them in dev/canvas/screens.js, or ask your coding agent to. Each one gets a frame with a control for every prop.'),
+    h('p', {}, 'The canvas looks for them in the usual folders (src/components and a few more). Point it at yours with componentDirs in dev/canvas/screens.js, or list them there yourself, or ask your coding agent to.'),
     CopyButton('Copy prompt', addComponentsPrompt));
 }

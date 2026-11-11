@@ -35,7 +35,7 @@ export async function bundleComponent(project, id, { production = false } = {}) 
     `import * as exports from ${JSON.stringify(component.module)};`,
     `import { startComponent } from ${JSON.stringify(RUNTIME)};`,
     react ? `import { createElement } from "react";\nimport { createRoot } from "react-dom/client";` : "",
-    `startComponent({ id: ${JSON.stringify(id)}, config, exports, react: ${react ? "{ createElement, createRoot }" : "null"} });`,
+    `startComponent({ id: ${JSON.stringify(id)}, config, definition: ${component.auto ? JSON.stringify(component) : "null"}, exports, react: ${react ? "{ createElement, createRoot }" : "null"} });`,
   ].join("\n");
   const result = await build({
     stdin: { contents: entry, resolveDir: project.projectDir, sourcefile: `canvas-component-${id}.js`, loader: "js" },

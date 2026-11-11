@@ -179,10 +179,12 @@ body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status)
 /* Change log, install and update: the content blocks inside the dialog body. */
 .changelog-entry h3 { display: flex; align-items: baseline; gap: var(--canvas-padding); }
 .changelog-entry time { color: var(--canvas-muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.changelog-more { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); color: var(--canvas-muted); }
 .changelog-items { display: grid; grid-template-columns: 4.5rem minmax(0,1fr); column-gap: var(--canvas-gap); row-gap: var(--canvas-padding); margin: 0; padding: 0; list-style: none; }
 .changelog-items li { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: baseline; text-wrap: pretty; }
 .install-head { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); }
 .install-head h3 { margin: 0; }
+.issue-list { margin: 0; padding-left: 1.4em; display: grid; gap: var(--canvas-menu-gap); }
 .install-steps { margin: 0; padding-left: 1.4em; display: grid; gap: var(--canvas-gap); }
 .install-steps p { margin: 2px 0 var(--canvas-padding); }
 .install-downloads { display: flex; flex-wrap: wrap; gap: var(--canvas-padding); margin-bottom: var(--canvas-padding); }

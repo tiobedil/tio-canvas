@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { resolveProject, loadProject, DEFAULT_STORAGE_KEY } from "./project.js";
 import { createCapturer } from "./capture.js";
 import { componentThumbnailId } from "../client/registry.js";
+import { componentWatchDirs } from "./component-scan.js";
 import { componentErrorModule } from "./component-bundle.js";
 
 const CLIENT = fileURLToPath(new URL("../client", import.meta.url));
@@ -59,8 +60,8 @@ export function createCanvasHost(options = {}) {
     project,
     clientDir: CLIENT,
 
-    /** Directories to watch; a change in either reloads the workspace. */
-    watchTargets: () => [CLIENT, project.projectDir],
+    /** Directories to watch; a change in any reloads the workspace (the components' folders included, so a changed component or prop shows at once). */
+    watchTargets: () => [CLIENT, project.projectDir, ...componentWatchDirs(project)],
 
     locate(pathname) {
       const local = pathname.slice("/canvas".length) || "/";
@@ -78,7 +79,9 @@ export function createCanvasHost(options = {}) {
      */
     async projectModule() {
       const source = await readFile(project.configFile, "utf8");
-      return DEFAULT_STORAGE_EXPORT.test(source) ? source : `${source}\nexport const storageKey = ${JSON.stringify(DEFAULT_STORAGE_KEY)};\n`;
+      const { autoComponents, componentIssues } = await loadProject(project);
+      const storage = DEFAULT_STORAGE_EXPORT.test(source) ? "" : `export const storageKey = ${JSON.stringify(DEFAULT_STORAGE_KEY)};\n`;
+      return `${source}\n${storage}export const autoComponents = ${JSON.stringify(autoComponents)};\nexport const componentIssues = ${JSON.stringify(componentIssues)};\n`;
     },
 
     /** `bridge` goes into every framed screen; `tools` only into one framed by the canvas itself. */

@@ -26,6 +26,7 @@ button, select, input { font: inherit; color: inherit; }
    An icon with no text is square. Ghost sits flat until hovered; bare has no
    skin at all, for controls that bring their own. */
 .ui-button {
+  text-decoration: none;
   display: inline-flex; align-items: center; justify-content: center; gap: var(--canvas-chevron-gap);
   height: var(--canvas-control); padding: 0 var(--canvas-padding);
   border: 0; border-radius: var(--canvas-radius);
@@ -310,8 +311,9 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
   .ui-spotlight { --spotlight-bottom: calc(var(--canvas-spotlight-bottom) + var(--canvas-panel-inset) + var(--canvas-toolbar-height)); }
 }
 
-/* The tabs: small, above the search field. The one in view is raised; a count marks a tab that holds a selection. */
-.ui-spotlight-tabs { display: flex; align-items: center; gap: 2px; flex: none; padding: 0 var(--canvas-padding) var(--canvas-padding); }
+/* The tabs: small, under the divider below the search field. The one in view is raised; a count marks a tab that holds a selection. */
+.ui-spotlight-tabs { display: flex; align-items: center; gap: 2px; flex: none; padding: var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); }
+.ui-spotlight-tabs:not([hidden]) ~ :is(.ui-spotlight-list, .ui-spotlight-empty) { border-top: 0; }
 .ui-spotlight-tab {
   display: inline-flex; align-items: center; gap: var(--canvas-chevron-gap); height: 24px; padding: 0 var(--canvas-padding);
   border: 0; border-radius: 6px; background: transparent; color: var(--canvas-muted); font: inherit; font-weight: 500; cursor: pointer;
@@ -322,13 +324,19 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
 .ui-spotlight-tab[aria-selected="true"] { background: var(--canvas-selected); color: var(--canvas-text); box-shadow: var(--canvas-inset); }
 .ui-spotlight-tab-count { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--canvas-primary); color: var(--canvas-on-primary); font-size: var(--canvas-guide-label); font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
 
-.ui-spotlight-search { display: flex; align-items: center; gap: var(--canvas-gap); flex: none; padding-inline: var(--canvas-layers-heading-inset); color: var(--canvas-muted); }
-.ui-spotlight-search .ui-input { flex: 1; min-width: 0; height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--canvas-text); font-size: 15px; text-align: left; }
+/* The search row's padding keeps the Add to canvas button concentric with the panel's corner:
+   panel radius - button radius = distance from the panel's edge to the button (border included). */
+.ui-spotlight-search { --search-button-radius: 6px; --search-pad: calc(var(--canvas-panel-radius) - var(--search-button-radius) - var(--canvas-border)); display: flex; align-items: center; gap: var(--canvas-gap); flex: none; padding: var(--search-pad) var(--search-pad) var(--search-pad) calc(var(--canvas-layers-heading-inset) + 4px); color: var(--canvas-muted); }
+.ui-spotlight-search .ui-input { flex: 1; min-width: 0; margin-left: 6px; height: 28px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--canvas-text); font-size: 15px; text-align: left; }
+.ui-spotlight-search .ui-button { flex: none; border-radius: var(--search-button-radius); }
 .ui-spotlight-search .ui-input:focus-visible { outline: 0; }
 .ui-spotlight-search .ui-input::placeholder { color: color-mix(in oklch, var(--canvas-muted) 65%, transparent); opacity: 1; }
 .ui-spotlight-search .ui-input:disabled { background: transparent; opacity: .6; }
 
 .ui-spotlight-notice, .ui-spotlight-hidden { flex: none; display: flex; align-items: center; gap: var(--canvas-gap); margin: 0; padding: var(--canvas-badge-padding) var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); background: var(--canvas-well); color: var(--canvas-muted); }
+.ui-spotlight-banner { flex: none; display: flex; align-items: center; gap: var(--canvas-gap); margin: 0; padding: var(--canvas-badge-padding) var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); background: var(--canvas-well); color: var(--canvas-text); }
+.ui-spotlight-banner > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ui-spotlight-banner .ui-button { flex: none; }
 .ui-spotlight-hidden { flex-direction: column; align-items: stretch; gap: 0; padding-block: 0; background: var(--canvas-button-hover); }
 .ui-spotlight-chosen-head { display: flex; align-items: center; gap: var(--canvas-gap); min-height: 32px; }
 .ui-spotlight-chosen-head .ui-checkbox, .ui-spotlight-chosen-row .ui-checkbox { margin-inline: calc(-1 * var(--canvas-padding)) 0; }
