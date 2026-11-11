@@ -27,7 +27,7 @@ function marked(text, range) {
  *
  * Several lists share one panel as tabs: pass `tabs` in place of groups and items.
  *   tabs: [{ id: 'pages', label: 'Pages', noun: ['page', 'pages'], groups, items, thumbnail, count, empty }]
- * Small tabs sit above the search field and Tab moves between them. Each tab keeps
+ * Small tabs sit under the search field and Tab moves between them. Each tab keeps
  * its own highlight and its own selection: a selection never follows you to
  * another tab, and it is still there when you come back. Enter adds from the tab
  * in view only, and onAdd gets that tab's id as its second argument.
@@ -70,7 +70,7 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
   }
   const tabBar = h('div', { class: 'ui-spotlight-tabs', role: 'tablist', 'aria-label': label, hidden: !tabbed }, ...panes.map(pane => pane.tab));
   const root = h('div', { id, class: 'ui-spotlight', popover: 'manual', role: 'dialog', 'aria-label': label },
-    tabBar, h('div', { class: 'ui-spotlight-search' }, Icon('search'), input), notice, hiddenBar, list, emptyEl);
+    h('div', { class: 'ui-spotlight-search' }, Icon('search'), input), tabBar, notice, hiddenBar, list, emptyEl);
 
   // One row per item, built once and moved as the query changes (so thumbnails do not reload).
   // A thumbnail is asked for only when its row is first shown.
