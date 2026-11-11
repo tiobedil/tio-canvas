@@ -57,7 +57,7 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
 
   const input = Input({ id: `${id}-search`, role: 'combobox', 'aria-label': label, 'aria-controls': `${id}-list`, 'aria-expanded': 'true', 'aria-autocomplete': 'list', autocomplete: 'off', spellcheck: 'false', placeholder, disabled: !tabbed && !current.items.length });
   // Shown at the end of the search row while something is selected: adds the selection, like Enter.
-  const addButton = Button({ variant: 'accent', size: 'sm', tabIndex: -1, hidden: true }, 'Add to canvas');
+  const addButton = Button({ variant: 'primary', size: 'sm', tabIndex: -1, hidden: true }, 'Add to canvas');
   const notice = h('p', { class: 'ui-spotlight-notice', role: 'status', hidden: true });
   // A tab's own banner: one line and one action (the button never takes focus, like the tabs).
   const bannerText = h('span', {}), bannerAction = Button({ size: 'xs', tabIndex: -1 });

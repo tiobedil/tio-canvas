@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Empty components</title>
+  <link rel="stylesheet" href="/canvas/ui/tokens.css">
+  <link rel="stylesheet" href="/canvas/ui/ui.css">
+  <link rel="stylesheet" href="/canvas/canvas.css">
+  <link rel="stylesheet" href="/prototypes/empty-components.css">
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; gap: 32px; align-items: flex-start; justify-content: center; padding: 40px 24px; flex-wrap: wrap; box-sizing: border-box; background: var(--canvas-bg, #f4f4f4); font: 13px/1.45 system-ui, sans-serif; }
+    figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    figcaption { color: var(--canvas-muted); font-weight: 600; }
+    /* The real spotlight chrome, shown in place instead of as a popover. */
+    figure .ui-spotlight { position: static; translate: none; opacity: 1; scale: 1; display: flex; width: 520px; height: 420px; }
+    .ui-spotlight-empty.alt { align-items: stretch; justify-content: flex-start; text-align: left; }
+    .alt.mid { justify-content: center; }
+    /* ui.css centers the direct child div; undo that for the left-aligned layouts. */
+    .ui-spotlight-empty.alt > div { align-items: stretch; text-align: left; }
+    .alt h4 { margin: 0; font-size: 13px; }
+    .alt p { max-width: none; margin: 0; }
+    .alt code { font: 12px ui-monospace, monospace; padding: 1px 5px; border-radius: 4px; background: var(--canvas-well); color: var(--canvas-text); }
+    .alt .card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; border-radius: 8px; border: 1px solid var(--canvas-line); }
+    .alt .card.primary { background: var(--canvas-well); }
+    .alt .cards { display: flex; flex-direction: column; gap: 10px; }
+    .alt pre { margin: 0; align-self: stretch; padding: 8px 10px; border-radius: 6px; background: var(--canvas-well); font: 12px/1.5 ui-monospace, monospace; overflow: auto; }
+    .alt .center { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+    .alt .center p { max-width: 34ch; }
+    .alt ol { margin: 8px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: s; }
+    .alt li { display: flex; gap: 10px; color: var(--canvas-muted); counter-increment: s; }
+    .alt li::before { content: counter(s); flex: none; width: 18px; height: 18px; border-radius: 9px; background: var(--canvas-selected); color: var(--canvas-text); font-size: 11px; font-weight: 600; text-align: center; line-height: 18px; }
+    .alt details { align-self: stretch; color: var(--canvas-muted); border-top: 1px solid var(--canvas-line); padding-top: 10px; }
+    .alt summary { cursor: pointer; font-weight: 500; color: var(--canvas-text); }
+    .alt details p { margin-top: 8px; }
+    .alt .row { display: flex; gap: 8px; align-items: center; }
+  </style>
+</head>
+<body data-ready>
+  <script type="module" src="/prototypes/empty-components.js"></script>
+</body>
+</html>

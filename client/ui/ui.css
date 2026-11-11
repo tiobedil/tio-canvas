@@ -367,6 +367,16 @@ body:has(.ui-spotlight:popover-open) iframe { pointer-events: none !important; }
 .ui-spotlight-empty { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--canvas-padding); padding: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); text-align: center; overflow-wrap: anywhere; }
 .ui-spotlight-empty p { margin: 0; max-width: 36ch; color: var(--canvas-muted); }
 .ui-spotlight-empty > div { display: flex; flex-direction: column; align-items: center; gap: var(--canvas-padding); }
+/* The Components tab's empty state: a short list of ways in, left aligned. */
+.ui-spotlight-empty:has(> .ui-spotlight-empty-steps) { align-items: stretch; justify-content: flex-start; text-align: left; }
+.ui-spotlight-empty > .ui-spotlight-empty-steps { align-items: stretch; gap: 12px; }
+.ui-spotlight-empty-steps > div { gap: 0; }
+.ui-spotlight-empty-steps p { max-width: none; }
+.ui-spotlight-empty-steps > .ui-button { align-self: flex-start; }
+.ui-spotlight-empty-steps code { padding: 1px 5px; border-radius: 4px; background: var(--canvas-well); color: var(--canvas-text); font: 12px ui-monospace, monospace; }
+.ui-spotlight-empty-steps ol { margin: 8px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: step; }
+.ui-spotlight-empty-steps li { display: flex; gap: 10px; color: var(--canvas-muted); counter-increment: step; }
+.ui-spotlight-empty-steps li::before { content: counter(step); flex: none; width: 18px; height: 18px; border-radius: 9px; background: var(--canvas-selected); color: var(--canvas-text); font-size: 11px; font-weight: 600; text-align: center; line-height: 18px; }
 
 
 /* ---- Dials ----------------------------------------------------------------------

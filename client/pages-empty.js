@@ -26,8 +26,14 @@ export const addComponentsPrompt = `This project uses the @tio-canvas/canvas pac
 5. Reload /canvas, press Cmd+K, open the Components tab and add one component. Confirm it draws and that its controls change it. Tell me what you changed.`;
 
 export function emptyComponents() {
-  return h('div', {},
-    h('strong', {}, 'No components in this project yet'),
-    h('p', {}, 'The canvas looks for them in the usual folders (src/components and a few more). Point it at yours with componentDirs in dev/canvas/screens.js, or list them there yourself, or ask your coding agent to.'),
+  const code = text => h('code', {}, text);
+  return h('div', { class: 'ui-spotlight-empty-steps' },
+    h('div', {},
+      h('strong', {}, 'No components in this project yet'),
+      h('p', {}, 'Pick one way to bring them in:')),
+    h('ol', {},
+      h('li', {}, h('span', {}, 'Keep them in ', code('src/components'), ' (or another usual folder). The canvas finds them by itself.')),
+      h('li', {}, h('span', {}, 'Or add your folder to ', code('componentDirs'), ' in ', code('dev/canvas/screens.js'), '.')),
+      h('li', {}, h('span', {}, 'Or let your coding agent do it.'))),
     CopyButton('Copy prompt', addComponentsPrompt));
 }

@@ -14,7 +14,10 @@ export const entries = [
   {
     unreleased: true,
     summary: '',
-    items: [],
+    items: [
+      { type: 'improved', text: 'The empty Components tab now lists the ways to bring your components in as short numbered steps, instead of one long paragraph.' },
+      { type: 'improved', text: 'The Add to canvas button in search now uses the same neutral button as the other main actions, instead of the pink accent color.' },
+    ],
   },
   {
     version: '0.4.0',
