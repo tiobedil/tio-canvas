@@ -28,3 +28,85 @@ export const presets = {
   'galaxy-z-fold-6-cover': { label: 'Galaxy Z Fold 6 (cover)', group: 'Foldable', device: 'phone', touch: true, width: 344, height: 748 },
   'galaxy-z-fold-6-open': { label: 'Galaxy Z Fold 6 (open)', group: 'Foldable', device: 'phone', touch: true, width: 673, height: 841 },
 };
+
+// ---- Components -------------------------------------------------------------
+// A project may also list components (`export const components` in its config).
+// Each one is shown alone in a frame, with a dial for every control beside it.
+//   { id, title, group, module, export, framework, width, height, controls, render }
+// `controls` maps a prop name to its dial. Short forms:
+//   ['sm', 'md']   one of these (the first is the default)
+//   false / true   a switch
+//   'Save'         a text field
+//   12             a number field
+// The long form is { type: 'select' | 'boolean' | 'text' | 'number', value, label,
+// options, min, max, step }. A number with both min and max is a slider.
+export const componentFrameworks = ['react', 'dom'];
+export const componentSourceId = id => `component:${id}`;
+export const componentThumbnailId = id => `component-${id}`;
+const controlTypes = ['select', 'boolean', 'text', 'number'];
+const primitive = value => ['string', 'number', 'boolean'].includes(typeof value);
+
+/** One control, written out in full. Throws when it cannot be understood. */
+export function normalizeControl(name, control) {
+  let full;
+  if (Array.isArray(control)) full = { type: 'select', options: control };
+  else if (typeof control === 'boolean') full = { type: 'boolean', value: control };
+  else if (typeof control === 'string') full = { type: 'text', value: control };
+  else if (typeof control === 'number') full = { type: 'number', value: control };
+  else if (control && typeof control === 'object') full = { ...control, type: control.type ?? (control.options ? 'select' : undefined) };
+  if (!full || !controlTypes.includes(full.type)) throw new Error(`Control "${name}" needs a type: ${controlTypes.join(', ')}.`);
+  const result = { name, label: typeof full.label === 'string' ? full.label : name, type: full.type };
+  if (full.type === 'select') {
+    if (!Array.isArray(full.options) || !full.options.length) throw new Error(`Control "${name}" needs at least one option.`);
+    result.options = full.options.map(option => {
+      const entry = primitive(option) ? { value: option, label: String(option) } : { value: option?.value, label: String(option?.label ?? option?.value) };
+      if (!primitive(entry.value)) throw new Error(`Control "${name}" has an option that is not a string, number or boolean.`);
+      return entry;
+    });
+    result.value = result.options.some(option => option.value === full.value) ? full.value : result.options[0].value;
+  } else if (full.type === 'boolean') result.value = full.value === true;
+  else if (full.type === 'text') result.value = typeof full.value === 'string' ? full.value : '';
+  else {
+    for (const key of ['min', 'max', 'step']) if (Number.isFinite(full[key])) result[key] = full[key];
+    result.value = Number.isFinite(full.value) ? full.value : result.min ?? 0;
+  }
+  return result;
+}
+
+/** Every control of a component, in the order it was written. */
+export function normalizeControls(controls = {}) {
+  return Object.entries(controls).map(([name, control]) => normalizeControl(name, control));
+}
+
+/**
+ * The props a frame shows: each control's default, replaced by a saved value
+ * when that value still fits the control (an option that still exists, the right type).
+ */
+export function componentProps(controls, saved = {}) {
+  const props = {};
+  for (const control of controls) {
+    const value = saved?.[control.name];
+    const fits = control.type === 'select' ? control.options.some(option => option.value === value)
+      : control.type === 'boolean' ? typeof value === 'boolean'
+      : control.type === 'text' ? typeof value === 'string'
+      : Number.isFinite(value);
+    props[control.name] = fits ? value : control.value;
+  }
+  return props;
+}
+
+export function validateComponents(components) {
+  if (!Array.isArray(components)) throw new Error('"components" must be an array.');
+  const seen = new Set();
+  for (const component of components) {
+    const id = component?.id;
+    if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(id)) throw new Error(`Canvas component id "${id}" must use lowercase letters, digits and dashes.`);
+    if (seen.has(id)) throw new Error(`Canvas component "${id}" is listed twice.`);
+    seen.add(id);
+    if (typeof component.title !== 'string' || !component.title.trim()) throw new Error(`Canvas component "${id}" needs a title.`);
+    if (typeof component.module !== 'string' || !component.module) throw new Error(`Canvas component "${id}" needs "module": the file that exports it.`);
+    if (component.framework !== undefined && !componentFrameworks.includes(component.framework)) throw new Error(`Canvas component "${id}" has framework "${component.framework}". Use "react" or "dom".`);
+    if (component.ignore !== undefined && !(Array.isArray(component.ignore) && component.ignore.every(item => typeof item === 'string'))) throw new Error(`Canvas component "${id}": "ignore" must be a list of prop names.`);
+    try { normalizeControls(component.controls); } catch (error) { throw new Error(`Canvas component "${id}": ${error.message}`); }
+  }
+}

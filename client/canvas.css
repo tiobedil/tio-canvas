@@ -73,6 +73,23 @@ body[data-space] #viewport { cursor: grab; } body[data-gesture="pan"] #viewport 
   .screen [data-fold],.screen[data-expanded] [data-fold],.screen .screen-more { transition: none; }
 }
 
+/* A component frame carries its dials inside, in its top right corner. They
+   belong to the frame: they live in the world, so they move and shrink with it,
+   and when they are taller than the frame their rows scroll. The component is
+   centred in the room they leave (component.html). In fullscreen the frame
+   fills the window and the dials stay in its corner; minimised there they become
+   a button that is dragged from corner to corner like the preview menu button
+   (dial-float.js). */
+.screen > .ui-dial-panel { position: absolute; right: var(--canvas-dial-gap); top: var(--canvas-dial-gap); z-index: 1; display: flex; flex-direction: column; max-width: calc(100% - 2 * var(--canvas-dial-gap)); max-height: calc(100% - 2 * var(--canvas-dial-gap)); }
+.screen > .ui-dial-panel:not([data-minimized]) { height: calc(100% - 2 * var(--canvas-dial-gap)); }
+.screen > .ui-dial-panel:not([data-minimized]) > .ui-dial-card { flex: 1; }
+.screen[data-fullscreen] > .ui-dial-panel[data-minimized] { left: 0; right: auto; top: 0; transition: transform var(--canvas-snap-duration) var(--canvas-snap-ease); }
+.screen[data-fullscreen] > .ui-dial-panel[data-minimized] .ui-dial-button { cursor: grab; }
+.screen[data-fullscreen] > .ui-dial-panel[data-dragging] { transition: none; }
+.screen[data-fullscreen] > .ui-dial-panel[data-dragging] .ui-dial-button { cursor: grabbing; }
+body[data-gesture] .ui-dial-panel, body[data-space] .ui-dial-panel { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .screen[data-fullscreen] > .ui-dial-panel[data-minimized] { transition: none; } }
+
 /* The Layers drawer: a panel with a title bar and a scrolling list of rows. */
 .layers-drawer {
   position: fixed; inset: var(--canvas-panel-inset) auto auto var(--canvas-panel-inset);
@@ -162,10 +179,12 @@ body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status)
 /* Change log, install and update: the content blocks inside the dialog body. */
 .changelog-entry h3 { display: flex; align-items: baseline; gap: var(--canvas-padding); }
 .changelog-entry time { color: var(--canvas-muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.changelog-more { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); color: var(--canvas-muted); }
 .changelog-items { display: grid; grid-template-columns: 4.5rem minmax(0,1fr); column-gap: var(--canvas-gap); row-gap: var(--canvas-padding); margin: 0; padding: 0; list-style: none; }
 .changelog-items li { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: baseline; text-wrap: pretty; }
 .install-head { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); }
 .install-head h3 { margin: 0; }
+.issue-list { margin: 0; padding-left: 1.4em; display: grid; gap: var(--canvas-menu-gap); }
 .install-steps { margin: 0; padding-left: 1.4em; display: grid; gap: var(--canvas-gap); }
 .install-steps p { margin: 2px 0 var(--canvas-padding); }
 .install-downloads { display: flex; flex-wrap: wrap; gap: var(--canvas-padding); margin-bottom: var(--canvas-padding); }

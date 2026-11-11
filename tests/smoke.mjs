@@ -38,9 +38,30 @@ try {
   assert.match(await readFile(path.join(target, "project.js"), "utf8"), /storageKey = "mine:v1"/);
   assert.match(await readFile(path.join(target, "index.html"), "utf8"), /noindex, nofollow/);
 
+  // Components: located, built into one script each, and shipped by the build.
+  await writeFile(path.join(root, "widget.js"), `import "./widget.css";\nexport function Widget({ label }) { const node = document.createElement("b"); node.textContent = label; return node; }\n`);
+  await writeFile(path.join(root, "widget.css"), `b { color: rgb(1, 2, 3); }\n`);
+  const component = `{ id: 'widget', title: 'Widget', module: '../../widget.js', export: 'Widget', framework: 'dom', controls: { label: 'Hi' } }`;
+  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const components = [${component}];\n`);
+  assert.equal(host.locate("/canvas/components/widget.js").component, "widget");
+  assert.equal(host.locate("/canvas/components/../secret.js").component, undefined, "only a plain component id is a component");
+  assert.equal((await loadProject(host.project)).components.length, 1);
+  const script = await host.componentModule("widget");
+  assert.match(script, /startComponent/, "the frame script carries the runtime");
+  assert.match(script, /rgb\(1, 2, 3\)/, "styles the component imports travel inside its script");
+  assert.match(await host.componentModule("nobody"), /could not be built/, "an unknown component answers with a script that shows the error");
+  await writeFile(path.join(root, "dev/canvas/thumbnails/component-widget.webp"), "c");
+  const shipped = path.join(root, "out-components");
+  await copyCanvas({ root, target: shipped });
+  assert.match(await readFile(path.join(shipped, "project.js"), "utf8"), /export const components = \[\{"id":"widget"/);
+  assert.match(await readFile(path.join(shipped, "components/widget.js"), "utf8"), /component-root/);
+  assert.deepEqual((await readdir(path.join(shipped, "thumbnails"))).sort(), ["component-widget.webp", "home.webp"], "a component's thumbnail is shipped with it");
+  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [];\nexport const components = [{ id: 'Bad Id', title: 'T', module: './x.js' }];\n`);
+  await assert.rejects(loadProject(host.project), /lowercase letters/);
+
   await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [{ id: 'x', kind: 'nope', title: 'T' }];\n`);
   await assert.rejects(loadProject(host.project), /needs kind/);
-  console.log("PASS server locate, project module, page scripts, build copy, validation");
+  console.log("PASS server locate, project module, page scripts, components, build copy, validation");
 } finally {
   await rm(root, { recursive: true, force: true });
 }

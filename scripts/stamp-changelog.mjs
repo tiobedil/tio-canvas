@@ -18,6 +18,6 @@ const header = "export const entries = [\n";
 if (!source.includes(header) || !source.split(header)[1]?.includes("unreleased: true,")) { console.error("changelog.js no longer matches the stamp format"); process.exit(1); }
 
 const [head, rest] = source.split(header);
-const stamped = `${head}${header}  {\n    unreleased: true,\n    items: [],\n  },\n${rest.replace("unreleased: true,", `version: '${version}',\n    date: '${date}',`)}`;
+const stamped = `${head}${header}  {\n    unreleased: true,\n    summary: '',\n    items: [],\n  },\n${rest.replace("unreleased: true,", `version: '${version}',\n    date: '${date}',`)}`;
 await writeFile(file, stamped);
 console.log(`changelog: stamped ${version} (${date})`);

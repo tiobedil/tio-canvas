@@ -35,8 +35,8 @@ function selection() {
   return h('div', { id: 'selection', hidden: true },
     h('div', { id: 'handles' }),
     Toolbar({ as: 'form', id: 'inspector', enter: true, centered: true },
-      Field({ label: 'Preset' }, SelectField({ id: 'preset', label: 'Preset' })),
-      Divider(),
+      Field({ label: 'Preset', id: 'preset-field' }, SelectField({ id: 'preset', label: 'Preset' })),
+      Divider({ id: 'preset-divider' }),
       size('width', 'W', 'Select Custom in Preset to edit the width'),
       size('height', 'H', 'Select Custom in Preset to edit the height')),
     Toolbar({ as: 'form', id: 'group-inspector', hidden: true, enter: true, centered: true },
@@ -52,7 +52,7 @@ function tools() {
       tool('tool-arrow', 'arrow', 'Arrow tool', 'Arrow', 'a', false),
       tool('tool-text', 'text', 'Text tool', 'Text', 't', false),
       Divider(),
-      Button({ id: 'add', variant: 'primary', icon: 'plus', label: 'Add pages', tooltip: true, shortcut: 'mod+k' })),
+      Button({ id: 'add', variant: 'primary', icon: 'plus', label: 'Add pages and components', tooltip: true, shortcut: 'mod+k' })),
     Toolbar({ as: 'nav', id: 'history-tools', label: 'History controls' },
       Button({ id: 'undo', icon: 'undo', label: 'Undo', tooltip: true, shortcut: 'mod+z', disabled: true }),
       Button({ id: 'redo', icon: 'redo', label: 'Redo', tooltip: true, shortcut: 'shift+mod+z', disabled: true })),
@@ -90,6 +90,7 @@ function dialogs() {
       DialogBody({ padded: true, className: 'shortcuts-body' })),
     Dialog({ id: 'changelog', title: 'Change log', size: 'fit', returnFocus: back }, DialogBody({ padded: true, className: 'changelog-body' })),
     Dialog({ id: 'install', title: 'Install in a project', size: 'fit', returnFocus: back }, DialogBody({ padded: true, className: 'install-body' })),
+    Dialog({ id: 'component-issues', title: 'Fix your components', size: 'fit', returnFocus: () => document.getElementById('add') }, DialogBody({ padded: true, className: 'issues-body' })),
     Dialog({ id: 'update', title: 'Update', size: 'fit', returnFocus: back }, DialogBody({ padded: true, className: 'update-body', 'aria-live': 'polite' })),
   ];
 }

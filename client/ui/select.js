@@ -15,6 +15,8 @@ function connect(trigger, menu, focusItem) {
   trigger.setAttribute('aria-controls', menu.id);
   const place = () => {
     menu.style.removeProperty('max-height');
+    // A select inside the dials opens as wide as its field.
+    if (trigger.closest('.ui-dial-row')) { const width = `${trigger.getBoundingClientRect().width}px`; menu.style.boxSizing = 'border-box'; menu.style.width = width; menu.style.minWidth = width; }
     const anchor = trigger.getBoundingClientRect(), box = menu.getBoundingClientRect();
     const style = getComputedStyle(menu);
     const margin = parseFloat(style.getPropertyValue('--canvas-panel-inset'));
@@ -23,7 +25,8 @@ function connect(trigger, menu, focusItem) {
     const obstacles = [...document.querySelectorAll('.ui-panel')]
       .filter(element => element !== owner && !element.hasAttribute('popover') && getComputedStyle(element).position === 'fixed' && element.checkVisibility())
       .map(element => element.getBoundingClientRect());
-    const placement = menuPosition({ anchor, width: box.width, height: box.height,
+    // offsetWidth ignores the open animation's scale, which would shift the menu off its field.
+    const placement = menuPosition({ anchor, width: menu.offsetWidth, height: box.height,
       viewport: { width: innerWidth, height: innerHeight }, margin, gap, obstacles,
       aboveOnly: menu.dataset.variant === 'icons' });
     if (!placement) return;

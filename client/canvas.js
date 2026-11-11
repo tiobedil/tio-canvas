@@ -8,18 +8,21 @@ import {compareVersions,fetchLatestVersion,isLocalHost} from './update-check.js'
 import {renderUpdate,renderUpdateMessage} from './update-guide.js';
 import './device-gate.js';
 import './onboarding.js';
-import { Button, menuKeys, openDialog, closeSelectMenus, positionSelectMenus } from './ui/index.js';
+import { Button, DialPanel, menuKeys, openDialog, closeSelectMenus, positionSelectMenus } from './ui/index.js';
 import { smartLayout, reorderSmartLayout, nearestSmartSlot } from './smart-selection.js';
 import { createSmartHandles } from './smart-handles.js';
 import { arrangeScreens, arrangeShortcut } from './arrange.js';
 import { Spotlight } from './ui/index.js';
-import { emptyPages } from './pages-empty.js';
+import { emptyPages, emptyComponents } from './pages-empty.js';
+import { renderComponentIssues, issuesBanner } from './component-issues.js';
 import { groupSpacing, spaceGroup } from './spacing.js';
 import { createFullscreen } from './fullscreen.js';
 import { createLayerDrawer } from './layers.js';
 import { layerShortcut, reorderLayers, dropLayers } from './layer-order.js';
 import { createScreenLoader } from './screen-loader.js';
-import { screens, presets, screenKinds, storageKey } from './screens.js';
+import { screens, components, componentIssues, presets, screenKinds, storageKey } from './screens.js';
+import { componentSourceId, componentThumbnailId, normalizeControls, componentProps } from './registry.js';
+import { createDialFloat } from './dial-float.js';
 import { bounds, intersects, snapRect, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
 import { createHistory, historyShortcut } from './history.js';
 import { createArrows } from './arrows.js';
@@ -32,6 +35,15 @@ const key = storageKey, extent = { width: 20000, height: 11250 }, MIN_ZOOM_FLOOR
 const minScale = () => Math.max(MIN_ZOOM_FLOOR, Math.min(innerWidth / extent.width, innerHeight / extent.height));
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 const finite = (n, fallback, min, max) => Number.isFinite(n) ? clamp(n, min, max) : fallback;
+// A component is a source like a page: it is added from the picker and can be on
+// the canvas many times. Its frame shows /canvas/component.html, has no device
+// preset (it is always resized by hand) and carries its dials inside, on the right.
+const componentSources = components.map(component => ({ id: componentSourceId(component.id), kind: 'component', title: component.title, group: component.group ?? 'Components',
+  src: `/canvas/component.html?component=${encodeURIComponent(component.id)}`, x: 0, y: 0, width: component.width ?? 1100, height: component.height ?? 600, preset: 'custom' }));
+const componentControls = new Map(components.map(component => [componentSourceId(component.id), normalizeControls(component.controls)]));
+const sources = [...screens, ...componentSources];
+const isComponent = model => model.kind === 'component';
+const rootToken = name => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
 let saved = {};
 try { const raw = localStorage.getItem(key); if (raw?.length < 1000000) { const value = JSON.parse(raw); if (value.version === 1) saved = value; } } catch {}
 const initialInset=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--canvas-panel-inset'));
@@ -49,7 +61,15 @@ const smartHandles=createSmartHandles({selection,viewport,onDrag:startReorder});
 const contact=document.createElement('div');contact.id='canvas-contact';contact.hidden=true;contact.setAttribute('aria-hidden','true');document.body.append(contact);
 let contactState=null;
 // A screen's theme is its own: it sets the frame's colour scheme, which is what the page inside sees as prefers-color-scheme. It is not saved.
-function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';}
+function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';if(entry.dials)postComponent(entry);}
+// What a component frame draws: its props and its theme. The frame asks for them when it is ready (component-ready).
+function postComponent(entry,target=entry.iframe?.contentWindow){target?.postMessage({type:'tio-canvas:component',props:entry.model.props,dark:entry.dark===true,reserve:dialReserve(entry)},location.origin);}
+// The open dials cover the right of the frame. The component is centred in what is left: the frame page keeps this much room free on its right.
+function dialReserve(entry){return entry.model.dialsMinimized?0:rootToken('--canvas-dial-width')+rootToken('--canvas-dial-gap');}
+function syncComponent(entry){
+  if(!entry.dials)return;
+  entry.dials.setValues(entry.model.props);entry.dials.setMinimized(entry.model.dialsMinimized===true);entry.dialFloat.sync();postComponent(entry);
+}
 function clearContact(){contactState=null;contact.hidden=true;}
 window.addEventListener('pointermove',clearContact);
 function renderContact(){
@@ -71,7 +91,10 @@ function createEntry(definition, loadSaved = true) {
   model.x = Math.round(finite(value?.x, model.x, 0, extent.width-model.width));
   model.y = Math.round(finite(value?.y, model.y, 0, extent.height-model.height));
   if (typeof value?.name === 'string' && value.name.trim()) {model.name=value.name.trim().slice(0,200);model.title=model.name;}
+  const controls = isComponent(model) ? componentControls.get(model.sourceId ?? model.id) ?? [] : null;
+  if (controls) { model.props = componentProps(controls, value?.props ?? definition.props); model.dialsMinimized = (value?.dialsMinimized ?? definition.dialsMinimized) === true; }
   const element = document.createElement('section'); element.className = 'screen'; element.dataset.id = model.id;
+  if (controls) element.dataset.kind = 'component';
   const title = document.createElement('button'); title.className = 'screen-title'; title.textContent = model.title; title.setAttribute('aria-label', `Select or move ${model.title}`);
   // The row of small controls above a screen: bare buttons that bring their own skin (canvas.css).
   const action=(name,icon,label,tooltip,pressed)=>Button({variant:'bare',className:`screen-action screen-${name}`,icon,label,title:tooltip,pressed});
@@ -112,6 +135,25 @@ function createEntry(definition, loadSaved = true) {
   });
   title.addEventListener('click', event => { if (!title.isContentEditable && event.detail === 0) select(entry, event.shiftKey); });
   title.addEventListener('dblclick',event=>{event.preventDefault();beginRename(entry);});
+  if (controls) {
+    const dials = DialPanel({ title: sources.find(source => source.id === (model.sourceId ?? model.id))?.title ?? model.title, controls, values: model.props, minimized: model.dialsMinimized });
+    element.append(dials); entry.dials = dials; entry.dialFloat = createDialFloat(dials);
+    // A press on the dials selects their frame, so it is clear which component they drive.
+    dials.addEventListener('pointerdown', event => { if (event.button === 0 && !document.body.hasAttribute('data-space') && !preview.entry && !selectedEntries.has(entry)) select(entry); });
+    // A value that is still changing (typing, a slider on the move) is one edit: it is committed when it settles.
+    let before = null;
+    const set = (name, value) => { entry.model.props = { ...entry.model.props, [name]: value }; postComponent(entry); persist(); };
+    dials.addEventListener('dial-input', event => { before ??= history.checkpoint(); set(event.detail.name, event.detail.value); });
+    dials.addEventListener('dial-change', event => {
+      const start = before ?? history.checkpoint(); before = null;
+      set(event.detail.name, event.detail.value); commitEdit(start);
+    });
+    dials.addEventListener('dial-reset', () => {
+      const start = history.checkpoint(); before = null;
+      entry.model.props = componentProps(controls); dials.setValues(entry.model.props); postComponent(entry); commitEdit(start);
+    });
+    dials.addEventListener('dial-minimize', event => { entry.model.dialsMinimized = event.detail.minimized; entry.dialFloat.sync(); postComponent(entry); persist(); });
+  }
   return entry;
 }
 // A first visit (nothing saved on this device) opens an empty canvas; pages are
@@ -129,7 +171,7 @@ if (Array.isArray(saved.instances) && Array.isArray(saved.removedSources)) for (
   if (!lowest || instance.number < lowest.number) firstCopy.set(instance.sourceId, instance);
 }
 if (Array.isArray(saved.instances)) for (const instance of saved.instances.slice(0, 200)) {
-  const source = screens.find(screen => screen.id === instance?.sourceId);
+  const source = sources.find(screen => screen.id === instance?.sourceId);
   if (!source || typeof instance.id !== 'string' || instance.id.length > 100 || entries.some(entry => entry.model.id === instance.id) || !Number.isInteger(instance.number) || instance.number < 0 || instance.number > 100000) continue;
   const number = firstCopy.get(source.id) === instance ? 0 : instance.number;
   entries.push(createEntry({ ...source, id: instance.id, sourceId: source.id, number, title: titleFor(source, number) }));
@@ -195,7 +237,7 @@ function syncLayers(force=false){
   const items=[];
   for(const key of objectOrder){
     const model=byScreen.get(key);
-    if(model)items.push({id:model.id,kind:'screen',title:model.title,preset:model.preset});
+    if(model)items.push({id:model.id,kind:'screen',title:model.title,preset:model.preset,component:isComponent(model)});
     else if(byText.has(key))items.push({id:key,kind:'text',title:textTitle(byText.get(key).html)});
   }
   const selection=currentLayerSelection(),signature=JSON.stringify([items,selection]);
@@ -227,7 +269,7 @@ function arrangeSelection(action){
 
 function captureDocument() {
   syncObjectOrder();
-  return {objectOrder:[...objectOrder],arrows:arrowTool?.capture()??[],arrowSelection:arrowTool?.selectedIds??[],texts:textTool?.capture()??[],textSelection:textTool?.selectedIds??[],models:entries.map(entry=>({...entry.model})),selection:[...selectedEntries].map(entry=>entry.model.id),sources:screens.map(source=>source.id)};
+  return {objectOrder:[...objectOrder],arrows:arrowTool?.capture()??[],arrowSelection:arrowTool?.selectedIds??[],texts:textTool?.capture()??[],textSelection:textTool?.selectedIds??[],models:entries.map(entry=>({...entry.model})),selection:[...selectedEntries].map(entry=>entry.model.id),sources:sources.map(source=>source.id)};
 }
 function restoreDocument(snapshot) {
   const wanted = new Set(snapshot.models.map(model=>model.id));
@@ -237,7 +279,7 @@ function restoreDocument(snapshot) {
   }
   for (const model of snapshot.models) {
     let entry=entries.find(item=>item.model.id===model.id);
-    if(entry){entry.model=pixelRect(model);syncTitle(entry);}
+    if(entry){entry.model=pixelRect(model);syncTitle(entry);syncComponent(entry);}
     else {entry=createEntry({...model},false);entries.push(entry);}
   }
   const order=new Map(snapshot.models.map((m,i)=>[m.id,i]));
@@ -277,7 +319,7 @@ function beginRename(entry, title=entry.title) {
     const value=title.textContent.trim().slice(0,200);
     title.removeAttribute('contenteditable');title.removeAttribute('role');title.removeAttribute('aria-label');title.removeEventListener('keydown',onKey);
     if(!cancelled){
-      const source=screens.find(source=>source.id===sourceOf(entry));
+      const source=sources.find(source=>source.id===sourceOf(entry));
       const next=value||source.title;
       if(next!==entry.model.title){entry.model.name=next;entry.model.title=next;}
     }
@@ -286,7 +328,7 @@ function beginRename(entry, title=entry.title) {
 }
 function save() {
     syncObjectOrder();
-    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number})), screens: Object.fromEntries(entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name }])) })); } catch {}
+    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number})), screens: Object.fromEntries(entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name,props:m.props,dialsMinimized:m.dialsMinimized||undefined }])) })); } catch {}
 }
 function persist() {
   clearTimeout(saveTimer); saveTimer = setTimeout(save, 150);
@@ -421,7 +463,7 @@ function notify(entry) {
   entry.iframe?.contentWindow.postMessage({type:'tio-canvas:visibility', visible:entry.visible && !document.hidden}, location.origin);
 }
 const loader=createScreenLoader({
-  onReady(entry){if(entry.dark!==undefined)applyScreenTheme(entry);notify(entry);notifyInput(entry,true);entry.refresh.title=`Refresh ${entry.model.title}`;$('#canvas-status').textContent='';},
+  onReady(entry){if(entry.dark!==undefined)applyScreenTheme(entry);else if(entry.dials)postComponent(entry);notify(entry);notifyInput(entry,true);entry.refresh.title=`Refresh ${entry.model.title}`;$('#canvas-status').textContent='';},
   onError(entry,message){entry.refresh.title=message;$('#canvas-status').textContent=message;}
 });
 function mount(entry,replacing=false){loader.mount(entry,replacing);}
@@ -450,6 +492,8 @@ function updateSelection(preserveArrows=false) {
     const m = selected.model;
     $('#preset').value = m.preset; presetField.sync(); $('#width').value = m.width; $('#height').value = m.height;
     $('#width').disabled = $('#height').disabled = m.preset !== 'custom';
+    // A component frame has no device presets: only its size.
+    $('#preset-field').hidden = $('#preset-divider').hidden = isComponent(m);
   }
   syncLayers(true);
   schedule();
@@ -727,9 +771,9 @@ function keyboard(event) {
   if(event.key==='Shift' && gesture?.kind==='move' && gesture.lastPointer)move({...gesture.lastPointer,shiftKey:event.type==='keydown'});
   if(event.key==='Alt' && gesture?.kind==='move' && gesture.lastPointer)move({...gesture.lastPointer,altKey:event.type==='keydown'});
   const typing=event.target?.closest?.('input,textarea,select,.icon-options,[contenteditable]:not([contenteditable="false"])');
-  if (event.code==='Space' && !typing && !event.target.closest?.('#layers')) { if(event.type==='keydown') {event.preventDefault();document.body.dataset.space='';} else delete document.body.dataset.space; }
+  if (event.code==='Space' && !typing && !event.target.closest?.('#layers,.ui-dial-panel')) { if(event.type==='keydown') {event.preventDefault();document.body.dataset.space='';} else delete document.body.dataset.space; }
   if(event.type==='keyup' && event.key.startsWith('Arrow'))endNudge();
-  if(event.type==='keydown' && !typing && (selectedEntries.size || textTool?.selectedIds.length) && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key) && !event.metaKey && !event.ctrlKey && !event.altKey && !event.target.closest?.('#layers,#screen-context,#layers-menu,dialog,select') && !gesture){event.preventDefault();nudgeSelection(event);return;}
+  if(event.type==='keydown' && !typing && (selectedEntries.size || textTool?.selectedIds.length) && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key) && !event.metaKey && !event.ctrlKey && !event.altKey && !event.target.closest?.('#layers,#screen-context,#layers-menu,dialog,select,.ui-dial-panel') && !gesture){event.preventDefault();nudgeSelection(event);return;}
   const arrangeAction=arrangeShortcut(event);
   if(event.type==='keydown' && !typing && arrangeAction && selectedEntries.size+(textTool?.selectedIds.length??0)>1){event.preventDefault();if(!event.repeat)arrangeSelection(arrangeAction);return;}
   const layerAction=layerShortcut(event);
@@ -783,6 +827,9 @@ function wheelPan(dx,dy,mode) {
 }
 viewport.addEventListener('wheel',event=>{
   if(preview.entry || event.target.closest('#inspector,#group-inspector')) return;
+  // Dials that do not fit their frame scroll; a plain wheel over them scrolls the dials, not the canvas.
+  const dialBody=event.target.closest('.ui-dial-body');
+  if(dialBody && dialBody.scrollHeight>dialBody.clientHeight && !event.metaKey && !event.ctrlKey)return;
   event.preventDefault();
   if(event.metaKey || event.ctrlKey)wheelZoom(event.deltaY,event.deltaMode,event.clientX,event.clientY,event.ctrlKey && !event.metaKey ? PINCH_ZOOM_SENSITIVITY : ZOOM_SENSITIVITY);
   else wheelPan(event.deltaX,event.deltaY,event.deltaMode);
@@ -790,6 +837,12 @@ viewport.addEventListener('wheel',event=>{
 window.addEventListener('message',event=>{
   if(event.origin!==location.origin) return;
   if(event.data?.type==='tio-canvas:ready'){loader.ready(event.source);return;}
+  // A component frame asks for its props as soon as its script runs, which is before a refreshed frame takes over.
+  if(event.data?.type==='tio-canvas:component-ready'){
+    const owner=entries.find(item=>item.dials && (item.iframe?.contentWindow===event.source || item.pending?.contentWindow===event.source));
+    if(owner)postComponent(owner,event.source);
+    return;
+  }
   const entry=entries.find(item=>item.iframe?.contentWindow===event.source);if(!entry)return;
   const data=event.data;
   if(document.querySelector('dialog[open]'))return;
@@ -836,8 +889,9 @@ window.addEventListener('message',event=>{
 const fitAll=()=>[...entries,...(textTool?.objects()??[]).map(model=>({model}))];
 function fitEntries(targets,{fullViewport=false}={}) {
   if(!targets.length)return;
-  const minX=Math.min(...targets.map(e=>e.model.x)),minY=Math.min(...targets.map(e=>e.model.y));
-  const maxX=Math.max(...targets.map(e=>e.model.x+e.model.width)),maxY=Math.max(...targets.map(e=>e.model.y+e.model.height));
+  const models=targets.map(target=>target.model);
+  const minX=Math.min(...models.map(m=>m.x)),minY=Math.min(...models.map(m=>m.y));
+  const maxX=Math.max(...models.map(m=>m.x+m.width)),maxY=Math.max(...models.map(m=>m.y+m.height));
   const {left:availableLeft,width:availableWidth}=fullViewport?{left:0,width:innerWidth}:workArea();
   const scale=clamp(Math.min((availableWidth-160)/(maxX-minX),(innerHeight-280)/(maxY-minY)),minScale(),2);
   const to={scale,
@@ -848,7 +902,7 @@ function fitEntries(targets,{fullViewport=false}={}) {
 function duplicate(entry,offsetX,offsetY=0) {
   if (entries.filter(item => item.model.sourceId).length >= 200) return;
   const sourceId = entry.model.sourceId ?? entry.model.id;
-  const source = screens.find(screen => screen.id === sourceId);
+  const source = sources.find(screen => screen.id === sourceId);
   const number = nextNumber(sourceId);
   const model = { ...entry.model, id:crypto.randomUUID(),sourceId,number,name:undefined,title:titleFor(source,number),x:entry.model.x+offsetX,y:entry.model.y+offsetY };
   const copy = createEntry(model,false);entries.push(copy);return copy;
@@ -882,30 +936,44 @@ function duplicateSelection() {
   selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection(true);textTool?.duplicateSelected(offset.x,offset.y);fitEntries(copies);commitEdit(before);
 }
 const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
-document.body.append(Spotlight({id:'add-pages',label:'Add pages',placeholder:'Search',trigger:$('#add'),
-  groups:Object.entries(screenKinds).map(([id,label])=>({id,label})),
-  items:screens.map(source=>({id:source.id,group:source.kind,title:source.title})),
-  thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(item.id)}.webp`,
-  count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
+// Pages and components are added from one panel, each in its own tab.
+const componentGroups=[...new Set(componentSources.map(source=>source.group))];
+const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeholder:'Search',trigger:$('#add'),
+  tabs:[
+    {id:'pages',label:'Pages',noun:['page','pages'],
+      groups:Object.entries(screenKinds).map(([id,label])=>({id,label})),
+      items:screens.map(source=>({id:source.id,group:source.kind,title:source.title})),
+      thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(item.id)}.webp`,
+      count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
+      empty:emptyPages()},
+    {id:'components',label:'Components',noun:['component','components'],
+      groups:componentGroups.map(group=>({id:group,label:group})),
+      items:componentSources.map(source=>({id:source.id,group:source.group,title:source.title})),
+      thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(componentThumbnailId(item.id.slice('component:'.length)))}.webp`,
+      count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
+      empty:emptyComponents(),
+      // What the scan could not settle: one notice, one prompt that covers all of it.
+      banner:componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),()=>renderComponentIssues($('#component-issues .issues-body'),componentIssues));}}:null},
+  ],
   remaining:()=>200-sourceCount(),
-  empty:emptyPages(),
   enabled:()=>!document.body.hasAttribute('data-fullscreen')&&!document.querySelector('dialog[open]')&&!document.documentElement.hasAttribute('data-device-blocked'),
   onOpen(){closeContext();stop();clearContact();delete document.body.dataset.space;},
   onClose(){viewport.focus({preventScroll:true});},
   onAdd(ids){
-    const sources=ids.map(id=>screens.find(source=>source.id===id)).filter(Boolean);
-    if(sourceCount()+sources.length>200)return false;
-    const positions=addedPagePositions(sources,[...entries.map(entry=>entry.model),...(textTool?.objects()??[])],extent);
+    const added=ids.map(id=>sources.find(source=>source.id===id)).filter(Boolean);
+    if(sourceCount()+added.length>200)return false;
+    const positions=addedPagePositions(added,[...entries.map(entry=>entry.model),...(textTool?.objects()??[])],extent);
     if(!positions)return false;
     const before=history.checkpoint(),copies=[];
-    for(const [index,source] of sources.entries()){
+    for(const [index,source] of added.entries()){
       const number=nextNumber(source.id);
       const copy=createEntry({...source,id:crypto.randomUUID(),sourceId:source.id,number,title:titleFor(source,number),...positions[index]},false);
       entries.push(copy);copies.push(copy);
     }
     selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection();fitEntries(copies);commitEdit(before);return true;
   }
-}));
+});
+document.body.append(addPanel);
 // Native popover dismissal and dialog focus handling keep overlays keyboard-safe.
 const context=$('#screen-context');
 let contextTrigger=null;
@@ -1033,8 +1101,8 @@ if(canCheckUpdates){
 window.addEventListener('resize',()=>{cameraMotion=null;cachedWorkArea=null;schedule();});
 document.addEventListener('visibilitychange',()=>{release();entries.forEach(notify);});
 const preview=createFullscreen({
-  onEnter(entry){cameraMotion=null;stop();clearContact();delete document.body.dataset.space;select(entry);if(!entry.iframe)mount(entry);schedule();},
-  onExit(){cachedWorkArea=null;schedule();},
+  onEnter(entry){cameraMotion=null;stop();clearContact();delete document.body.dataset.space;select(entry);if(!entry.iframe)mount(entry);entry.dialFloat?.setActive(true);schedule();},
+  onExit(entry){entry.dialFloat?.setActive(false);cachedWorkArea=null;schedule();},
 });
 textTool=createTexts({viewport,world,camera,extent,saved:saved.texts,screenSelectionCount:()=>selectedEntries.size,rank:id=>objectRanks.get(`text:${id}`)??1,checkpoint:()=>history.checkpoint(),commit:commitEdit,clearScreens:()=>select(null),schedule,stopCanvas:()=>{cameraMotion=null;stop();},setTool:value=>arrowTool.setTool(value),companions:()=>[...selectedEntries].map(entry=>entry.model),duplicateCompanions:duplicateScreensInPlace,discardCompanions:discardScreens,snapTargets:()=>[...entries.map(entry=>entry.model),...textTool.objects()],drawGuides});
 arrowTool=createArrows({viewport,world,camera,screenSelectionCount:()=>selectedEntries.size,rank:id=>objectRanks.get(`arrow:${id}`)??1,objects:()=>[...entries.map(entry=>entry.model),...textTool.objects()],saved:saved.arrows,checkpoint:()=>history.checkpoint(),commit:commitEdit,clearScreens:()=>select(null),schedule,stopCanvas:()=>{cameraMotion=null;stop();}});
