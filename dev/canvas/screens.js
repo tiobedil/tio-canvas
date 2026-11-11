@@ -6,6 +6,8 @@ export const screens = [
     src: '/sample.html', x: 1700, y: 160, width: 390, height: 844, preset: 'iphone-16' },
   { id: 'update-states', kind: 'prototype', title: 'Update states',
     src: '/update-states.html', x: 160, y: 1160, width: 1440, height: 900, preset: 'laptop' },
+  { id: 'empty-components', kind: 'prototype', title: 'Empty components',
+    src: '/empty-components.html', x: 1700, y: 1160, width: 1200, height: 1000, preset: 'laptop' },
 ];
 
 // The canvas's own components, listed here so this repository can try the
