@@ -13,6 +13,12 @@ import { h, Section, Tag, Button } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
+    summary: '',
+    items: [],
+  },
+  {
+    version: '0.4.0',
+    date: '2026-11-11T08:17:33.626Z',
     summary: 'Components can now be previewed on the canvas: they are found in your project by themselves, each sits in a frame with a control for every prop, and one notice with a ready prompt covers anything the canvas cannot settle alone. Add pages gets tabs and a faster, more forgiving search.',
     items: [
       { type: 'new', text: 'Components can now be previewed on the canvas: each one sits alone in a frame you can resize, open fullscreen and switch to dark mode on its own.' },
