@@ -131,6 +131,8 @@ button, select, input { font: inherit; color: inherit; }
 .ui-menu[data-variant="options"] > * { flex: none; }
 .ui-menu[data-variant="icons"] { flex-direction: row; align-items: center; min-width: 0; gap: var(--canvas-chevron-gap); }
 .ui-menu[data-variant="options"]:has(.ui-menu-label) .ui-menu-item { padding-left: calc(var(--canvas-padding) + var(--canvas-icon-size) + var(--canvas-chevron-gap)); }
+/* Text that would spill out of its control ends in an ellipsis; the tooltip shows it in full (tooltip.js). */
+.ui-truncate { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ui-menu-item { justify-content: flex-start; gap: var(--canvas-padding); width: 100%; text-align: left; }
 .ui-menu-item[data-icon-only] { width: var(--canvas-control); justify-content: center; }
 .ui-menu-item:active:not(:disabled):not([data-icon-only]) { transform: none; }

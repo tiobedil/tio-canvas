@@ -15,8 +15,9 @@ function connect(trigger, menu, focusItem) {
   trigger.setAttribute('aria-controls', menu.id);
   const place = () => {
     menu.style.removeProperty('max-height');
-    // A select inside the dials opens as wide as its field.
-    if (trigger.closest('.ui-dial-row')) { const width = `${trigger.getBoundingClientRect().width}px`; menu.style.boxSizing = 'border-box'; menu.style.width = width; menu.style.minWidth = width; }
+    // A select inside the dials opens as wide as its field, but never narrower than
+    // --canvas-dial-select-min-width, so options stay readable when a zoomed-out frame shrinks the field.
+    if (trigger.closest('.ui-dial-row')) { const width = `max(${trigger.getBoundingClientRect().width}px, var(--canvas-dial-select-min-width))`; menu.style.boxSizing = 'border-box'; menu.style.width = width; menu.style.minWidth = width; }
     const anchor = trigger.getBoundingClientRect(), box = menu.getBoundingClientRect();
     const style = getComputedStyle(menu);
     const margin = parseFloat(style.getPropertyValue('--canvas-panel-inset'));
@@ -103,7 +104,7 @@ export function SelectField({ id, label, options = [], mixed, dataset }) {
           document.activeElement?.blur();
           sync();
         },
-      }, item.textContent));
+      }, h('span', { class: 'ui-truncate' }, item.textContent)));
     }
     sync();
   };

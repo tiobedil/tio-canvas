@@ -16,6 +16,8 @@ export const entries = [
     summary: 'The Change log is easier to scan: each release groups its changes under headings by kind.',
     items: [
       { type: 'improved', text: 'The Change log groups each release by kind (Feature, Improved, Fixed, Faster), with a heading and a bullet list for each, instead of a label on every line.' },
+      { type: 'fixed', text: 'Select menus in a component frame\'s controls no longer squeeze their options when the frame is small or zoomed out.' },
+      { type: 'improved', text: 'An option too long for its select menu ends in an ellipsis, and hovering it shows the full text.' },
     ],
   },
   {
