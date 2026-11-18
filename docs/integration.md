@@ -228,8 +228,14 @@ export const componentPreview = {
   theme(dark, document) {                  // optional: how your site turns dark
     document.documentElement.classList.toggle('dark', dark);
   },
+  wrapper: '../../src/canvas-providers.tsx', // optional: wraps every React component
 };
 ```
+
+`wrapper` is a path, like `module`, so the config still imports nothing. Its
+default export receives the component as `children` and wraps it in what your app
+provides (theme, router, translations, a store). A component that throws when it
+is drawn is listed with the other things to check, and its prompt points here.
 
 Without `theme`, the frame's theme button sets `color-scheme`, toggles the
 `dark` class and sets `data-theme="dark" | "light"` on `<html>`.

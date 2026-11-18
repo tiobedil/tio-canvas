@@ -28,8 +28,8 @@ box.textContent = ${JSON.stringify(`${title}\n\n${message}`)};
  * `components` is the project's list when the caller already has it, so a page
  * of frames does not scan the project once per frame.
  */
-export async function bundleComponent(project, id, { production = false, components } = {}) {
-  components ??= (await loadProject(project)).components;
+export async function bundleComponent(project, id, { production = false, components, wrapper } = {}) {
+  if (!components || wrapper === undefined) ({ components, componentWrapper: wrapper } = await loadProject(project));
   const component = components.find(item => item.id === id);
   if (!component) throw new Error(`No canvas component "${id}" in ${project.configFile}.`);
   const react = (component.framework ?? "react") === "react";
@@ -37,8 +37,10 @@ export async function bundleComponent(project, id, { production = false, compone
     `import * as config from ${JSON.stringify(project.configFile)};`,
     `import * as exports from ${JSON.stringify(component.module)};`,
     `import { startComponent } from ${JSON.stringify(RUNTIME)};`,
+    // componentPreview.wrapper: a file whose default export wraps every React component (its providers).
+    react && wrapper ? `import Wrapper from ${JSON.stringify(wrapper)};` : `const Wrapper = null;`,
     react ? `import { createElement } from "react";\nimport { createRoot } from "react-dom/client";` : "",
-    `startComponent({ id: ${JSON.stringify(id)}, config, definition: ${component.auto ? JSON.stringify(component) : "null"}, exports, react: ${react ? "{ createElement, createRoot }" : "null"} });`,
+    `startComponent({ id: ${JSON.stringify(id)}, config, definition: ${component.auto ? JSON.stringify(component) : "null"}, exports, react: ${react ? "{ createElement, createRoot }" : "null"}, Wrapper });`,
   ].join("\n");
   const result = await build({
     stdin: { contents: entry, resolveDir: project.projectDir, sourcefile: `canvas-component-${id}.js`, loader: "js" },

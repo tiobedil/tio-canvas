@@ -147,7 +147,8 @@ export function createCanvasHost(options = {}) {
       try {
         const { bundleComponent } = await import("./component-bundle.js");
         const known = lastLoad && (await lastLoad.catch(() => null))?.components;
-        return await bundleComponent(project, id, { components: known?.some(item => item.id === id) ? known : (await load()).components });
+        const loaded = known?.some(item => item.id === id) ? await lastLoad : await load();
+        return await bundleComponent(project, id, { components: loaded.components, wrapper: loaded.componentWrapper });
       } catch (error) {
         return componentErrorModule(`Component "${id}" could not be built.`, error?.message ?? String(error));
       }

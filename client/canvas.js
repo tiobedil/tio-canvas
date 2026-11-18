@@ -190,7 +190,10 @@ function missingIssues() {
   }
   return [...bySource.values()];
 }
+// Components that failed to draw in a frame on this page, by id: { title, message }.
+const renderErrors = new Map();
 let componentIssues = [...missingIssues(), ...scanIssues];
+function refreshIssues(){componentIssues=[...missingIssues(),...[...renderErrors].map(([id,error])=>({kind:'render-error',id,...error})),...scanIssues];}
 if (Array.isArray(saved.removedSources)) for (const id of saved.removedSources) {
   const index = entries.findIndex(entry => entry.model.id === id && !entry.model.sourceId);
   if (index >= 0) entries.splice(index,1)[0].element.remove();
@@ -853,6 +856,12 @@ window.addEventListener('message',event=>{
   if(event.origin!==location.origin) return;
   if(event.data?.type==='tio-canvas:ready'){loader.ready(event.source);return;}
   // A component frame asks for its props as soon as its script runs, which is before a refreshed frame takes over.
+  if(event.data?.type==='tio-canvas:component-error' || event.data?.type==='tio-canvas:component-drawn'){
+    const component=components.find(item=>item.id===event.data.id);if(!component)return;
+    if(event.data.type==='tio-canvas:component-drawn'){if(!renderErrors.delete(component.id))return;}
+    else renderErrors.set(component.id,{title:component.title,module:component.module,message:String(event.data.message??'').slice(0,500)});
+    refreshIssues();return;
+  }
   if(event.data?.type==='tio-canvas:component-ready'){
     const owner=entries.find(item=>item.dials && (item.iframe?.contentWindow===event.source || item.pending?.contentWindow===event.source));
     if(owner)postComponent(owner,event.source);
@@ -1024,7 +1033,7 @@ document.addEventListener('contextmenu',event=>{
 // Frames of a missing component can also be let go, from the same dialog.
 function renderIssues(){
   renderComponentIssues($('#component-issues .issues-body'),componentIssues,orphans.length?{count:orphans.length,onForget(){
-    orphans=[];componentIssues=[...scanIssues];save();
+    orphans=[];refreshIssues();save();
     if(componentIssues.length)renderIssues();else $('#component-issues').close();
   }}:null);
 }

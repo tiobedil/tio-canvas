@@ -8,14 +8,15 @@ const issues = [
   { kind: 'unlisted', file: 'src/components/Lazy.tsx' },
   { kind: 'no-typescript', count: 2 },
   { kind: 'missing-component', id: 'old-card', title: 'Old card', count: 2 },
+  { kind: 'render-error', id: 'menu', title: 'Menu', module: '../../src/Menu.tsx', message: 'useTheme must be used inside ThemeProvider\n  at Menu' },
 ];
 
-assert.equal(issuesBanner(issues), '6 things to check in your components.');
+assert.equal(issuesBanner(issues), '7 things to check in your components.');
 assert.equal(issuesBanner(issues.slice(0, 1)), '1 thing to check in your components.');
 assert.match(describeIssue(issues[2]), /no control for "tone" and "text", and has controls for "old"/);
 
 const prompt = componentIssuesPrompt(issues);
-assert.match(prompt, /found 6 things/, 'one prompt for all of them');
+assert.match(prompt, /found 7 things/, 'one prompt for all of them');
 for (const issue of issues) assert.ok(prompt.includes(issue.id ?? issue.file ?? 'TypeScript'), `the prompt covers ${issue.kind}`);
 assert.match(prompt, /one of "info", "warn"/);
 assert.match(prompt, /ignore: \[/, 'a prop left out on purpose has a way out');
@@ -33,3 +34,6 @@ const { scanSummary } = await import('../../client/pages-empty.js');
   assert.match(scanSummary({ folders: ['src/components'], files: 0 }), /Searched src\/components: no \.tsx/);
   assert.match(scanSummary({ folders: ['a', 'b', 'c', 'd'], files: 1 }), /a, b, c and 1 more: 1 file,/);
 }
+
+assert.equal(describeIssue(issues[6]), 'Menu: could not be drawn (useTheme must be used inside ThemeProvider).');
+assert.match(prompt, /componentPreview\.wrapper/, 'a component that needs a provider has a way out');

@@ -20,6 +20,7 @@ export function describeIssue(issue) {
       if (issue.extra.length) parts.push(`has controls for ${quoted(issue.extra)}, which the component no longer takes`);
       return `${issue.title}: ${parts.join(', and ')}.`;
     }
+    case 'render-error': return `${issue.title}: could not be drawn (${issue.message.split('\n')[0]}).`;
     case 'missing-component': return `${issue.title}: ${plural(issue.count, 'frame on the canvas waits', 'frames on the canvas wait')} for it, but it is no longer found. ${issue.count === 1 ? 'It comes' : 'They come'} back once it is.`;
     case 'unlisted': return `${issue.file} has functions that may be components, but the canvas cannot tell what they return.`;
     case 'no-typescript': return `TypeScript is not installed in this project, so ${plural(issue.count, 'component has', 'components have')} no controls.`;
@@ -38,6 +39,7 @@ function instruction(issue) {
       if (issue.extra.length) lines.push(`   - Remove the controls for ${quoted(issue.extra)}, or rename them to the prop they now are.`);
       return lines.join('\n');
     }
+    case 'render-error': return `"${issue.id}" (${issue.module}) throws when the canvas draws it alone: ${JSON.stringify(issue.message)}. Read the component. If it needs a provider (theme, router, i18n, a store), create one file whose default export wraps its children in every provider the app uses, and point "componentPreview.wrapper" at it (a path relative to the config, like "module"). If it needs props it cannot do without, list it by hand with a "render" function that passes them. Fix the component itself only if it is really broken.`;
     case 'missing-component': return `The canvas had a component with id "${issue.id}" (title "${issue.title}"), and it is no longer found. Find out why: a renamed or moved file, a renamed export, a folder no longer scanned, or an entry removed from "components". If the component still exists, make it show up again under the id "${issue.id}" (list it by hand with that id if its found id changed). If it was deleted on purpose, say so and leave it: I can let its frames go from the dialog.`;
     case 'unlisted': return `${issue.file}: read it. If it exports a component, list it in "components" (id, title, module, export, controls). If it does not, add the file to "componentExclude" so the canvas stops asking.`;
     case 'no-typescript': return `Install TypeScript as a dev dependency with this project's package manager, so the canvas can read each component's props and add the controls itself.`;

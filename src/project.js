@@ -47,5 +47,7 @@ export async function loadProject(project, { scan = true } = {}) {
       componentScan = { error: String(error?.message ?? error) };
     }
   }
-  return { screens: module.screens, components: [...listed, ...auto], autoComponents: auto, componentIssues: issues, componentScan, storageKey: module.storageKey ?? DEFAULT_STORAGE_KEY, presets, screenKinds };
+  const wrapper = module.componentPreview?.wrapper;
+  if (wrapper !== undefined && (typeof wrapper !== 'string' || !wrapper)) throw new Error(`${project.configFile}: componentPreview.wrapper must be the path of a file that exports the wrapper.`);
+  return { screens: module.screens, componentWrapper: wrapper ?? null, components: [...listed, ...auto], autoComponents: auto, componentIssues: issues, componentScan, storageKey: module.storageKey ?? DEFAULT_STORAGE_KEY, presets, screenKinds };
 }

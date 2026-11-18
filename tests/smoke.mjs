@@ -53,6 +53,16 @@ try {
   assert.match(await host.projectModule(), /export const componentScan = \{"folders":\[\],"files":0\}/, "the page learns where the scan looked");
   await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const components = [${component}, ${component.replace("'widget'", "'later'")}];\n`);
   assert.match(await host.componentModule("later"), /startComponent/, "a component added after the page loaded is found afresh");
+  // Stand-ins for the project's own React, enough for the bundler to resolve.
+  await mkdir(path.join(root, "node_modules/react-dom"), { recursive: true }); await mkdir(path.join(root, "node_modules/react"), { recursive: true });
+  await writeFile(path.join(root, "node_modules/react/index.js"), "export const createElement = () => null;\n");
+  await writeFile(path.join(root, "node_modules/react-dom/client.js"), "export const createRoot = () => null;\n");
+  await writeFile(path.join(root, "wrap.js"), `export default function Wrap({ children }) { return children; }\nexport const WRAP_MARK = "wrapped-by-provider";\n`);
+  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const componentPreview = { wrapper: '../../wrap.js' };\nexport const components = [${component.replace("framework: 'dom', ", "")}];\n`);
+  assert.match(await host.projectModule(), /componentScan/);
+  assert.match(await host.componentModule("widget"), /WRAP_MARK|wrapped-by-provider|function Wrap|Wrap\(/, "componentPreview.wrapper travels in every React frame");
+  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const components = [${component}];\n`);
+  await host.projectModule();
   await writeFile(path.join(root, "dev/canvas/thumbnails/component-widget.webp"), "c");
   assert.equal(await host.ensureThumbnail("/canvas/thumbnails/component-widget.webp", "http://x"), true, "a component picture newer than its source is kept");
   const shipped = path.join(root, "out-components");

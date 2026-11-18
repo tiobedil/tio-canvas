@@ -13,7 +13,7 @@ import { h, Section, Button, DialogFooter } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
-    summary: 'Component frames are safer: a renamed or deleted component no longer takes its frames with it, and a new component with the same name never takes over existing frames. The Components tab explains itself when it is empty, and the Change log groups each release by kind.',
+    summary: 'Component frames are safer: a renamed or deleted component no longer takes its frames with it, and a new component with the same name never takes over existing frames. Components that fail to draw are listed with their error, components that need your app's providers can be wrapped in them, and the Components tab explains itself when it is empty; and the Change log groups each release by kind.',
     items: [
       { type: 'improved', text: 'The Change log groups each release by kind (Feature, Improved, Fixed, Faster), with a heading and a bullet list for each, instead of a label on every line.' },
       { type: 'fixed', text: 'Select menus in a component frame\'s controls no longer squeeze their options when the frame is small or zoomed out.' },
@@ -22,6 +22,9 @@ export const entries = [
       { type: 'fixed', text: 'Adding a second component with the same name no longer moves your existing frames over to the new one.' },
       { type: 'improved', text: 'An empty Components tab now says which folders it searched, or why the search failed.' },
       { type: 'improved', text: 'A component\'s picture in Add pages is redrawn after you change the component.' },
+      { type: 'new', text: 'A component that cannot be drawn is now listed in the Components tab\'s things to check, with the error, so you see it without opening every frame.' },
+      { type: 'new', text: 'Components that need your app\'s providers (theme, router, translations) can now be drawn: point componentPreview.wrapper at one file that wraps them.' },
+      { type: 'fixed', text: 'A React component that throws while drawing now shows its error in the frame, instead of an empty frame.' },
       { type: 'faster', text: 'A canvas with many component frames opens faster: the frames share one search of your project instead of each searching again.' },
     ],
   },
