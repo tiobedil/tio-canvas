@@ -13,7 +13,9 @@ const kinds = issues => issues.map(issue => issue.kind).sort();
 
 // With TypeScript (the repository's own, found from the fixture's root).
 {
-  const { autoComponents, componentIssues, components } = await load(fixture);
+  const { autoComponents, componentIssues, components, componentScan } = await load(fixture);
+  assert.deepEqual(componentScan.folders, ['src/components', 'src/widgets'], 'the scan says where it looked');
+  assert.ok(componentScan.files > 0);
   const auto = byId(autoComponents);
   assert.deepEqual(Object.keys(auto).sort(), ['button', 'card', 'card-inner', 'gauge', 'input', 'legacy', 'panel', 'something', 'wrapped'],
     'every real component is listed: function, arrow, forwardRef, memo, class, default export, a folder added by componentDirs, a .jsx file');
@@ -66,6 +68,14 @@ const kinds = issues => issues.map(issue => issue.kind).sort();
     const after = await load(root);
     assert.deepEqual(kinds(after.componentIssues), ['no-typescript'], 'an excluded file and removed entries leave nothing to report');
     assert.ok(!byId(after.autoComponents).something, 'an excluded file is not listed');
+
+    // A second component with the same name never takes over an id the canvas already uses.
+    const before = byId(after.autoComponents);
+    await writeFile(path.join(root, 'src/components/forms/Card.jsx'), 'export function Card() { return <div />; }\n');
+    const shared = byId((await load(root)).autoComponents);
+    assert.ok(!shared.card, 'a shared name is not a plain id');
+    assert.equal(shared['components-card'].module, before.card.module, 'the top-level one takes its folder name');
+    assert.equal(shared['forms-card'].module, '../../src/components/forms/Card.jsx');
   } finally { await rm(root, { recursive: true, force: true }); }
 }
 
@@ -74,3 +84,13 @@ await assert.rejects(async () => {
   try { await writeFile(path.join(root, 'screens.js'), `export const screens = [];\nexport const componentDirs = 'src';\n`); await loadProject(resolveProject({ root, config: 'screens.js' })); }
   finally { await rm(root, { recursive: true, force: true }); }
 }, /componentDirs/);
+
+// An empty project says where it looked.
+{
+  const root = await mkdtemp(path.join(tmpdir(), 'tio-canvas-scan-'));
+  try {
+    await writeFile(path.join(root, 'screens.js'), 'export const screens = [];\n');
+    const { componentScan } = await loadProject(resolveProject({ root, config: 'screens.js' }));
+    assert.deepEqual(componentScan, { folders: [], files: 0 });
+  } finally { await rm(root, { recursive: true, force: true }); }
+}

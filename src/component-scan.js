@@ -261,7 +261,7 @@ const pascal = text => text.split(/[^a-zA-Z0-9]+/).filter(Boolean).map(word => w
 const titleCase = text => text.split(/[^a-zA-Z0-9]+/).filter(Boolean).map(word => word[0].toUpperCase() + word.slice(1)).join(" ");
 
 /** The file a `module` path names, trying the extensions a bundler would; null for a name that is not a path. */
-async function resolveModule(projectDir, specifier) {
+export async function resolveModule(projectDir, specifier) {
   if (!/^\.{0,2}\//.test(specifier)) return { bare: true };
   const base = path.resolve(projectDir, specifier);
   for (const extension of RESOLVE_EXTENSIONS) if (await readable(base + extension)) return { file: base + extension };
@@ -276,14 +276,16 @@ const caches = { files: new Map(), types: null };
  *   dirs     extra directories (from `componentDirs` in the config), beside the defaults
  *   exclude  files or folders (from `componentExclude`) the scan leaves alone
  *   manual   the components the config lists itself; the scan never lists these twice
- * Returns { auto, issues }: components to add to the list, and what needs a person.
+ * Returns { auto, issues, scan }: components to add to the list, what needs a person, and
+ * what was searched (the folders that exist and how many source files they hold), so an
+ * empty Components tab can say where it looked.
  */
 export async function scanComponents(project, { dirs = [], exclude = [], manual = [] } = {}) {
   const root = project.root;
   const excluded = exclude.map(item => path.resolve(root, item));
   const isExcluded = file => excluded.some(item => file === item || file.startsWith(item + path.sep));
-  const found = new Set();
-  for (const dir of scanDirectories(root, dirs)) if (await isDirectory(dir)) for (const file of await walk(dir)) found.add(file);
+  const found = new Set(), folders = [];
+  for (const dir of scanDirectories(root, dirs)) if (await isDirectory(dir)) { folders.push(posix(path.relative(root, dir))); for (const file of await walk(dir)) found.add(file); }
   const files = [...found].filter(file => !isExcluded(file)).sort();
 
   // What the config lists itself: where each entry points, and whether that file exists.
@@ -328,7 +330,7 @@ export async function scanComponents(project, { dirs = [], exclude = [], manual 
   // Components found by the scan: those written like one, and any other export that
   // TypeScript proves is a function returning an element (a wrapper, a lazy component).
   const taken = new Set(manual.map(component => component.id));
-  const auto = [];
+  const auto = [], candidates = [];
   let withoutTypes = 0;
   const directories = scanDirectories(root, dirs);
   for (const file of files) {
@@ -347,18 +349,28 @@ export async function scanComponents(project, { dirs = [], exclude = [], manual 
       if (info && info.callable === false) continue; // TypeScript says it is not a component
       if (listedKeys.has(`${file}\n${exportName}`)) continue;
       const name = exportName === "default" ? (PASCAL.test(local) ? local : pascal(path.basename(file).replace(/\.\w+$/, ""))) : exportName;
-      let id = kebab(name), n = 2;
-      if (taken.has(id) && folders.length) id = kebab(`${folders.join("-")}-${name}`);
-      while (taken.has(id)) id = `${kebab(name)}-${n++}`;
-      taken.add(id);
       const controls = {};
       for (const { name: prop, control } of info?.controls ?? []) controls[prop] = control;
-      auto.push({
-        id, title: name, group: folders.length ? titleCase(folders[0]) : "Components", auto: true,
+      candidates.push({ name, folders, owner, component: {
+        title: name, group: folders.length ? titleCase(folders[0]) : "Components", auto: true,
         module: relativeModule(project.projectDir, file), ...(exportName === "default" ? {} : { export: exportName }), controls,
-      });
+      } });
     }
     if (!ts && /\.tsx$/.test(file) && byName.size) withoutTypes++;
+  }
+  // Ids must not move to another component when a file is added: the canvas keeps a
+  // frame's place and props under its id. So a name two components share never
+  // becomes a plain id; each takes its folder path (the scanned folder's own name
+  // for one at the top), whichever file came first.
+  const shared = new Map();
+  for (const item of candidates) shared.set(kebab(item.name), (shared.get(kebab(item.name)) ?? 0) + 1);
+  for (const { name, folders, owner, component } of candidates) {
+    const plain = kebab(name);
+    let id = shared.get(plain) > 1 || taken.has(plain) ? kebab(`${(folders.length ? folders : [path.basename(owner ?? "")]).join("-")}-${name}`) : plain, n = 2;
+    const base = id;
+    while (taken.has(id)) id = `${base}-${n++}`;
+    taken.add(id);
+    auto.push({ id, ...component });
   }
   // Functions that return something TypeScript cannot name (an unresolved import, say): maybe components.
   for (const file of [...undecided].sort()) issues.push({ kind: "unlisted", file: posix(path.relative(root, file)) });
@@ -377,7 +389,7 @@ export async function scanComponents(project, { dirs = [], exclude = [], manual 
     const missing = info.controls.filter(item => !have.includes(item.name) && !ignore.includes(item.name)).map(item => ({ name: item.name, type: item.control.type, ...(item.control.options ? { options: item.control.options } : {}) }));
     if (extra.length || missing.length) issues.push({ kind: "controls-out-of-date", id: component.id, title: component.title, module: component.module, missing, extra });
   }
-  return { auto, issues };
+  return { auto, issues, scan: { folders, files: files.length } };
 }
 
 function relativeModule(fromDir, file) {

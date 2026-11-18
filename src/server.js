@@ -1,10 +1,10 @@
 import path from "node:path";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolveProject, loadProject, DEFAULT_STORAGE_KEY } from "./project.js";
 import { createCapturer } from "./capture.js";
 import { componentThumbnailId } from "../client/registry.js";
-import { componentWatchDirs } from "./component-scan.js";
+import { componentWatchDirs, resolveModule } from "./component-scan.js";
 import { componentErrorModule } from "./component-bundle.js";
 
 const CLIENT = fileURLToPath(new URL("../client", import.meta.url));
@@ -49,11 +49,26 @@ export function createCanvasHost(options = {}) {
   // Thumbnails are made on demand, one browser at a time, and a failure is not retried for a while.
   const shots = createCapturer();
   const making = new Map(), failed = new Map();
+  // The canvas page asks for project.js, then for every frame on it at once. The frames
+  // reuse that scan instead of each scanning again; one it does not name scans afresh.
+  let lastLoad = null;
+  const load = () => (lastLoad = loadProject(project).catch(error => { lastLoad = null; throw error; }));
+  const recent = () => lastLoad ?? load();
+
+  /** A component thumbnail is stale once the component's file changed after it was made. */
+  async function stale(id, file) {
+    const component = (await recent()).components.find(item => componentThumbnailId(item.id) === id);
+    if (!component || component.render) return false;
+    const target = await resolveModule(project.projectDir, component.module);
+    if (!target.file) return false;
+    const [picture, source] = await Promise.all([stat(file), stat(target.file)]);
+    return source.mtimeMs > picture.mtimeMs;
+  }
 
   /** What a thumbnail id pictures: a screen, or a component in its frame. */
   async function thumbnailSource(id) {
-    const { screens, components } = await loadProject(project);
-    return screens.find(screen => screen.id === id) ?? componentFrames(components).find(frame => frame.id === id);
+    const find = ({ screens, components }) => screens.find(screen => screen.id === id) ?? componentFrames(components).find(frame => frame.id === id);
+    return find(await recent()) ?? find(await load());
   }
 
   return {
@@ -79,9 +94,9 @@ export function createCanvasHost(options = {}) {
      */
     async projectModule() {
       const source = await readFile(project.configFile, "utf8");
-      const { autoComponents, componentIssues } = await loadProject(project);
+      const { autoComponents, componentIssues, componentScan } = await load();
       const storage = DEFAULT_STORAGE_EXPORT.test(source) ? "" : `export const storageKey = ${JSON.stringify(DEFAULT_STORAGE_KEY)};\n`;
-      return `${source}\n${storage}export const autoComponents = ${JSON.stringify(autoComponents)};\nexport const componentIssues = ${JSON.stringify(componentIssues)};\n`;
+      return `${source}\n${storage}export const autoComponents = ${JSON.stringify(autoComponents)};\nexport const componentIssues = ${JSON.stringify(componentIssues)};\nexport const componentScan = ${JSON.stringify(componentScan)};\n`;
     },
 
     /** `bridge` goes into every framed screen; `tools` only into one framed by the canvas itself. */
@@ -103,16 +118,22 @@ export function createCanvasHost(options = {}) {
       if (!match) return false;
       const id = match[1];
       const file = path.join(project.thumbnailsDir, `${id}.webp`);
-      try { await access(file); return true; } catch { /* missing: make it */ }
-      if (Date.now() - (failed.get(id) ?? 0) < 30000) return false;
+      let had = false;
+      try {
+        await access(file); had = true;
+        // A screen's picture stays until refreshed by hand; a component's is redrawn once its source changed.
+        if (!id.startsWith("component-") || !(await stale(id, file).catch(() => false))) return true;
+      } catch { /* missing: make it */ }
+      // The old picture is better than none while a new one cannot be made.
+      if (Date.now() - (failed.get(id) ?? 0) < 30000) return had;
       if (!making.has(id)) {
         making.set(id, (async () => {
           const source = await thumbnailSource(id);
-          if (!source) return false;
+          if (!source) return had;
           await mkdir(project.thumbnailsDir, { recursive: true });
           await writeFile(file, await shots.capture(source, origin));
           return true;
-        })().catch(() => { failed.set(id, Date.now()); return false; }).finally(() => making.delete(id)));
+        })().catch(() => { failed.set(id, Date.now()); return had; }).finally(() => making.delete(id)));
       }
       return making.get(id);
     },
@@ -124,7 +145,9 @@ export function createCanvasHost(options = {}) {
      */
     async componentModule(id) {
       try {
-        return await (await import("./component-bundle.js")).bundleComponent(project, id);
+        const { bundleComponent } = await import("./component-bundle.js");
+        const known = lastLoad && (await lastLoad.catch(() => null))?.components;
+        return await bundleComponent(project, id, { components: known?.some(item => item.id === id) ? known : (await load()).components });
       } catch (error) {
         return componentErrorModule(`Component "${id}" could not be built.`, error?.message ?? String(error));
       }

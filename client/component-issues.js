@@ -1,4 +1,4 @@
-import { h, Section, CodeBlock, CopyButton } from './ui/index.js';
+import { h, Section, CodeBlock, CopyButton, Button } from './ui/index.js';
 
 // What the canvas found in the project's components that it could not settle by
 // itself (the scan runs in the development server: src/component-scan.js). Every
@@ -20,6 +20,7 @@ export function describeIssue(issue) {
       if (issue.extra.length) parts.push(`has controls for ${quoted(issue.extra)}, which the component no longer takes`);
       return `${issue.title}: ${parts.join(', and ')}.`;
     }
+    case 'missing-component': return `${issue.title}: ${plural(issue.count, 'frame on the canvas waits', 'frames on the canvas wait')} for it, but it is no longer found. ${issue.count === 1 ? 'It comes' : 'They come'} back once it is.`;
     case 'unlisted': return `${issue.file} has functions that may be components, but the canvas cannot tell what they return.`;
     case 'no-typescript': return `TypeScript is not installed in this project, so ${plural(issue.count, 'component has', 'components have')} no controls.`;
     default: return 'Something about the components needs a look.';
@@ -37,6 +38,7 @@ function instruction(issue) {
       if (issue.extra.length) lines.push(`   - Remove the controls for ${quoted(issue.extra)}, or rename them to the prop they now are.`);
       return lines.join('\n');
     }
+    case 'missing-component': return `The canvas had a component with id "${issue.id}" (title "${issue.title}"), and it is no longer found. Find out why: a renamed or moved file, a renamed export, a folder no longer scanned, or an entry removed from "components". If the component still exists, make it show up again under the id "${issue.id}" (list it by hand with that id if its found id changed). If it was deleted on purpose, say so and leave it: I can let its frames go from the dialog.`;
     case 'unlisted': return `${issue.file}: read it. If it exports a component, list it in "components" (id, title, module, export, controls). If it does not, add the file to "componentExclude" so the canvas stops asking.`;
     case 'no-typescript': return `Install TypeScript as a dev dependency with this project's package manager, so the canvas can read each component's props and add the controls itself.`;
     default: return 'Look into it.';
@@ -61,13 +63,19 @@ ${list}
 5. Tell me what you changed and anything you could not verify.`;
 }
 
-export function renderComponentIssues(body, issues) {
+/**
+ * The dialog's body. `missing`, when frames of a missing component are kept aside,
+ * is { count, onForget }: a button that lets them go for good.
+ */
+export function renderComponentIssues(body, issues, missing = null) {
   body.replaceChildren();
   const prompt = componentIssuesPrompt(issues);
+  const forget = missing && Button({ variant: 'secondary', size: 'sm', onClick: missing.onForget }, `Remove ${plural(missing.count, 'waiting frame', 'waiting frames')}`);
   body.append(
     Section({ className: 'install-section' },
       h('p', {}, issuesBanner(issues).replace(/\.$/, ':')),
-      h('ul', { class: 'issue-list' }, ...issues.map(issue => h('li', {}, describeIssue(issue))))),
+      h('ul', { class: 'issue-list' }, ...issues.map(issue => h('li', {}, describeIssue(issue)))),
+      forget ? h('p', {}, 'Deleted a component on purpose? ', forget) : null),
     Section({ className: 'install-section' },
       h('div', { class: 'install-head' }, h('h3', {}, 'Ask an agent to fix them'), CopyButton('Copy prompt', prompt)),
       h('p', {}, 'Paste this into your coding agent while it is in the project. When it is done, reload the canvas and the notice goes away.'), CodeBlock(prompt)));

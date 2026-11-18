@@ -29,6 +29,7 @@ function marked(text, range) {
  * Several lists share one panel as tabs: pass `tabs` in place of groups and items.
  *   tabs: [{ id: 'pages', label: 'Pages', noun: ['page', 'pages'], groups, items, thumbnail, count, empty, banner }]
  * A tab may carry a banner, { text, action, onAction }: a line with one button, shown above that tab's list.
+ * Pass a function that returns one (or null) when the banner can change while the page is open.
  * Small tabs sit under the divider below the search field and Tab moves between them. Each tab keeps
  * its own highlight and its own selection: a selection never follows you to
  * another tab, and it is still there when you come back. Enter adds from the tab
@@ -63,7 +64,8 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
   const bannerText = h('span', {}), bannerAction = Button({ size: 'xs', tabIndex: -1 });
   const bannerEl = h('div', { class: 'ui-spotlight-banner', role: 'status', hidden: true }, bannerText, bannerAction);
   addButton.addEventListener('click', () => commit());
-  bannerAction.addEventListener('click', () => current.banner?.onAction?.());
+  const bannerOf = pane => typeof pane.banner === 'function' ? pane.banner() : pane.banner;
+  bannerAction.addEventListener('click', () => bannerOf(current)?.onAction?.());
   // Shown while a search hides some selected pages: counts the ones the results do not show and unfolds to list them.
   const chosenBox = Checkbox({ label: 'Unselect the other selected items', checked: true, tabIndex: -1 });
   const chosenText = h('span', {});
@@ -112,8 +114,9 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
     const query = input.value;
     const results = searchGroups(groups, items, query);
     root.dataset.tab = current.id;
-    bannerEl.hidden = !current.banner;
-    if (current.banner) { bannerText.textContent = current.banner.text; bannerAction.textContent = current.banner.action; }
+    const banner = bannerOf(current);
+    bannerEl.hidden = !banner;
+    if (banner) { bannerText.textContent = banner.text; bannerAction.textContent = banner.action; }
     for (const pane of panes) pane.tab.setAttribute('aria-selected', String(pane === current));
     list.setAttribute('aria-labelledby', current.tab.id);
     const full = remaining() <= 0;

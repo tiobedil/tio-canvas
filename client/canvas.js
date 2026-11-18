@@ -20,7 +20,7 @@ import { createFullscreen } from './fullscreen.js';
 import { createLayerDrawer } from './layers.js';
 import { layerShortcut, reorderLayers, dropLayers } from './layer-order.js';
 import { createScreenLoader } from './screen-loader.js';
-import { screens, components, componentIssues, presets, screenKinds, storageKey } from './screens.js';
+import { screens, components, componentIssues as scanIssues, componentScan, presets, screenKinds, storageKey } from './screens.js';
 import { componentSourceId, componentThumbnailId, normalizeControls, componentProps } from './registry.js';
 import { createDialFloat } from './dial-float.js';
 import { bounds, intersects, snapRect, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
@@ -170,12 +170,27 @@ if (Array.isArray(saved.instances) && Array.isArray(saved.removedSources)) for (
   const lowest = firstCopy.get(instance.sourceId);
   if (!lowest || instance.number < lowest.number) firstCopy.set(instance.sourceId, instance);
 }
+// A component frame whose component is no longer found (renamed, moved, deleted) is
+// kept aside with its place and props, never dropped: it comes back by itself once
+// the component is found again, and until then the Components tab says so.
+let orphans = [];
 if (Array.isArray(saved.instances)) for (const instance of saved.instances.slice(0, 200)) {
   const source = sources.find(screen => screen.id === instance?.sourceId);
+  if (!source && typeof instance?.sourceId === 'string' && instance.sourceId.startsWith(componentSourceId('')) && typeof instance.id === 'string' && saved.screens?.[instance.id]) { orphans.push({ instance, state: saved.screens[instance.id] }); continue; }
   if (!source || typeof instance.id !== 'string' || instance.id.length > 100 || entries.some(entry => entry.model.id === instance.id) || !Number.isInteger(instance.number) || instance.number < 0 || instance.number > 100000) continue;
   const number = firstCopy.get(source.id) === instance ? 0 : instance.number;
   entries.push(createEntry({ ...source, id: instance.id, sourceId: source.id, number, title: titleFor(source, number) }));
 }
+function missingIssues() {
+  const bySource = new Map();
+  for (const { instance } of orphans) {
+    const id = instance.sourceId.slice(componentSourceId('').length);
+    const issue = bySource.get(id) ?? { kind: 'missing-component', id, title: typeof instance.title === 'string' ? instance.title : id, count: 0 };
+    issue.count++; bySource.set(id, issue);
+  }
+  return [...bySource.values()];
+}
+let componentIssues = [...missingIssues(), ...scanIssues];
 if (Array.isArray(saved.removedSources)) for (const id of saved.removedSources) {
   const index = entries.findIndex(entry => entry.model.id === id && !entry.model.sourceId);
   if (index >= 0) entries.splice(index,1)[0].element.remove();
@@ -328,7 +343,7 @@ function beginRename(entry, title=entry.title) {
 }
 function save() {
     syncObjectOrder();
-    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number})), screens: Object.fromEntries(entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name,props:m.props,dialsMinimized:m.dialsMinimized||undefined }])) })); } catch {}
+    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: [...entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number,title:isComponent(m)?sources.find(source=>source.id===m.sourceId)?.title:undefined})), ...orphans.map(orphan => orphan.instance)], screens: Object.fromEntries([...entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name,props:m.props,dialsMinimized:m.dialsMinimized||undefined }]), ...orphans.map(orphan => [orphan.instance.id, orphan.state])]) })); } catch {}
 }
 function persist() {
   clearTimeout(saveTimer); saveTimer = setTimeout(save, 150);
@@ -951,9 +966,9 @@ const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeh
       items:componentSources.map(source=>({id:source.id,group:source.group,title:source.title})),
       thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(componentThumbnailId(item.id.slice('component:'.length)))}.webp`,
       count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
-      empty:emptyComponents(),
+      empty:emptyComponents(componentScan),
       // What the scan could not settle: one notice, one prompt that covers all of it.
-      banner:componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),()=>renderComponentIssues($('#component-issues .issues-body'),componentIssues));}}:null},
+      banner:()=>componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),renderIssues);}}:null},
   ],
   remaining:()=>200-sourceCount(),
   enabled:()=>!document.body.hasAttribute('data-fullscreen')&&!document.querySelector('dialog[open]')&&!document.documentElement.hasAttribute('data-device-blocked'),
@@ -1006,6 +1021,13 @@ document.addEventListener('contextmenu',event=>{
   event.preventDefault();openContext(entry,event.clientX,event.clientY);
 });
 // Opening a dialog hands the canvas back its keys: stop any gesture, hide the touch contact.
+// Frames of a missing component can also be let go, from the same dialog.
+function renderIssues(){
+  renderComponentIssues($('#component-issues .issues-body'),componentIssues,orphans.length?{count:orphans.length,onForget(){
+    orphans=[];componentIssues=[...scanIssues];save();
+    if(componentIssues.length)renderIssues();else $('#component-issues').close();
+  }}:null);
+}
 function openGuide(dialog,render){closeContext();stop();clearContact();delete document.body.dataset.space;render?.();openDialog(dialog);}
 $('#shortcuts-open').onclick=()=>openGuide($('#shortcuts'));
 $('#changelog-open').onclick=()=>openGuide($('#changelog'),()=>renderChangelog($('#changelog .changelog-body')));

@@ -50,7 +50,11 @@ try {
   assert.match(script, /startComponent/, "the frame script carries the runtime");
   assert.match(script, /rgb\(1, 2, 3\)/, "styles the component imports travel inside its script");
   assert.match(await host.componentModule("nobody"), /could not be built/, "an unknown component answers with a script that shows the error");
+  assert.match(await host.projectModule(), /export const componentScan = \{"folders":\[\],"files":0\}/, "the page learns where the scan looked");
+  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const components = [${component}, ${component.replace("'widget'", "'later'")}];\n`);
+  assert.match(await host.componentModule("later"), /startComponent/, "a component added after the page loaded is found afresh");
   await writeFile(path.join(root, "dev/canvas/thumbnails/component-widget.webp"), "c");
+  assert.equal(await host.ensureThumbnail("/canvas/thumbnails/component-widget.webp", "http://x"), true, "a component picture newer than its source is kept");
   const shipped = path.join(root, "out-components");
   await copyCanvas({ root, target: shipped });
   assert.match(await readFile(path.join(shipped, "project.js"), "utf8"), /export const components = \[\{"id":"widget"/);

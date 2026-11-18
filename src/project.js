@@ -38,10 +38,14 @@ export async function loadProject(project, { scan = true } = {}) {
     if (module[name] !== undefined && !(Array.isArray(module[name]) && module[name].every(item => typeof item === "string"))) throw new Error(`${project.configFile} must export "${name}" as an array of folder names.`);
   }
   // The components the scan finds join the ones the config lists. A scan that fails never takes the canvas down.
-  let auto = [], issues = [];
+  // `componentScan` says where the scan looked, or why it failed, for the empty Components tab.
+  let auto = [], issues = [], componentScan = null;
   if (scan) {
-    try { ({ auto, issues } = await scanComponents(project, { dirs: module.componentDirs, exclude: module.componentExclude, manual: listed })); }
-    catch (error) { console.warn(`tio-canvas: scanning for components failed: ${error?.message ?? error}`); }
+    try { ({ auto, issues, scan: componentScan } = await scanComponents(project, { dirs: module.componentDirs, exclude: module.componentExclude, manual: listed })); }
+    catch (error) {
+      console.warn(`tio-canvas: scanning for components failed: ${error?.message ?? error}`);
+      componentScan = { error: String(error?.message ?? error) };
+    }
   }
-  return { screens: module.screens, components: [...listed, ...auto], autoComponents: auto, componentIssues: issues, storageKey: module.storageKey ?? DEFAULT_STORAGE_KEY, presets, screenKinds };
+  return { screens: module.screens, components: [...listed, ...auto], autoComponents: auto, componentIssues: issues, componentScan, storageKey: module.storageKey ?? DEFAULT_STORAGE_KEY, presets, screenKinds };
 }

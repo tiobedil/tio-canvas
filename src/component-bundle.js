@@ -24,9 +24,12 @@ box.textContent = ${JSON.stringify(`${title}\n\n${message}`)};
  *
  * React and react-dom are resolved from the project, never from this package:
  * a component and the root that draws it must share one copy of React.
+ *
+ * `components` is the project's list when the caller already has it, so a page
+ * of frames does not scan the project once per frame.
  */
-export async function bundleComponent(project, id, { production = false } = {}) {
-  const { components } = await loadProject(project);
+export async function bundleComponent(project, id, { production = false, components } = {}) {
+  components ??= (await loadProject(project)).components;
   const component = components.find(item => item.id === id);
   if (!component) throw new Error(`No canvas component "${id}" in ${project.configFile}.`);
   const react = (component.framework ?? "react") === "react";

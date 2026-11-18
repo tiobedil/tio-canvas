@@ -77,7 +77,8 @@ per component, only the thumbnails of screens and components that exist, and a
 The Add pages panel shows a small picture of each page and each component (about
 1 KB, 96px on the short side; a component's file is `component-<id>.webp`). The dev server makes a missing one by itself the first time the
 canvas asks for it, so a page you add to `screens.js` gets its thumbnail on the
-next load. Pass the request to the host before you serve a file under `/canvas`:
+next load. A component's picture is also made again once its source file is newer
+than the picture; a page's stays until you refresh it with `tio-canvas thumbnails`. Pass the request to the host before you serve a file under `/canvas`:
 
 ```js
 await canvas.ensureThumbnail(pathname, `http://${request.headers.host}`);
@@ -137,6 +138,18 @@ export const componentExclude = ['src/components/legacy'];         // files or f
   the list and the dials are read again.
 - A component you list by hand (below) is never listed twice, and the scan leaves
   it as you wrote it.
+- **Ids stay put.** A found component's id is its name in kebab case (`Button` is
+  `button`). When two found components share a name, both take their folder path
+  instead (`forms-button`, and `components-button` for the one at the top of the
+  scanned folder), so adding a file never hands an id to another component.
+- **Frames of a missing component are kept.** The canvas keeps a frame's place and
+  props under its component's id. When that id is no longer found (a renamed or
+  deleted file, a folder no longer scanned), the frame is kept aside, the Components
+  tab says so, and the frame comes back as soon as the id is found again. The same
+  dialog can let those frames go.
+- **An empty tab says where it looked.** The development server tells the canvas
+  which component folders exist and how many files they hold (or why the search
+  failed), and the empty Components tab shows it.
 
 When something cannot be settled, the Components tab shows one notice, "N things
 to check in your components", with a button that opens a prompt for your coding
