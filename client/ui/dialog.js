@@ -32,7 +32,7 @@ export function DialogBody({ padded, as = 'div', className, dataset, ...attrs } 
   return h(as, { ...attrs, class: cx('ui-dialog-body', className), dataset: { padded: padded || undefined, ...dataset } }, ...children);
 }
 
-/** The bar of actions under a body. Mark one child data-align="end" to push it to the far side. */
+/** The bar under a body, as tall as the header and always visible while the body scrolls. Mark one child data-align="end" to push it to the far side. */
 export function DialogFooter({ className, ...attrs } = {}, ...children) {
   return h('footer', { ...attrs, class: cx('ui-dialog-footer', className) }, ...children);
 }

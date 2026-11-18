@@ -1,4 +1,4 @@
-import { h, Section, Tag, Button } from './ui/index.js';
+import { h, Section, Button, DialogFooter } from './ui/index.js';
 
 // What changed for the person using the canvas, newest first. Only user-visible
 // changes belong here: new things you can do, things that work differently,
@@ -13,8 +13,10 @@ import { h, Section, Tag, Button } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
-    summary: '',
-    items: [],
+    summary: 'The Change log is easier to scan: each release groups its changes under headings by kind.',
+    items: [
+      { type: 'improved', text: 'The Change log groups each release by kind (Feature, Improved, Fixed, Faster), with a heading and a bullet list for each, instead of a label on every line.' },
+    ],
   },
   {
     version: '0.4.1',
@@ -103,7 +105,18 @@ const formatDate = value => {
 const RELEASES_URL = 'https://github.com/tiobedil/tio-canvas/releases';
 // The dialog lists the newest releases only; the rest is on GitHub.
 const SHOWN_RELEASES = 7;
-const tagHues = { new: 150, improved: 250, fixed: 60, faster: 330 };
+// Each release lists its items grouped by type, in this order, under the type as a heading.
+const typeOrder = ['new', 'improved', 'fixed', 'faster'];
+
+const groupByType = items => {
+  const types = [...typeOrder, ...new Set(items.map(item => item.type).filter(type => !typeOrder.includes(type)))];
+  return types.map(type => [type, items.filter(item => item.type === type)]).filter(([, group]) => group.length);
+};
+
+/** The bar under the list, linking to every release on GitHub. */
+export const ChangelogFooter = () => DialogFooter({},
+  h('p', {}, 'Older releases are on GitHub.'),
+  Button({ as: 'a', href: RELEASES_URL, target: '_blank', rel: 'noopener noreferrer', dataset: { align: 'end' } }, 'View all releases'));
 
 export function renderChangelog(body, list = entries) {
   body.replaceChildren();
@@ -114,10 +127,8 @@ export function renderChangelog(body, list = entries) {
     const title = [entry.unreleased ? 'Unreleased' : entry.version];
     if (entry.date) title.push(h('time', { dateTime: entry.date }, formatDate(entry.date)));
     body.append(Section({ title, className: 'changelog-entry' },
-      h('ul', { class: 'changelog-items' }, ...entry.items.map(item =>
-        h('li', {}, Tag({ hue: tagHues[item.type] }, labels[item.type] ?? item.type), h('span', {}, item.text))))));
+      ...groupByType(entry.items).map(([type, items]) => h('div', { class: 'changelog-group' },
+        h('h4', {}, labels[type] ?? type),
+        h('ul', { class: 'changelog-items' }, ...items.map(item => h('li', {}, item.text)))))));
   }
-  body.append(h('div', { class: 'changelog-more' },
-    h('span', {}, 'Older releases are on GitHub.'),
-    Button({ as: 'a', size: 'sm', href: RELEASES_URL, target: '_blank', rel: 'noopener noreferrer' }, 'View all releases')));
 }

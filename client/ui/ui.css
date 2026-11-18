@@ -179,7 +179,9 @@ body:has(.ui-menu:popover-open) iframe { pointer-events: none !important; }
 .ui-dialog-body[data-padded] { padding: var(--canvas-layers-heading-inset); }
 :where(.ui-dialog-body[data-padded]) p { margin-top: 0; color: var(--canvas-muted); }
 :where(.ui-dialog-body[data-padded]) dl { margin: 0; }
-.ui-dialog-footer { display: flex; justify-content: flex-start; gap: var(--canvas-gap); padding: var(--canvas-padding); }
+/* The footer mirrors the header: same padding and height, so the two bars frame the body evenly. */
+.ui-dialog-footer { display: flex; flex: none; align-items: center; justify-content: flex-start; gap: var(--canvas-gap); min-height: calc(var(--canvas-control) + 2 * var(--canvas-padding)); box-sizing: border-box; padding: var(--canvas-padding); padding-left: var(--canvas-layers-heading-inset); }
+.ui-dialog-footer > p { margin: 0; color: var(--canvas-muted); }
 .ui-dialog-footer > [data-align="end"] { margin-left: auto; }
 
 /* ---- Segmented control -----------------------------------------------------

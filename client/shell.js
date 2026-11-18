@@ -3,6 +3,7 @@
 // rest of the canvas finds them by.
 import { h, Button, Toolbar, Divider, Field, Input, Panel, Header, Badge, Icon, SelectField, IconSelect, Menu, MenuItem, MenuFooter,
   Dialog, DialogBody, SegmentedControl } from './ui/index.js';
+import { ChangelogFooter } from './changelog.js';
 
 const moreButton = () => document.querySelector('#layers-more');
 
@@ -88,7 +89,7 @@ function dialogs() {
     Dialog({ id: 'shortcuts', title: 'Guide & hotkeys', returnFocus: back,
       headerEnd: [SegmentedControl({ id: 'shortcuts-platform', label: 'Keyboard layout', options: [{ value: 'mac', label: 'macOS' }, { value: 'win', label: 'Windows' }] })] },
       DialogBody({ padded: true, className: 'shortcuts-body' })),
-    Dialog({ id: 'changelog', title: 'Change log', size: 'fit', returnFocus: back }, DialogBody({ padded: true, className: 'changelog-body' })),
+    Dialog({ id: 'changelog', title: 'Change log', size: 'fit', returnFocus: back }, DialogBody({ padded: true, className: 'changelog-body' }), ChangelogFooter()),
     Dialog({ id: 'install', title: 'Install in a project', size: 'fit', returnFocus: back }, DialogBody({ padded: true, className: 'install-body' })),
     Dialog({ id: 'component-issues', title: 'Fix your components', size: 'fit', returnFocus: () => document.getElementById('add') }, DialogBody({ padded: true, className: 'issues-body' })),
     Dialog({ id: 'update', title: 'Update', size: 'fit', returnFocus: back }, DialogBody({ padded: true, className: 'update-body', 'aria-live': 'polite' })),
