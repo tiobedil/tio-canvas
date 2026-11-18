@@ -108,9 +108,10 @@ const RELEASES_URL = 'https://github.com/tiobedil/tio-canvas/releases';
 // The dialog lists the newest releases only; the rest is on GitHub.
 const SHOWN_RELEASES = 7;
 // Each release lists its items grouped by type, in this order, under the type as a heading.
+// The GitHub release notes use the same grouping (scripts/release-notes.mjs).
 const typeOrder = ['new', 'improved', 'fixed', 'faster'];
 
-const groupByType = items => {
+export const groupByType = items => {
   const types = [...typeOrder, ...new Set(items.map(item => item.type).filter(type => !typeOrder.includes(type)))];
   return types.map(type => [type, items.filter(item => item.type === type)]).filter(([, group]) => group.length);
 };

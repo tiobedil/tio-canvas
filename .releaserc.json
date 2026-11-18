@@ -15,7 +15,7 @@
     [
       "@semantic-release/exec",
       {
-        "generateNotesCmd": "node scripts/release-notes.mjs ${lastRelease.gitTag}"
+        "generateNotesCmd": "node scripts/release-notes.mjs ${lastRelease.gitTag} ${nextRelease.version}"
       }
     ],
     [
