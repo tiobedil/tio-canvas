@@ -62,7 +62,8 @@ const smartHandles=createSmartHandles({selection,viewport,onDrag:startReorder});
 const contact=document.createElement('div');contact.id='canvas-contact';contact.hidden=true;contact.setAttribute('aria-hidden','true');document.body.append(contact);
 let contactState=null;
 // A screen's theme is its own: it sets the frame's colour scheme, which is what the page inside sees as prefers-color-scheme. It is not saved.
-function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';if(entry.dials)postComponent(entry);}
+// A component frame's dials take the frame's theme, so they match what the frame shows.
+function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';if(entry.dials){entry.dials.dataset.theme=entry.dark?'dark':'light';postComponent(entry);}}
 // What a component frame draws: its props and its theme. The frame asks for them when it is ready (component-ready).
 function postComponent(entry,target=entry.iframe?.contentWindow){target?.postMessage({type:'tio-canvas:component',props:entry.model.props,dark:entry.dark===true,reserve:dialReserve(entry)},location.origin);}
 // The open dials cover the right of the frame. The component is centred in what is left: the frame page keeps this much room free on its right.
@@ -1099,6 +1100,8 @@ $('#theme').onclick=()=>{
   clearTimeout(themeTimer);themeTimer=setTimeout(()=>root.removeAttribute('data-theming'),300);
   const dark=document.documentElement.toggleAttribute('data-dark');
   setThemeLabel(dark);
+  // Component frames and their dials follow the canvas theme; a frame's own toggle can still flip it after.
+  for(const entry of entries)if(entry.dials){entry.dark=dark;entry.theme.setAttribute('aria-pressed',String(dark));applyScreenTheme(entry);}
   try{localStorage.setItem(themeKey,dark?'dark':'light');localStorage.setItem('canvas:theme',dark?'dark':'light');}catch{}
 };
 const moreMenu=$('#layers-menu'),moreButton=$('#layers-more');

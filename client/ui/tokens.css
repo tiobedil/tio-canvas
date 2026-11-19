@@ -28,7 +28,8 @@
 @property --canvas-drop-primary { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .24); }
 @property --canvas-lift { syntax: '<color>'; inherits: true; initial-value: oklch(0.2 0.005 265 / .16); }
 
-:root {
+/* [data-theme="light"|"dark"] gives one element its own theme, whatever the page's (a component frame's dials). */
+:root, [data-theme="light"] {
   color-scheme: light;
 
   /* Colour */
@@ -122,7 +123,7 @@
     --canvas-selected var(--canvas-theme-duration);
 }
 
-:root[data-dark] {
+:root[data-dark], [data-theme="dark"] {
   color-scheme: dark;
   --canvas-surface: oklch(0.2 0.004 265);
   --canvas-text: oklch(0.92 0.002 265);
@@ -150,7 +151,7 @@
 }
 
 /* Shadows, in both themes: a fine ring (the edge) and a crisp drop. */
-:root, :root[data-dark] {
+:root, :root[data-dark], [data-theme] {
   --canvas-shadow-button: 0 0 0 var(--canvas-edge-w) var(--canvas-edge), 0 1px 2px 0 var(--canvas-drop);
   --canvas-shadow-primary: 0 0 0 var(--canvas-edge-w) var(--canvas-edge-primary), 0 1px 2px 0 var(--canvas-drop-primary);
   --canvas-shadow: 0 0 0 var(--canvas-edge-w) var(--canvas-edge), 0 1px 2px 0 var(--canvas-drop), 0 4px 8px -4px var(--canvas-lift);

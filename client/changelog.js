@@ -15,6 +15,8 @@ export const entries = [
     unreleased: true,
     summary: 'Component frames are safer: a renamed or deleted component no longer takes its frames with it, and a new component with the same name never takes over existing frames. Components that fail to draw are listed with their error, can be wrapped in your app\'s providers, and new components show up while the canvas is open, marked New. The Change log groups each release by kind.',
     items: [
+      { type: 'improved', text: 'A component frame\'s controls switch to dark or light with the frame, from its own theme button or the canvas theme.' },
+      { type: 'improved', text: 'Search results mark the matching letters in the accent colour instead of a highlight box.' },
       { type: 'improved', text: 'Reset to straight springs a curved arrow back like a plucked string, with a quick bounce past straight before it settles.' },
       { type: 'improved', text: 'Resizing a screen snaps its edges to the edges and centres of other objects, with the same guide lines as moving.' },
       { type: 'improved', text: 'With several screens selected, a screen\'s theme or orientation button changes all of them at once.' },
