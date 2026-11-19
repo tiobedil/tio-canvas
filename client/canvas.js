@@ -15,6 +15,7 @@ import { arrangeScreens, arrangeShortcut } from './arrange.js';
 import { Spotlight } from './ui/index.js';
 import { emptyPages, emptyComponents } from './pages-empty.js';
 import { renderComponentIssues, issuesBanner } from './component-issues.js';
+import { createSeen, watchComponents, changesText } from './component-refresh.js';
 import { groupSpacing, spaceGroup } from './spacing.js';
 import { createFullscreen } from './fullscreen.js';
 import { createLayerDrawer } from './layers.js';
@@ -961,6 +962,9 @@ function duplicateSelection() {
 }
 const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
 // Pages and components are added from one panel, each in its own tab.
+const seenComponents=createSeen(storageKey,componentSources.map(source=>source.id));
+let componentChanges=null;
+watchComponents(components.map(component=>component.id),changes=>{componentChanges=changes;$('#add .ui-badge').hidden=false;});
 const componentGroups=[...new Set(componentSources.map(source=>source.group))];
 const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeholder:'Search',trigger:$('#add'),
   tabs:[
@@ -977,12 +981,14 @@ const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeh
       count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
       empty:emptyComponents(componentScan),
       // What the scan could not settle: one notice, one prompt that covers all of it.
-      banner:()=>componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),renderIssues);}}:null},
+      isNew:id=>seenComponents.isNew(id),
+      // A component added or removed while the page was open wins over the other notices: nothing else is right until a reload.
+      banner:()=>componentChanges?{text:changesText(componentChanges),action:'Reload',onAction(){save();location.reload();}}:componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),renderIssues);}}:null},
   ],
   remaining:()=>200-sourceCount(),
   enabled:()=>!document.body.hasAttribute('data-fullscreen')&&!document.querySelector('dialog[open]')&&!document.documentElement.hasAttribute('data-device-blocked'),
   onOpen(){closeContext();stop();clearContact();delete document.body.dataset.space;},
-  onClose(){viewport.focus({preventScroll:true});},
+  onClose(){seenComponents.markAll();viewport.focus({preventScroll:true});},
   onAdd(ids){
     const added=ids.map(id=>sources.find(source=>source.id===id)).filter(Boolean);
     if(sourceCount()+added.length>200)return false;

@@ -105,7 +105,8 @@ body[data-gesture] .ui-dial-panel, body[data-space] .ui-dial-panel { pointer-eve
    diagonal edges smoother than its vector rasteriser does at 24px. */
 #layers-title .layers-logo { width: 24px; height: 24px; flex: none; background: currentColor; mask: url(/canvas/tio-logo.png) center / 100% 100% no-repeat; -webkit-mask: url(/canvas/tio-logo.png) center / 100% 100% no-repeat; }
 #layers-more { position: relative; }
-#layers-more .ui-badge { position: absolute; top: 0; right: 0; translate: 50% -50%; box-shadow: 0 0 0 2px var(--canvas-panel); }
+#add { position: relative; }
+#add .ui-badge, #layers-more .ui-badge { position: absolute; top: 0; right: 0; translate: 50% -50%; box-shadow: 0 0 0 2px var(--canvas-panel); }
 .layers-drawer ol { position: relative; margin: 0; padding: var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); list-style: none; overflow: auto; min-height: 0; flex: 1; overscroll-behavior: contain; }
 .layers-drawer ol[hidden],.layers-drawer[data-empty] :is(ol,#layers-toggle) { display: none; }
 .layers-drawer li { position: relative; }

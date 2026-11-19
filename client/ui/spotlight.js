@@ -27,7 +27,8 @@ function marked(text, range) {
  *   document.body.append(spotlight)
  *
  * Several lists share one panel as tabs: pass `tabs` in place of groups and items.
- *   tabs: [{ id: 'pages', label: 'Pages', noun: ['page', 'pages'], groups, items, thumbnail, count, empty, banner }]
+ *   tabs: [{ id: 'pages', label: 'Pages', noun: ['page', 'pages'], groups, items, thumbnail, count, empty, banner, isNew }]
+ * `isNew(id)`, when given, marks a row with a small "New" pill.
  * A tab may carry a banner, { text, action, onAction }: a line with one button, shown above that tab's list.
  * Pass a function that returns one (or null) when the banner can change while the page is open.
  * Small tabs sit under the divider below the search field and Tab moves between them. Each tab keeps
@@ -90,12 +91,12 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
     const image = url ? h('img', { src: url, alt: '', loading: 'lazy', decoding: 'async', draggable: false }) : null;
     image?.addEventListener('error', () => image.remove(), { once: true });
     const row = {
-      item, title: h('span', { class: 'ui-spotlight-title' }), pill: Pill({ hidden: true }),
+      item, title: h('span', { class: 'ui-spotlight-title' }), pill: Pill({ hidden: true }), fresh: Pill({ hidden: true }, 'New'),
       check: Checkbox({ label: `Select ${item.title}`, tabIndex: -1, 'aria-hidden': 'true' }),
     };
     row.el = h('div', { class: 'ui-row ui-spotlight-row', role: 'option', id: `${id}-option-${pane.id}-${index}`, dataset: { id: item.id } },
       row.check, h('span', { class: 'ui-spotlight-thumb', 'aria-hidden': 'true' }, image),
-      h('span', { class: 'ui-spotlight-label' }, row.title), row.pill);
+      h('span', { class: 'ui-spotlight-label' }, row.title), row.fresh, row.pill);
     pane.rows.set(item.id, row);
   });
 
@@ -130,6 +131,7 @@ export function Spotlight({ id, label, placeholder = 'Search', tabs, groups, ite
       }))));
     for (const row of rows.values()) {
       const number = count(row.item.id);
+      row.fresh.hidden = !current.isNew?.(row.item.id);
       row.pill.hidden = !number;
       row.pill.textContent = number ? `${number} on canvas` : '';
       row.el.toggleAttribute('data-disabled', full);

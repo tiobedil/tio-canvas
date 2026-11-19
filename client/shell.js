@@ -53,7 +53,7 @@ function tools() {
       tool('tool-arrow', 'arrow', 'Arrow tool', 'Arrow', 'a', false),
       tool('tool-text', 'text', 'Text tool', 'Text', 't', false),
       Divider(),
-      Button({ id: 'add', variant: 'primary', icon: 'plus', label: 'Add pages and components', tooltip: true, shortcut: 'mod+k' })),
+      Button({ id: 'add', variant: 'primary', icon: 'plus', label: 'Add pages and components', tooltip: true, shortcut: 'mod+k', iconOnly: true }, Badge({ hidden: true }))),
     Toolbar({ as: 'nav', id: 'history-tools', label: 'History controls' },
       Button({ id: 'undo', icon: 'undo', label: 'Undo', tooltip: true, shortcut: 'mod+z', disabled: true }),
       Button({ id: 'redo', icon: 'redo', label: 'Redo', tooltip: true, shortcut: 'shift+mod+z', disabled: true })),
