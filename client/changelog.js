@@ -13,6 +13,12 @@ import { h, Section, Button, DialogFooter } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
+    summary: '',
+    items: [],
+  },
+  {
+    version: '0.6.0',
+    date: '2026-11-19T18:41:04.262Z',
     summary: 'The size toolbar under a selected screen stays on screen while you pan, so you can always reach it.',
     items: [
       { type: 'improved', text: 'The More button stays pressed in while its menu is open.' },
