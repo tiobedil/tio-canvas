@@ -22,7 +22,7 @@ import { createLayerDrawer } from './layers.js';
 import { layerShortcut, reorderLayers, dropLayers } from './layer-order.js';
 import { createScreenLoader } from './screen-loader.js';
 import { screens, components, componentIssues as scanIssues, componentScan, presets, screenKinds, storageKey } from './screens.js';
-import { componentSourceId, componentThumbnailId, normalizeControls, componentProps } from './registry.js';
+import { componentSourceId, componentThumbnailId, normalizeControls, componentProps, fittedComponentSize } from './registry.js';
 import { createDialFloat } from './dial-float.js';
 import { bounds, intersects, snapRect, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
 import { createHistory, historyShortcut } from './history.js';
@@ -859,7 +859,23 @@ window.addEventListener('message',event=>{
   // A component frame asks for its props as soon as its script runs, which is before a refreshed frame takes over.
   if(event.data?.type==='tio-canvas:component-error' || event.data?.type==='tio-canvas:component-drawn'){
     const component=components.find(item=>item.id===event.data.id);if(!component)return;
-    if(event.data.type==='tio-canvas:component-drawn'){if(!renderErrors.delete(component.id))return;}
+    if(event.data.type==='tio-canvas:component-drawn'){
+      // A frame just added from the picker, with no size in the config, fits what it drew. Once.
+      const owner=entries.find(item=>item.fitPending && item.iframe?.contentWindow===event.source);
+      if(owner){
+        owner.fitPending=false;
+        // Open dials want their whole height (header and every row) plus their gap above and below.
+        const dialBody=owner.dials?.querySelector('.ui-dial-body'),gap=rootToken('--canvas-dial-gap');
+        const dialHeight=owner.model.dialsMinimized||!dialBody?0:Math.ceil(owner.dials.querySelector('.ui-dial-header').offsetHeight+dialBody.scrollHeight+2+gap*2);
+        const size=fittedComponentSize(event.data,owner.model,dialReserve(owner),dialHeight);
+        if(size && (size.width!==owner.model.width || size.height!==owner.model.height)){
+          owner.model.width=size.width;owner.model.height=Math.min(size.height,Math.floor(extent.height-owner.model.y));
+          if(selectedEntries.size===1 && selectedEntries.has(owner)){$('#width').value=owner.model.width;$('#height').value=owner.model.height;}
+          schedule();persist();
+        }
+      }
+      if(!renderErrors.delete(component.id))return;
+    }
     else renderErrors.set(component.id,{title:component.title,module:component.module,message:String(event.data.message??'').slice(0,500)});
     refreshIssues();return;
   }
@@ -998,6 +1014,8 @@ const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeh
     for(const [index,source] of added.entries()){
       const number=nextNumber(source.id);
       const copy=createEntry({...source,id:crypto.randomUUID(),sourceId:source.id,number,title:titleFor(source,number),...positions[index]},false);
+      const definition=source.kind==='component'&&components.find(item=>componentSourceId(item.id)===source.id);
+      if(definition && definition.width===undefined && definition.height===undefined)copy.fitPending=true;
       entries.push(copy);copies.push(copy);
     }
     selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection();fitEntries(copies);commitEdit(before);return true;

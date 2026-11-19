@@ -95,6 +95,23 @@ export function componentProps(controls, saved = {}) {
   return props;
 }
 
+/**
+ * The size a newly added component frame takes from what it drew: its content, the
+ * frame page's padding (24px each side) and the dials' room on the right. It never
+ * grows wider than the default (the place it was given was found for that width),
+ * may grow taller up to 1200px, and stays big enough for the dials.
+ *   content  { width, height } the component measured inside its frame
+ *   initial  { width, height } the frame's default size
+ *   reserve  room the open dials take on the right
+ *   dials    the height the open dials need to show every control without scrolling
+ */
+export function fittedComponentSize(content, initial, reserve = 0, dials = 0) {
+  if (!(content?.width > 0) || !(content?.height > 0)) return null;
+  const width = Math.round(Math.min(initial.width, Math.max(320 + reserve, content.width + 48 + reserve)));
+  const height = Math.round(Math.min(1200, Math.max(320, dials, content.height + 48)));
+  return { width, height };
+}
+
 export function validateComponents(components) {
   if (!Array.isArray(components)) throw new Error('"components" must be an array.');
   const seen = new Set();

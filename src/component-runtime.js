@@ -50,7 +50,12 @@ export function startComponent({ id, config, definition: found, exports, react, 
       else if (react && output !== null && typeof output === "object") (reactRoot ??= react.createRoot(root)).render(output);
       else root.textContent = output == null ? "" : String(output);
       // React reports a failed render on its own (window error); a drawing that held clears the notice.
-      if (parent !== window) setTimeout(() => { if (!root.querySelector('[role="alert"]')) parent.postMessage({ type: "tio-canvas:component-drawn", id }, location.origin); }, 300);
+      if (parent !== window) setTimeout(() => {
+        if (root.querySelector('[role="alert"]')) return;
+        // Its own size, so a frame just added can fit it (a component that fills the frame has none of its own).
+        const box = root.getBoundingClientRect();
+        parent.postMessage({ type: "tio-canvas:component-drawn", id, ...(definition.fill ? {} : { width: Math.ceil(root.scrollWidth || box.width), height: Math.ceil(root.scrollHeight || box.height) }) }, location.origin);
+      }, 300);
     } catch (error) { fail(error); }
   }
 
