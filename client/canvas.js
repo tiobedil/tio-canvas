@@ -24,7 +24,7 @@ import { createScreenLoader } from './screen-loader.js';
 import { screens, components, componentIssues as scanIssues, componentScan, presets, screenKinds, storageKey } from './screens.js';
 import { componentSourceId, componentThumbnailId, normalizeControls, componentProps } from './registry.js';
 import { createDialFloat } from './dial-float.js';
-import { bounds, intersects, snapRect, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
+import { bounds, intersects, snapRect, snapEdges, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
 import { createHistory, historyShortcut } from './history.js';
 import { createArrows } from './arrows.js';
 import { createTexts } from './text.js';
@@ -106,10 +106,17 @@ function createEntry(definition, loadSaved = true) {
   const orientation=action('orientation','portrait');
   element.append(title,orientation,theme,refresh,fullscreen,more); world.append(element);
   const entry = { model, element, title, orientation, theme, more, refresh, fullscreen, iframe: null, visible: false };
+  // With several screens selected, a screen's theme or orientation button sets every selected screen to the same result.
+  const targets=()=>selectedEntries.size>1&&selectedEntries.has(entry)?[...selectedEntries]:[entry];
   orientation.addEventListener('click',()=>{
     stop();const before=history.checkpoint();
-    [model.width,model.height]=[model.height,model.width];
-    model.x=clamp(model.x,0,extent.width-model.width);model.y=clamp(model.y,0,extent.height-model.height);
+    const landscape=model.height>model.width;
+    for(const target of targets()){
+      const m=target.model;
+      if(!['phone','tablet'].includes(presets[m.preset]?.device)||(m.width>m.height)===landscape)continue;
+      [m.width,m.height]=[m.height,m.width];
+      m.x=clamp(m.x,0,extent.width-m.width);m.y=clamp(m.y,0,extent.height-m.height);
+    }
     updateSelection();schedule();commitEdit(before);
   });
   fullscreen.addEventListener('click',()=>preview.enter(entry));
@@ -119,8 +126,8 @@ function createEntry(definition, loadSaved = true) {
   more.addEventListener('pointerenter',()=>expand(true));more.addEventListener('click',()=>expand(true));
   for(const b of actions)b.addEventListener('pointerleave',event=>{if(!actions.includes(event.relatedTarget))expand(false);});
   theme.addEventListener('click',()=>{
-    entry.dark=!entry.dark;theme.setAttribute('aria-pressed',String(entry.dark));
-    applyScreenTheme(entry);
+    const dark=!entry.dark;
+    for(const target of targets()){target.dark=dark;target.theme.setAttribute('aria-pressed',String(dark));applyScreenTheme(target);}
   });
   title.title = model.title;
   refresh.addEventListener('click',()=>{
@@ -704,6 +711,17 @@ function applyMove(event) {
     if (g.kind.includes('s')) m.height=Math.round(clamp(base.height+y,160,Math.min(3840,Math.floor(extent.height-base.y))));
     if (g.kind.includes('w')) { m.width=Math.round(clamp(base.width-x,160,Math.min(3840,Math.floor(base.x+base.width)))); m.x=base.x+base.width-m.width; }
     if (g.kind.includes('n')) { m.height=Math.round(clamp(base.height-y,160,Math.min(3840,Math.floor(base.y+base.height)))); m.y=base.y+base.height-m.height; }
+    // Same magnetic edges as moving: a dragged edge lines up with other objects' edges and centres.
+    const others=[...entries.filter(entry=>entry!==g.entry).map(entry=>entry.model),...(textTool?.objects()??[])];
+    const snap=snapEdges(m,{x:g.kind.includes('w')?'min':g.kind.includes('e')?'max':null,y:g.kind.includes('n')?'min':g.kind.includes('s')?'max':null},others,6/camera.scale);
+    const lines=[];
+    for(const [axis,size] of [['x','width'],['y','height']]){
+      const length=Math.round(snap[size]),far=m[axis]+m[size];
+      if(snap[size]===m[size]||length<160||length>3840||snap[axis]<0||snap[axis]+length>extent[size])continue;
+      m[size]=length;m[axis]=snap[axis]===m[axis]?m[axis]:far-length;
+      lines.push(...snap.guides.filter(line=>line.axis===axis));
+    }
+    drawGuides(lines);
     $('#width').value=m.width;$('#height').value=m.height;
   }
   schedule();

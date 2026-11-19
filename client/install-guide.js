@@ -27,7 +27,8 @@ export const agentPrompt = `Install the @tio-canvas/canvas package in this proje
 3. Create dev/canvas/screens.js listing the real pages of this project (id, kind, title, src, x, y, width, height, preset). Give storageKey a name unique to this project. The file must not import anything.
 4. Wire the dev server: serve the package client at /canvas with createCanvasHost from "@tio-canvas/canvas/server" (locate, projectModule, pageScripts, interfaceKitBundle, watchTargets). Do this for development only.
 5. Do not link /canvas from any public page, and do not publish it unless I ask.
-6. Start the dev server, open /canvas, and confirm every screen loads. Tell me the URL and anything you could not verify.`;
+6. Copy the rules block from the "Prototypes" section of that integration.md into this project's AGENTS.md (or CLAUDE.md), and follow it for every prototype.
+7. Start the dev server, open /canvas, and confirm every screen loads. Tell me the URL and anything you could not verify.`;
 
 export function renderInstallGuide(body) {
   body.replaceChildren();

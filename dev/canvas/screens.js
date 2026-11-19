@@ -8,6 +8,8 @@ export const screens = [
     src: '/update-states.html', x: 160, y: 1160, width: 1440, height: 900, preset: 'laptop' },
   { id: 'empty-components', kind: 'prototype', title: 'Empty components',
     src: '/empty-components.html', x: 1700, y: 1160, width: 1200, height: 1000, preset: 'laptop' },
+  { id: 'arrow-straighten', kind: 'prototype', title: 'Arrow straighten',
+    src: '/arrow-straighten.html', x: 3000, y: 1160, width: 1200, height: 800, preset: 'laptop' },
 ];
 
 // The canvas's own components, listed here so this repository can try the

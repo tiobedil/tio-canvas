@@ -99,6 +99,30 @@ npx tio-canvas thumbnails --check          # fails when a screen has no thumbnai
 
 Options: `--config <file>`, `--out <dir>`.
 
+### 5. Prototypes
+
+A prototype is a throwaway page for trying an idea: a layout, an interaction, a
+motion. It lives on the canvas, next to the pages it changes, so it is compared
+in place and never opened on its own. Coding agents in a project that uses the
+canvas follow these rules; copy them into the project's `AGENTS.md` (or
+`CLAUDE.md`) so every agent sees them:
+
+```md
+## Prototypes (tio-canvas)
+
+- Every prototype is a screen on the canvas. Never start a separate server, port
+  or standalone page for it, and never hand the user a URL outside /canvas.
+- Put its files in the project's prototype folder (create `dev/prototypes/` if
+  there is none), served by the project's own dev server in development only.
+- List it in `dev/canvas/screens.js` with `kind: 'prototype'`, a stable `id`,
+  a clear `title`, and a free spot (x, y) that overlaps no other screen.
+- Put tuning controls (for example DialKit sliders) inside the prototype page,
+  so they work in its canvas frame.
+- Before saying it is ready, open /canvas and check the screen loads. Tell the
+  user if the dev server must restart to pick up the new screen.
+- Never link a prototype from a public page or ship it in the production build.
+```
+
 ## Components
 
 The canvas can also show one component alone in a frame. The frame is resized by
