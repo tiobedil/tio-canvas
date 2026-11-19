@@ -868,11 +868,13 @@ window.addEventListener('message',event=>{
         const dialBody=owner.dials?.querySelector('.ui-dial-body'),gap=rootToken('--canvas-dial-gap');
         const dialHeight=owner.model.dialsMinimized||!dialBody?0:Math.ceil(owner.dials.querySelector('.ui-dial-header').offsetHeight+dialBody.scrollHeight+2+gap*2);
         const size=fittedComponentSize(event.data,owner.model,dialReserve(owner),dialHeight);
+        if(size){const sourceId=sourceOf(owner);fittedSizes[sourceId]=size;try{localStorage.setItem(`${key}:component-sizes`,JSON.stringify(fittedSizes));}catch{}}
         if(size && (size.width!==owner.model.width || size.height!==owner.model.height)){
           owner.model.width=size.width;owner.model.height=Math.min(size.height,Math.floor(extent.height-owner.model.y));
           if(selectedEntries.size===1 && selectedEntries.has(owner)){$('#width').value=owner.model.width;$('#height').value=owner.model.height;}
           schedule();persist();
         }
+        owner.onFitted?.();
       }
       if(!renderErrors.delete(component.id))return;
     }
@@ -978,6 +980,10 @@ function duplicateSelection() {
 }
 const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
 // Pages and components are added from one panel, each in its own tab.
+// The size each component's frame fitted to last time, by source id: a new frame of it starts there.
+const fitsOwnSize=source=>{const definition=source.kind==='component'&&components.find(item=>componentSourceId(item.id)===source.id);return Boolean(definition)&&definition.width===undefined&&definition.height===undefined;};
+let fittedSizes={};
+try{const raw=JSON.parse(localStorage.getItem(`${key}:component-sizes`));if(raw&&typeof raw==='object')for(const [id,size] of Object.entries(raw))if(Number.isFinite(size?.width)&&Number.isFinite(size?.height))fittedSizes[id]={width:Math.round(Math.min(3840,Math.max(160,size.width))),height:Math.round(Math.min(3840,Math.max(160,size.height)))};}catch{}
 const seenComponents=createSeen(storageKey,componentSources.map(source=>source.id));
 let componentChanges=null;
 watchComponents(components.map(component=>component.id),changes=>{componentChanges=changes;$('#add .ui-badge').hidden=false;});
@@ -1006,7 +1012,8 @@ const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeh
   onOpen(){closeContext();stop();clearContact();delete document.body.dataset.space;},
   onClose(){seenComponents.markAll();viewport.focus({preventScroll:true});},
   onAdd(ids){
-    const added=ids.map(id=>sources.find(source=>source.id===id)).filter(Boolean);
+    // A component measured before starts at that size, and is placed with it.
+    const added=ids.map(id=>sources.find(source=>source.id===id)).filter(Boolean).map(source=>fitsOwnSize(source)&&fittedSizes[source.id]?{...source,...fittedSizes[source.id]}:source);
     if(sourceCount()+added.length>200)return false;
     const positions=addedPagePositions(added,[...entries.map(entry=>entry.model),...(textTool?.objects()??[])],extent);
     if(!positions)return false;
@@ -1014,11 +1021,19 @@ const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeh
     for(const [index,source] of added.entries()){
       const number=nextNumber(source.id);
       const copy=createEntry({...source,id:crypto.randomUUID(),sourceId:source.id,number,title:titleFor(source,number),...positions[index]},false);
-      const definition=source.kind==='component'&&components.find(item=>componentSourceId(item.id)===source.id);
-      if(definition && definition.width===undefined && definition.height===undefined)copy.fitPending=true;
+      // Never measured: it stays hidden until it knows its size, so it never shows at one size and then jumps.
+      if(fitsOwnSize(source)&&!fittedSizes[source.id]){copy.fitPending=true;copy.element.style.visibility='hidden';}
       entries.push(copy);copies.push(copy);
     }
-    selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection();fitEntries(copies);commitEdit(before);return true;
+    // The view moves now (a frame loads only once it is in view); it is fitted again, and the undo step
+    // taken, once the sizes are final, so redo brings back what was seen.
+    selectedEntries.clear();copies.forEach(copy=>selectedEntries.add(copy));updateSelection();fitEntries(copies);
+    const finish=()=>{clearTimeout(fallback);const measured=copies.some(copy=>copy.element.style.visibility==='hidden');for(const copy of copies){copy.fitPending=false;copy.element.style.visibility='';copy.onFitted=null;}if(measured)fitEntries(copies);commitEdit(before);};
+    const fallback=setTimeout(finish,1500);
+    const waiting=copies.filter(copy=>copy.fitPending);
+    if(!waiting.length)finish();
+    else for(const copy of waiting)copy.onFitted=()=>{if(!waiting.some(item=>item.fitPending))finish();};
+    return true;
   }
 });
 document.body.append(addPanel);
