@@ -6,6 +6,7 @@
      hover      a step lighter          :hover
      pressed    a step darker, squeezed :active
      chosen     sunk into a well        [aria-pressed="true"] [aria-checked="true"] [data-checked="true"]
+                                        [aria-haspopup="menu"][aria-expanded="true"] (its menu is open)
      disabled   faded, no pointer       :disabled
      focus      a ring, keyboard only   :focus-visible
    Motion is one curve: 120ms for a press, 150ms in and 110ms out for overlays. */
@@ -46,7 +47,7 @@ button, select, input { font: inherit; color: inherit; }
 .ui-menu-footer .ui-button[data-variant="accent"], .ui-menu-footer .ui-button[data-primary] { border-color: var(--canvas-accent); }
 .ui-button[data-size="sm"] { height: 28px; padding-inline: 10px; border-radius: 6px; font-weight: 500; }
 /* Chosen: sunk into a well, and it stays there under the pointer. */
-.ui-button:is([aria-pressed="true"], [aria-checked="true"]):not(:disabled, [data-variant="bare"]) { background: var(--canvas-selected); color: var(--canvas-text); box-shadow: var(--canvas-inset); }
+.ui-button:is([aria-pressed="true"], [aria-checked="true"], [aria-haspopup="menu"][aria-expanded="true"]):not(:disabled, [data-variant="bare"]) { background: var(--canvas-selected); color: var(--canvas-text); box-shadow: var(--canvas-inset); }
 
 .ui-button[data-variant="primary"] { background: var(--canvas-primary); color: var(--canvas-on-primary); box-shadow: var(--canvas-shadow-primary); }
 .ui-button[data-variant="primary"]:hover:not(:disabled) { background: var(--canvas-primary-hover); }

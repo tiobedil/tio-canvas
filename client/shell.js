@@ -73,7 +73,8 @@ function layersDrawer() {
     Header({ title: [h('span', { class: 'layers-logo', role: 'img', 'aria-label': 'Tio' }), h('span', { id: 'screens-count', hidden: true }, '0')], titleId: 'layers-title' },
       Button({ id: 'layers-more', icon: 'dots', iconOnly: true, label: 'More', tooltip: true, 'aria-haspopup': 'menu', 'aria-controls': 'layers-menu', popovertarget: 'layers-menu' }, Badge({ hidden: true })),
       Button({ id: 'layers-toggle', icon: 'chevron-up', label: 'Minimize Layers', 'aria-controls': 'layers-list', 'aria-expanded': 'true' })),
-    h('ol', { id: 'layers-list', 'aria-label': 'Layers, top layer first' }));
+    h('ol', { id: 'layers-list', 'aria-label': 'Layers, top layer first' }),
+    h('div', { class: 'layers-grip', 'aria-hidden': 'true' }));
 }
 
 function previewControls() {
@@ -121,7 +122,7 @@ function deviceGate() {
 
 export function buildShell() {
   return [
-    h('main', { id: 'viewport', 'aria-label': 'Exploration canvas', tabIndex: 0 }, h('div', { id: 'world' }), arrowInspector(), textInspector(), selection()),
+    h('main', { id: 'viewport', 'aria-label': 'Exploration canvas', tabIndex: 0 }, h('div', { id: 'world' }), arrowInspector(), textInspector(), selection(), h('div', { id: 'offscreen-selection', hidden: true, 'aria-hidden': 'true' })),
     ...tools(), layersDrawer(), previewControls(), ...dialogs(), ...menus(), deviceGate(),
     h('p', { id: 'canvas-status', role: 'status', class: 'ui-enter' }),
   ];

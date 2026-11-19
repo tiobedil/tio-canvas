@@ -1,3 +1,4 @@
+import { BOUNCE, springConstants } from './bounce.js';
 import { SIDES, boundPoint, resolvePoint, snapArrow, arrowGeometry, readArrows } from './arrow-geometry.js';
 import { arrowBounds, arrowIntersects, resizeArrows } from './arrow-selection.js';
 import { closeSelectMenus } from './ui/index.js';
@@ -120,14 +121,14 @@ export function createArrows({ viewport, world, camera, objects, saved, checkpoi
   });
   // Reset to straight saves bend 0 at once, then draws the line springing back
   // like a plucked string: it overshoots past straight and settles.
-  // Tuned in dev/prototypes/arrow-straighten.jsx (visualDuration .2s, bounce .6).
+  // The bounce is the shared token in client/bounce.js.
   const springs = new Map();
   const shown = arrow => springs.has(arrow.id) ? { ...arrow, bend: springs.get(arrow.id).value } : arrow;
   function pluck(arrow) {
     if (Math.abs(arrow.bend) < .01 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     // A bigger bend rings a little longer, like a harder pluck.
-    const visualDuration = .2 * (.8 + Math.min(Math.abs(arrow.bend) / 300, 1) * .4), bounce = .6;
-    const stiffness = (2 * Math.PI / (visualDuration * 1.2)) ** 2, damping = 2 * (1 - bounce) * Math.sqrt(stiffness);
+    const visualDuration = BOUNCE.visualDuration * (.8 + Math.min(Math.abs(arrow.bend) / 300, 1) * .4);
+    const { stiffness, damping } = springConstants({ visualDuration, bounce: BOUNCE.bounce });
     springs.set(arrow.id, { value: arrow.bend, velocity: 0, stiffness, damping, time: performance.now() });
     if (springs.size === 1) requestAnimationFrame(step);
   }

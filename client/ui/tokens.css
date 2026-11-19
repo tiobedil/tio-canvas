@@ -76,7 +76,7 @@
 
   /* Size and space */
   --canvas-control: 36px; --canvas-handle: 8px; --canvas-side: 22px;
-  --canvas-padding: 8px; --canvas-gap: 10px; --canvas-menu-gap: 4px; --canvas-menu-offset: 12px;
+  --canvas-padding: 8px; --canvas-gap: 10px; --canvas-menu-gap: 4px; --canvas-menu-offset: 12px; --canvas-toolbar-menu-offset: 12px;
   --canvas-radius: 8px; --canvas-border: 1px; --canvas-hairline: 0.5px; --canvas-ring: 2px;
   --canvas-panel-radius: calc(var(--canvas-radius) + var(--canvas-padding) + var(--canvas-border));
   --canvas-panel-inset: 12px;
@@ -87,7 +87,7 @@
   --canvas-toolbar-bottom: var(--canvas-panel-inset);
   --canvas-toolbar-height: calc(var(--canvas-control) + 2 * var(--canvas-padding) + 2 * var(--canvas-border));
   --canvas-spotlight-bottom: calc(var(--canvas-toolbar-bottom) + var(--canvas-toolbar-height) + var(--canvas-menu-offset));
-  --canvas-layers-width: 260px; --canvas-layer-height: 38px; --canvas-layer-gap: 4px;
+  --canvas-layers-width: 200px; --canvas-layers-max-width: 420px; --canvas-layers-pull: 48px; --canvas-layers-grip: 12px; --canvas-layers-logo-gap: 18px; --canvas-layer-height: 38px; --canvas-layer-gap: 4px;
   --canvas-layers-heading-inset: 18px; --canvas-layer-indent: 10px; --canvas-grabber-stroke: 3px;
   --canvas-picker-width: 500px; --canvas-picker-height: 700px;
   --canvas-spotlight-width: 520px; --canvas-spotlight-height: 420px; --canvas-spotlight-thumb: 28px; --canvas-spotlight-row: 40px;

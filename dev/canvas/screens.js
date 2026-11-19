@@ -10,6 +10,10 @@ export const screens = [
     src: '/empty-components.html', x: 1700, y: 1160, width: 1200, height: 1000, preset: 'laptop' },
   { id: 'arrow-straighten', kind: 'prototype', title: 'Arrow straighten',
     src: '/arrow-straighten.html', x: 3000, y: 1160, width: 1200, height: 800, preset: 'laptop' },
+  { id: 'layers-resize', kind: 'prototype', title: 'Layers resize',
+    src: '/layers-resize.html', x: 4300, y: 1160, width: 1200, height: 800, preset: 'laptop' },
+  { id: 'edge-glow', kind: 'prototype', title: 'Edge glow',
+    src: '/edge-glow.html', x: 5600, y: 1160, width: 1200, height: 800, preset: 'laptop' },
 ];
 
 // The canvas's own components, listed here so this repository can try the
