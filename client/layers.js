@@ -1,7 +1,9 @@
 import { createRangeSelection } from './range-selection.js';
 import { h, Icon, setIcon } from './ui/index.js';
+import { rubberBand } from './text-format.js';
+import { BOUNCE, spring } from './bounce.js';
 export function deviceKind(preset,presets){return presets[preset]?.device??'custom';}
-export function createLayerDrawer({root,presets,collapsed=false,onSelect,onDrop,onCollapse,onRename,onSelectMany}){
+export function createLayerDrawer({root,presets,collapsed=false,width=0,onResize,onSelect,onDrop,onCollapse,onRename,onSelectMany}){
   const list=root.querySelector('ol'),toggle=root.querySelector('#layers-toggle'),count=root.querySelector('#screens-count');
   const rows=new Map(),ghost=document.createElement('div');ghost.className='layer-ghost';ghost.hidden=true;ghost.setAttribute('aria-hidden','true');ghost.inert=true;document.body.append(ghost);
   let current=[],selected=new Set(),drag=null,scrollFrame=0;
@@ -10,23 +12,56 @@ export function createLayerDrawer({root,presets,collapsed=false,onSelect,onDrop,
     toggle.setAttribute('aria-expanded',String(!value));toggle.setAttribute('aria-label',`${value?'Expand':'Minimize'} Layers`);toggle.title=`${value?'Expand':'Minimize'} Layers`;
     setIcon(toggle.querySelector('svg'),value?'chevron-down':'chevron-up');
   }
-  // The drawer is clipped (overflow: hidden), so animating its height reveals or
-  // hides the list instead of snapping. One box, 160ms, ease-out-quint.
+  // The drawer is clipped (overflow: hidden), so animating its width and height
+  // reveals or hides the list instead of snapping. One box, 160ms, ease-out-quint.
   let collapseMotion;
   function animateCollapse(value){
     collapseMotion?.cancel();
-    const from=root.getBoundingClientRect().height;
+    const from=root.getBoundingClientRect();
     setCollapsed(value);
     if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    const to=root.getBoundingClientRect().height;
-    if(from===to)return;
+    const to=root.getBoundingClientRect();
+    if(from.width===to.width&&from.height===to.height)return;
     if(value)list.hidden=false;
-    const motion=collapseMotion=root.animate([{height:`${from}px`},{height:`${to}px`}],{duration:160,easing:'cubic-bezier(0.23, 1, 0.32, 1)'});
+    const motion=collapseMotion=root.animate([{width:`${from.width}px`,height:`${from.height}px`},{width:`${to.width}px`,height:`${to.height}px`}],{duration:160,easing:'cubic-bezier(0.23, 1, 0.32, 1)'});
     motion.onfinish=()=>{if(collapseMotion===motion){collapseMotion=null;list.hidden=root.hasAttribute('data-collapsed');}};
     motion.oncancel=()=>{if(collapseMotion===motion){collapseMotion=null;list.hidden=root.hasAttribute('data-collapsed');}};
   }
   toggle.addEventListener('click',()=>{cancel();const value=!root.hasAttribute('data-collapsed');animateCollapse(value);onCollapse(value);});
   setCollapsed(collapsed);
+  // The right edge drags the expanded width. Past the min or max it gives less and
+  // less (the text box curve), then springs back with the shared bounce.
+  const grip=root.querySelector('.layers-grip'),px=name=>parseFloat(getComputedStyle(root).getPropertyValue(name));
+  let stopSpring=null;
+  // While resizing, the right outline glows accent in the middle, fading to
+  // transparent at both ends. It covers only the straight part between the
+  // rounded corners. Tuned in dev/prototypes/edge-glow.jsx.
+  const glow=h('div',{class:'layers-glow','aria-hidden':'true'});
+  document.body.append(grip,glow);
+  const placeGrip=()=>{
+    const r=root.getBoundingClientRect(),radius=parseFloat(getComputedStyle(root).borderTopRightRadius)||0;
+    Object.assign(grip.style,{left:`${r.right}px`,top:`${r.top}px`,height:`${r.height}px`});
+    Object.assign(glow.style,{left:`${r.right}px`,top:`${r.top+radius}px`,height:`${Math.max(0,r.height-2*radius)}px`});
+  };
+  new ResizeObserver(placeGrip).observe(root);addEventListener('resize',placeGrip);
+  const setWidth=w=>{root.style.setProperty('--layers-width',`${w}px`);placeGrip();};
+  if(width>0)setWidth(width);
+  grip.addEventListener('pointerdown',event=>{
+    if(event.button!==0)return;
+    stopSpring?.();collapseMotion?.cancel();grip.setPointerCapture(event.pointerId);document.body.dataset.layersResize='';placeGrip();
+    const min=px('--canvas-layers-width'),max=Math.max(min,Math.min(px('--canvas-layers-max-width'),innerWidth-2*px('--canvas-panel-inset'))),pull=px('--canvas-layers-pull');
+    const startX=event.clientX,startW=root.getBoundingClientRect().width;let w=startW;
+    const move=e=>{const raw=startW+e.clientX-startX;w=raw>max?max+rubberBand(raw-max,pull):raw<min?min-rubberBand(min-raw,pull):raw;setWidth(w);};
+    const up=()=>{
+      grip.removeEventListener('pointermove',move);delete document.body.dataset.layersResize;
+      const target=Math.min(max,Math.max(min,w));onResize?.(target);
+      if(target===w)return;
+      if(matchMedia('(prefers-reduced-motion: reduce)').matches)setWidth(target);
+      else stopSpring=spring(w,target,setWidth,BOUNCE);
+    };
+    grip.addEventListener('pointermove',move);
+    grip.addEventListener('lostpointercapture',up,{once:true});
+  });
   // Items run bottom to top: { id, kind: 'screen' | 'text', title, preset, component }. A component frame has its own icon. A text layer is named by
   // its content and cannot be renamed; `selection` is a set of layer ids.
   function update(items,selection){

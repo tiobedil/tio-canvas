@@ -211,8 +211,9 @@ if(Array.isArray(saved.order)){
   const order=new Map(saved.order.filter(id=>typeof id==='string').map((id,index)=>[id,index]));
   entries.sort((a,b)=>(order.get(a.model.id)??Infinity)-(order.get(b.model.id)??Infinity));
 }
-let layersCollapsed=saved.layersCollapsed===true;
-const drawer=createLayerDrawer({root:$('#layers'),presets,collapsed:layersCollapsed,
+let layersCollapsed=saved.layersCollapsed===true,layersWidth=Number.isFinite(saved.layersWidth)?saved.layersWidth:0;
+const drawer=createLayerDrawer({root:$('#layers'),presets,collapsed:layersCollapsed,width:layersWidth,
+  onResize(value){layersWidth=value;cachedWorkArea=null;schedule();persist();},
   onSelect(id,shift){
     if(isTextLayer(id)){
       const model=textTool?.objects().find(t=>t.id===textLayerId(id));if(!model)return;
@@ -355,7 +356,7 @@ function beginRename(entry, title=entry.title) {
 }
 function save() {
     syncObjectOrder();
-    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: [...entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number,title:isComponent(m)?sources.find(source=>source.id===m.sourceId)?.title:undefined})), ...orphans.map(orphan => orphan.instance)], screens: Object.fromEntries([...entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name,props:m.props,dialsMinimized:m.dialsMinimized||undefined }]), ...orphans.map(orphan => [orphan.instance.id, orphan.state])]) })); } catch {}
+    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed,layersWidth:layersWidth||undefined, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: [...entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number,title:isComponent(m)?sources.find(source=>source.id===m.sourceId)?.title:undefined})), ...orphans.map(orphan => orphan.instance)], screens: Object.fromEntries([...entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name,props:m.props,dialsMinimized:m.dialsMinimized||undefined }]), ...orphans.map(orphan => [orphan.instance.id, orphan.state])]) })); } catch {}
 }
 function persist() {
   clearTimeout(saveTimer); saveTimer = setTimeout(save, 150);
@@ -461,9 +462,11 @@ function render(now) {
   if (selectedEntries.size || mixedTexts.length>1) {
     const chosen=[...selectedEntries],box = bounds([...chosen.map(entry=>entry.model),...mixedTexts]);
     Object.assign(selection.style,{left:`${camera.x+box.x*camera.scale}px`,top:`${camera.y+box.y*camera.scale}px`,width:`${box.width*camera.scale}px`,height:`${box.height*camera.scale}px`});
+    keepInspectorsInView();
+    markOffscreenSelection(box);
     const reordering=gesture?.kind==='reorder';
     smartHandles.update(chosen,camera,box,{enabled:reordering || (!gesture && !mixedTexts.length && !!smartLayout(chosen.map(entry=>entry.model))),active:reordering?gesture.entry:null,destination:reordering?gesture.plan?.[gesture.sourceIndex]:null});
-  } else smartHandles.update([],camera,null,{enabled:false});
+  } else { smartHandles.update([],camera,null,{enabled:false}); markOffscreenSelection(null); }
   updateGap();
   renderContact();
   textTool?.render();
@@ -477,6 +480,57 @@ function render(now) {
   }
   positionSelectMenus();
   if(cameraMotion)schedule();
+}
+// The size toolbars hang under the selection. When the selection is partly off
+// screen, they stop at the viewport edge, and beside the fixed panels (layers and
+// the bottom toolbars) instead of behind them, all with the panels' inset.
+function keepInspectorsInView(){
+  const inset=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--canvas-panel-inset'))||0;
+  const panels=[$('#layers'),...document.querySelectorAll('nav')].map(el=>el.getBoundingClientRect()).filter(r=>r.width>0&&r.height>0);
+  for(const bar of [$('#inspector'),$('#group-inspector')]){
+    bar.style.translate='';
+    if(bar.hidden)continue;
+    const r=bar.getBoundingClientRect(),w=r.width,h=r.height;
+    const minX=inset,maxX=Math.max(inset,innerWidth-inset-w),minY=inset,maxY=Math.max(inset,innerHeight-inset-h);
+    let x=clamp(r.left,minX,maxX),y=clamp(r.top,minY,maxY);
+    for(let pass=0;pass<3;pass++){
+      const hit=panels.find(p=>x<p.right+inset&&x+w>p.left-inset&&y<p.bottom+inset&&y+h>p.top-inset);
+      if(!hit)break;
+      // Take the shortest way out that stays on screen.
+      const moves=[[p=>p.left-inset-w,'x'],[p=>p.right+inset,'x'],[p=>p.top-inset-h,'y'],[p=>p.bottom+inset,'y']]
+        .map(([to,axis])=>({axis,to:to(hit)}))
+        .filter(m=>m.axis==='x'?m.to>=minX&&m.to<=maxX:m.to>=minY&&m.to<=maxY)
+        .sort((m,n)=>Math.abs(m.to-(m.axis==='x'?x:y))-Math.abs(n.to-(n.axis==='x'?x:y)));
+      if(!moves.length)break;
+      if(moves[0].axis==='x')x=moves[0].to;else y=moves[0].to;
+    }
+    if(x!==r.left||y!==r.top)bar.style.translate=`${x-r.left}px ${y-r.top}px`;
+  }
+}
+// When the whole selection is off screen, a line on the viewport edge spans the part
+// of the edge it lies beyond. Past a corner it is an L at least 10px each way.
+function markOffscreenSelection(box){
+  const marker=$('#offscreen-selection');
+  const l=box&&camera.x+box.x*camera.scale,t=box&&camera.y+box.y*camera.scale;
+  const r=box&&l+box.width*camera.scale,b=box&&t+box.height*camera.scale;
+  const W=innerWidth,H=innerHeight;
+  const offLeft=box&&r<=0,offRight=box&&l>=W,offTop=box&&b<=0,offBottom=box&&t>=H;
+  if(preview.entry||!(offLeft||offRight||offTop||offBottom)){marker.hidden=true;return;}
+  const min=10,line='2px';
+  const span=(a,z,size,before,after)=>{
+    let from=clamp(a,0,size),to=clamp(z,0,size);
+    if(to-from<min){if(before)from=0;else if(after)from=size-min;else from=Math.min(from,size-min);to=from+min;}
+    return [from,to];
+  };
+  const [x0,x1]=offLeft||offRight?(offLeft?[0,min]:[W-min,W]):span(l,r,W);
+  const [y0,y1]=offTop||offBottom?(offTop?[0,min]:[H-min,H]):span(t,b,H);
+  const corner=(offLeft||offRight)&&(offTop||offBottom);
+  Object.assign(marker.style,{left:`${x0}px`,top:`${y0}px`,width:`${x1-x0}px`,height:`${y1-y0}px`,
+    borderLeftWidth:offLeft?line:'0',borderRightWidth:offRight?line:'0',
+    borderTopWidth:offTop?line:'0',borderBottomWidth:offBottom?line:'0'});
+  if(!corner&&(offLeft||offRight))marker.style.width=line;
+  if(!corner&&(offTop||offBottom))marker.style.height=line;
+  marker.hidden=false;
 }
 function notifyInput(entry,force=false) {
   if(!entry.iframe)return;
@@ -864,7 +918,9 @@ function wheelPan(dx,dy,mode) {
   camera.x-=dx*(mode===2?innerWidth:unit);camera.y-=dy*unit;schedule();persist();
 }
 viewport.addEventListener('wheel',event=>{
-  if(preview.entry || event.target.closest('#inspector,#group-inspector')) return;
+  // The size toolbars stay on screen under the pointer, so the wheel pans through them,
+  // except over a number field being typed in.
+  if(preview.entry || (event.target.closest('#inspector,#group-inspector input') && event.target===document.activeElement)) return;
   // Dials that do not fit their frame scroll; a plain wheel over them scrolls the dials, not the canvas.
   const dialBody=event.target.closest('.ui-dial-body');
   if(dialBody && dialBody.scrollHeight>dialBody.clientHeight && !event.metaKey && !event.ctrlKey)return;
@@ -1109,8 +1165,9 @@ moreMenu.addEventListener('beforetoggle',event=>{
   if(event.newState!=='open')return;
   closeContext();stop();clearContact();
   const anchor=moreButton.getBoundingClientRect();
-  const gap=parseFloat(getComputedStyle(moreMenu).getPropertyValue('--canvas-menu-offset')),inset=parseFloat(getComputedStyle(moreMenu).getPropertyValue('--canvas-panel-inset')),width=parseFloat(getComputedStyle(moreMenu).getPropertyValue('--canvas-preview-menu'));
-  moreMenu.style.top=`${anchor.bottom+gap}px`;
+  const gap=parseFloat(getComputedStyle(moreMenu).getPropertyValue('--canvas-toolbar-menu-offset')),inset=parseFloat(getComputedStyle(moreMenu).getPropertyValue('--canvas-panel-inset')),width=parseFloat(getComputedStyle(moreMenu).getPropertyValue('--canvas-preview-menu'));
+  // The gap is measured from the bottom of the Layers title bar, not the button.
+  moreMenu.style.top=`${$('#layers .ui-header').getBoundingClientRect().bottom+gap}px`;
   moreMenu.style.left=`${Math.max(inset,Math.min(anchor.left+(anchor.width-width)/2,innerWidth-width-inset))}px`;
 });
 moreMenu.addEventListener('toggle',event=>{if(event.newState==='open')moreMenu.focus({preventScroll:true});moreButton.setAttribute('aria-expanded',String(event.newState==='open'));});

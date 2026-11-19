@@ -15,6 +15,8 @@ body { margin: 0; font: var(--canvas-font)/1.5 system-ui,sans-serif; color: var(
 .screen[data-selected] { outline: var(--screen-outline) solid var(--canvas-accent); }
 .screen[data-selected] .screen-title { color: var(--canvas-accent); }
 #selection { position: absolute; border: var(--canvas-border) solid var(--canvas-accent); pointer-events: none; z-index: var(--canvas-selection-layer); }
+/* Marks where an off-screen selection is: a line on the nearest viewport edge, an L in a corner. */
+#offscreen-selection { position: fixed; box-sizing: border-box; border: 0 solid var(--canvas-accent); pointer-events: none; z-index: var(--canvas-selection-layer); }
 #group-grab { position: absolute; inset: 0; pointer-events: auto; cursor: grab; }
 body[data-gesture] #group-grab { cursor: grabbing; }
 /* Toolbars sit under the selection frame or beside the board. */
@@ -26,7 +28,7 @@ nav { position: fixed; bottom: var(--canvas-toolbar-bottom); left: 50%; transfor
   #edit-tools { bottom: calc(2 * var(--canvas-panel-inset) + var(--canvas-control) + 2 * var(--canvas-padding) + 2 * var(--canvas-border)); left: var(--canvas-panel-inset); right: auto; transform: none; }
 }
 #arrow-inspector, #text-inspector { position: fixed; translate: -50% 0; white-space: nowrap; }
-body:not([data-ready]) :is(#layers,#edit-tools,#history-tools,#zoom-tools,#arrow-inspector,#text-inspector,#selection) { visibility: hidden; }
+body:not([data-ready]) :is(#layers,.layers-grip,#edit-tools,#history-tools,#zoom-tools,#arrow-inspector,#text-inspector,#selection) { visibility: hidden; }
 #canvas-status { position: fixed; bottom: calc(2 * var(--canvas-panel-inset) + var(--canvas-control) + 2 * var(--canvas-padding) + 2 * var(--canvas-border)); left: 50%; translate: -50% 0; padding: var(--canvas-padding); max-width: calc(100vw - 2 * var(--canvas-toolbar-bottom)); background: var(--canvas-panel); border-radius: var(--canvas-radius); box-shadow: var(--canvas-shadow); z-index: var(--canvas-contact-layer); pointer-events: none; }
 #canvas-status:empty { display: none; animation: none; }
 @media (prefers-reduced-motion: reduce) { #canvas-status { animation: none; } }
@@ -94,12 +96,70 @@ body[data-gesture] .ui-dial-panel, body[data-space] .ui-dial-panel { pointer-eve
 .layers-drawer {
   position: fixed; inset: var(--canvas-panel-inset) auto auto var(--canvas-panel-inset);
   max-height: calc(100dvh - 3 * var(--canvas-panel-inset) - var(--canvas-control) - 2 * var(--canvas-padding) - 2 * var(--canvas-border));
-  width: min(var(--canvas-layers-width), calc(100vw - 2 * var(--canvas-panel-inset)));
+  width: min(var(--layers-width, var(--canvas-layers-width)), calc(100vw - 2 * var(--canvas-panel-inset)));
   padding: 0; gap: 0;
   display: flex; flex-direction: column; align-items: stretch;
   overflow: hidden;
 }
 .layers-drawer[data-collapsed] { inset: var(--canvas-panel-inset) auto auto var(--canvas-panel-inset); margin: 0; }
+/* Empty or collapsed, the bar is as wide as its content. Expanded, it is the
+   width dragged on its right edge, between --canvas-layers-width and -max-width. */
+.layers-drawer:is([data-empty],[data-collapsed]) { width: max-content; }
+/* The logo keeps its auto right margin, so the buttons ride the right edge while
+   the width animates. The logo gap is padding; buttons keep --canvas-gap. */
+.layers-drawer .ui-header { gap: 0; }
+.layers-drawer .ui-header > h2 { padding-right: var(--canvas-layers-logo-gap); }
+.layers-drawer .ui-header > h2 ~ * + * { margin-left: var(--canvas-gap); }
+/* The resize grip straddles the right edge, half inside and half outside. The
+   drawer clips its children, so the grip lives on <body> and layers.js keeps it
+   on the edge. */
+.layers-grip { position: fixed; width: var(--canvas-layers-grip); translate: -50% 0; cursor: ew-resize; touch-action: none; z-index: calc(var(--canvas-toolbar-layer) + 1); }
+body:has(.layers-drawer:is([data-empty],[data-collapsed])) .layers-grip { display: none; }
+/* No resizing while the More menu is open. */
+body:has(#layers-more[aria-expanded="true"]) .layers-grip { display: none; }
+/* The resize glow on the right outline: accent in the middle, fading to transparent
+   at both ends with eased stops (smoothstep, 16 steps, centre 50%, spread 40%).
+   Tuned in dev/prototypes/edge-glow.jsx. */
+.layers-glow { position: fixed; width: var(--canvas-edge-w); pointer-events: none; z-index: calc(var(--canvas-toolbar-layer) + 1); opacity: 0; transition: opacity 240ms ease-out;
+  background: linear-gradient(to bottom,
+    color-mix(in oklch, var(--canvas-accent) 0.0%, transparent) 0%,
+    color-mix(in oklch, var(--canvas-accent) 0.0%, transparent) 10%,
+    color-mix(in oklch, var(--canvas-accent) 1.1%, transparent) 12.5%,
+    color-mix(in oklch, var(--canvas-accent) 4.3%, transparent) 15%,
+    color-mix(in oklch, var(--canvas-accent) 9.2%, transparent) 17.5%,
+    color-mix(in oklch, var(--canvas-accent) 15.6%, transparent) 20%,
+    color-mix(in oklch, var(--canvas-accent) 23.2%, transparent) 22.5%,
+    color-mix(in oklch, var(--canvas-accent) 31.6%, transparent) 25%,
+    color-mix(in oklch, var(--canvas-accent) 40.7%, transparent) 27.5%,
+    color-mix(in oklch, var(--canvas-accent) 50.0%, transparent) 30%,
+    color-mix(in oklch, var(--canvas-accent) 59.3%, transparent) 32.5%,
+    color-mix(in oklch, var(--canvas-accent) 68.4%, transparent) 35%,
+    color-mix(in oklch, var(--canvas-accent) 76.8%, transparent) 37.5%,
+    color-mix(in oklch, var(--canvas-accent) 84.4%, transparent) 40%,
+    color-mix(in oklch, var(--canvas-accent) 90.8%, transparent) 42.5%,
+    color-mix(in oklch, var(--canvas-accent) 95.7%, transparent) 45%,
+    color-mix(in oklch, var(--canvas-accent) 98.9%, transparent) 47.5%,
+    color-mix(in oklch, var(--canvas-accent) 100.0%, transparent) 50%,
+    color-mix(in oklch, var(--canvas-accent) 98.9%, transparent) 52.5%,
+    color-mix(in oklch, var(--canvas-accent) 95.7%, transparent) 55%,
+    color-mix(in oklch, var(--canvas-accent) 90.8%, transparent) 57.5%,
+    color-mix(in oklch, var(--canvas-accent) 84.4%, transparent) 60%,
+    color-mix(in oklch, var(--canvas-accent) 76.8%, transparent) 62.5%,
+    color-mix(in oklch, var(--canvas-accent) 68.4%, transparent) 65%,
+    color-mix(in oklch, var(--canvas-accent) 59.3%, transparent) 67.5%,
+    color-mix(in oklch, var(--canvas-accent) 50.0%, transparent) 70%,
+    color-mix(in oklch, var(--canvas-accent) 40.7%, transparent) 72.5%,
+    color-mix(in oklch, var(--canvas-accent) 31.6%, transparent) 75%,
+    color-mix(in oklch, var(--canvas-accent) 23.2%, transparent) 77.5%,
+    color-mix(in oklch, var(--canvas-accent) 15.6%, transparent) 80%,
+    color-mix(in oklch, var(--canvas-accent) 9.2%, transparent) 82.5%,
+    color-mix(in oklch, var(--canvas-accent) 4.3%, transparent) 85%,
+    color-mix(in oklch, var(--canvas-accent) 1.1%, transparent) 87.5%,
+    color-mix(in oklch, var(--canvas-accent) 0.0%, transparent) 90%,
+    color-mix(in oklch, var(--canvas-accent) 0.0%, transparent) 100%); }
+body[data-layers-resize] .layers-glow { opacity: 1; transition-duration: 120ms; }
+body[data-fullscreen] .layers-glow, body:has(.layers-drawer:is([data-empty],[data-collapsed])) .layers-glow { display: none; }
+body[data-layers-resize],body[data-layers-resize] * { cursor: ew-resize !important; user-select: none; -webkit-user-select: none; }
 #layers-title { display: flex; align-items: center; gap: var(--canvas-gap); }
 /* A 4x raster mask, not the SVG: the browser's downscale of a bitmap draws these
    diagonal edges smoother than its vector rasteriser does at 24px. */
@@ -140,7 +200,7 @@ body[data-layer-drag] .layer-grab { cursor: grabbing; }
 /* Preview is host-viewport fullscreen, not a second document or browser window. */
 body[data-fullscreen] #viewport { background: var(--canvas-surface); }
 body[data-fullscreen] #world { position: fixed; inset: 0; transform: none !important; will-change: auto; }
-body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status),body[data-fullscreen] .screen:not([data-fullscreen]),.screen[data-fullscreen] :is(.screen-title,.screen-action) { display: none; }
+body[data-fullscreen] :is(#selection,#layers,.layers-grip,nav,#canvas-contact,#canvas-status),body[data-fullscreen] .screen:not([data-fullscreen]),.screen[data-fullscreen] :is(.screen-title,.screen-action) { display: none; }
 .screen[data-fullscreen] { position: absolute; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; outline: none; }
 .screen[data-fullscreen] iframe { box-shadow: none; }
 /* The floating menu button matches Interface Kit's minimised button: a 44px circle,

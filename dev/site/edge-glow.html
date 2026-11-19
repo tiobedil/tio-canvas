@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Edge glow</title>
+  <link rel="stylesheet" href="/canvas/ui/tokens.css">
+  <link rel="stylesheet" href="/canvas/ui/ui.css">
+  <link rel="stylesheet" href="/canvas/canvas.css">
+  <link rel="stylesheet" href="/prototypes/edge-glow.css">
+  <style>
+    body { margin: 0; min-height: 100vh; background: var(--canvas-bg, #f4f4f4); background-image: radial-gradient(var(--canvas-line) 1px, transparent 1px); background-size: 16px 16px; color: var(--canvas-text); font: 13px/1.45 system-ui, sans-serif; }
+    .edge-glow { position: fixed; z-index: calc(var(--canvas-toolbar-layer) + 1); pointer-events: none; opacity: 0; }
+  </style>
+</head>
+<body data-ready>
+  <!-- Drag the right edge of the Layers panel; the glow shows only while you drag. -->
+  <script type="module" src="/prototypes/edge-glow.js"></script>
+</body>
+</html>

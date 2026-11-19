@@ -13,8 +13,16 @@ import { h, Section, Button, DialogFooter } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
-    summary: '',
-    items: [],
+    summary: 'The size toolbar under a selected screen stays on screen while you pan, so you can always reach it.',
+    items: [
+      { type: 'improved', text: 'The More button stays pressed in while its menu is open.' },
+      { type: 'improved', text: 'The More menu sits a little further below the Layers bar, so it no longer crowds it.' },
+      { type: 'improved', text: 'The Layers bar shrinks to fit its buttons when it is collapsed or there is nothing on the canvas.' },
+      { type: 'new', text: 'Drag the right edge of the Layers panel to make it wider; the edge glows while you drag, stretches a little past its limits and springs back.' },
+      { type: 'improved', text: 'Arrows spring back to straight with a slightly calmer bounce.' },
+      { type: 'improved', text: 'The size toolbar under a selected screen stays inside the window when the screen is partly off screen.' },
+      { type: 'new', text: 'When a selected screen is off screen, a line on the window edge shows which way it is.' },
+    ],
   },
   {
     version: '0.5.0',
