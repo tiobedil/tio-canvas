@@ -13,6 +13,12 @@ import { h, Section, Button, DialogFooter } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
+    summary: '',
+    items: [],
+  },
+  {
+    version: '0.5.0',
+    date: '2026-11-19T04:28:19.216Z',
     summary: 'Component frames are safer: a renamed or deleted component no longer takes its frames with it, and a new component with the same name never takes over existing frames. Components that fail to draw are listed with their error, can be wrapped in your app\'s providers, and new components show up while the canvas is open, marked New. The Change log groups each release by kind.',
     items: [
       { type: 'improved', text: 'A component frame\'s controls switch to dark or light with the frame, from its own theme button or the canvas theme.' },
