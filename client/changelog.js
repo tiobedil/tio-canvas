@@ -28,6 +28,7 @@ export const entries = [
       { type: 'new', text: 'Components added or removed while the canvas is open are noticed when you come back to its tab: a dot on the Add button and a Reload button in the Components tab.' },
       { type: 'new', text: 'Components found since your last visit are marked New in the Components tab, until you have seen them once.' },
       { type: 'improved', text: 'A component you add now gets a frame that fits it, tall enough to show all its controls, instead of always 1100 × 600.' },
+      { type: 'faster', text: 'A published canvas loads React once for all its component frames, instead of once per component, so each frame opens with a file under a few kilobytes.' },
       { type: 'faster', text: 'A canvas with many component frames opens faster: the frames share one search of your project instead of each searching again.' },
     ],
   },

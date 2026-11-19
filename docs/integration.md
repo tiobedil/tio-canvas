@@ -69,7 +69,8 @@ const screens = await copyCanvas({ root, config: 'dev/canvas/screens.js', target
 ```
 
 This writes the canvas, your screens and components as `project.js`, one script
-per component, only the thumbnails of screens and components that exist, and a
+per component (what they share, React above all, sits once in
+`components/chunks/`), only the thumbnails of screens and components that exist, and a
 `noindex` tag. Do not link to it from a public page.
 
 ### 4. Thumbnails

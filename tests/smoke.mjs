@@ -61,6 +61,21 @@ try {
   await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const componentPreview = { wrapper: '../../wrap.js' };\nexport const components = [${component.replace("framework: 'dom', ", "")}];\n`);
   assert.match(await host.projectModule(), /componentScan/);
   assert.match(await host.componentModule("widget"), /WRAP_MARK|wrapped-by-provider|function Wrap|Wrap\(/, "componentPreview.wrapper travels in every React frame");
+  // A build ships what React components share once, not once per component.
+  await writeFile(path.join(root, "node_modules/react/index.js"), "export const createElement = () => null; globalThis.reactCopy = 'react-copy';\n");
+  await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const components = [${component.replace("framework: 'dom', ", "")}, ${component.replace("framework: 'dom', ", "").replace("'widget'", "'other'")}];\n`);
+  const split = path.join(root, "out-split");
+  await copyCanvas({ root, target: split });
+  const shippedFiles = await readdir(path.join(split, "components"), { recursive: true });
+  const withReact = [];
+  for (const file of shippedFiles.filter(file => file.endsWith(".js"))) if ((await readFile(path.join(split, "components", file), "utf8")).includes("react-copy")) withReact.push(file);
+  assert.equal(withReact.length, 1, `React is shipped once, in a shared chunk (found in ${withReact.join(", ")})`);
+  assert.match(withReact[0], /^chunks\//);
+  for (const id of ["widget", "other"]) {
+    const entry = await readFile(path.join(split, "components", `${id}.js`), "utf8");
+    assert.match(entry, /rgb\(1, ?2, ?3\)|#010203/, `${id}.js still carries its styles`);
+    assert.match(entry, /from ?"\.\/chunks\//, `${id}.js imports the shared chunk`);
+  }
   await writeFile(path.join(root, "dev/canvas/screens.js"), `export const screens = [${screen("home")}];\nexport const components = [${component}];\n`);
   await host.projectModule();
   await writeFile(path.join(root, "dev/canvas/thumbnails/component-widget.webp"), "c");
