@@ -204,9 +204,7 @@ export const components = [
   notice does not ask for them.
 - `width` and `height` set the size a new frame starts with. Without them, a frame
   added from the picker fits what the component draws, with room for its open
-  controls: no wider than 1100, between 320 and 1200 tall. The frame shows only once
-  it has that size, and the canvas remembers it, so the next frame of the same
-  component starts there.
+  controls: no wider than 1100, between 320 and 1200 tall.
 - `fill: true` stretches the component to the frame's width (a navigation bar,
   say). Without it the component keeps its own size and is centred in the room
   the dials leave (in the whole frame once they are minimized).
