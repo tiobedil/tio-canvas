@@ -33,3 +33,19 @@ Every commit that lands on `main` publishes a new npm version (see
 - Do not push to `main` unless a release is intended.
 - Commit bodies are listed under "All commits" in the release notes: when a commit
   holds several changes, list each one as a `- ` line in the body.
+
+## Prototypes
+
+Every prototype is a screen on this repository's own canvas (`pnpm dev`, then
+/canvas/). Never a separate server, port, or standalone page.
+
+- Code: `dev/prototypes/<name>.jsx` (React, DialKit for tuning controls inside
+  the page). `dev/serve.mjs` builds it at `/prototypes/<name>.js` and `.css`.
+- Page: `dev/site/<name>.html`, loading the canvas tokens and that script, like
+  the existing ones.
+- Screen: an entry in `dev/canvas/screens.js` with `kind: 'prototype'`, placed
+  where it overlaps no other screen.
+- Check it loads through your own `dev/serve.mjs` on a free port, then tell the
+  user to restart their dev server to see the new screen.
+- Projects that install the package follow the rules in `docs/integration.md`
+  ("Prototypes"); keep that section in step with this one.

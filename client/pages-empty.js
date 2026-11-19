@@ -25,11 +25,26 @@ export const addComponentsPrompt = `This project uses the @tio-canvas/canvas pac
 4. Otherwise add one entry for each reusable component of this project (not for whole pages). Read each component's source and give it a control for every prop, variant and state it really has: a list of options for a variant, true or false for a state, a string for text. Do not invent props.
 5. Reload /canvas, press Cmd+K, open the Components tab and add one component. Confirm it draws and that its controls change it. Tell me what you changed.`;
 
-export function emptyComponents() {
+/**
+ * One line on where the scan looked, so an empty tab says why it is empty.
+ * `scan` is { folders, files } or { error }; null (a build) says nothing.
+ */
+export function scanSummary(scan) {
+  if (!scan) return '';
+  if (scan.error) return `The search for components failed: ${scan.error}`;
+  const folders = scan.folders ?? [];
+  if (!folders.length) return 'None of the usual component folders exist in this project.';
+  const list = folders.length > 3 ? `${folders.slice(0, 3).join(', ')} and ${folders.length - 3} more` : folders.join(', ');
+  return scan.files ? `Searched ${list}: ${scan.files} ${scan.files === 1 ? 'file' : 'files'}, none written as a component.` : `Searched ${list}: no .tsx or .jsx files there.`;
+}
+
+export function emptyComponents(scan = null) {
   const code = text => h('code', {}, text);
+  const summary = scanSummary(scan);
   return h('div', { class: 'ui-spotlight-empty-steps' },
     h('div', {},
       h('strong', {}, 'No components in this project yet'),
+      summary ? h('p', {}, summary) : null,
       h('p', {}, 'Pick one way to bring them in:')),
     h('ol', {},
       h('li', {}, h('span', {}, 'Keep them in ', code('src/components'), ' (or another usual folder). The canvas finds them by itself.')),

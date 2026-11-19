@@ -1,22 +1,24 @@
 // Run by semantic-release to write the GitHub release notes (before the changelog is stamped):
 //
-//   node scripts/release-notes.mjs [previous-tag]
+//   node scripts/release-notes.mjs [previous-tag] [next-version]
 //
 // Layout: a short summary of the whole release, then every change a person would
-// notice (the "unreleased" entry of client/changelog.js, grouped by type), then
-// every commit since the previous release, with all the changes listed in its body.
+// notice, grouped the same way as the in-app Change log (a heading per kind, in its
+// order and with its names), then every commit since the previous release, with all
+// the changes listed in its body.
+//
+// semantic-release runs generateNotes again after prepare has stamped the changelog,
+// so the release's entry is either still "unreleased" or already carries next-version.
 import { execFileSync } from "node:child_process";
 
-const { entries } = await import(new URL("../client/changelog.js", import.meta.url).href);
-const [previous] = process.argv.slice(2);
-const pending = entries[0]?.unreleased ? entries[0] : { items: [] };
+const { entries, labels, groupByType } = await import(new URL("../client/changelog.js", import.meta.url).href);
+const [previous, next] = process.argv.slice(2);
+const pending = (next && entries.find(entry => entry.version === next)) || entries.find(entry => entry.unreleased) || { items: [] };
 
-const groups = [["new", "Features"], ["improved", "Improvements"], ["fixed", "Bug fixes"], ["faster", "Performance"]];
 const out = [];
 if (pending.summary?.trim()) out.push(pending.summary.trim());
-for (const [type, title] of groups) {
-  const items = pending.items.filter(item => item.type === type);
-  if (items.length) out.push(`### ${title}\n\n${items.map(item => `- ${item.text}`).join("\n")}`);
+for (const [type, items] of groupByType(pending.items)) {
+  out.push(`### ${labels[type] ?? type}\n\n${items.map(item => `- ${item.text}`).join("\n")}`);
 }
 
 const SEPARATOR = "\u001e", FIELD = "\u001f";

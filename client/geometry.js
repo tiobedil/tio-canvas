@@ -49,6 +49,27 @@ export function snapRect(moving, others, tolerance) {
   return result;
 }
 
+// Resize snapping: each dragged edge ('min' = left/top, 'max' = right/bottom)
+// moves to the nearest edge or centre line of another object within tolerance.
+export function snapEdges(rect, edges, others, tolerance) {
+  const result = { ...rect, guides: [] };
+  for (const [axis, size, cross, crossSize] of [['x','width','y','height'],['y','height','x','width']]) {
+    const edge = edges[axis];
+    if (!edge) continue;
+    const position = edge === 'min' ? rect[axis] : rect[axis] + rect[size];
+    let best = tolerance + Number.EPSILON, match = null;
+    for (const other of others) for (const target of [0,.5,1]) {
+      const line = other[axis] + other[size] * target, distance = Math.abs(line - position);
+      if (distance < best) { best = distance; match = { line, other }; }
+    }
+    if (!match) continue;
+    if (edge === 'min') { result[size] = rect[axis] + rect[size] - match.line; result[axis] = match.line; }
+    else result[size] = match.line - rect[axis];
+    result.guides.push({ axis, value: match.line, from: Math.min(rect[cross], match.other[cross]), to: Math.max(rect[cross]+rect[crossSize], match.other[cross]+match.other[crossSize]), kind:'align' });
+  }
+  return result;
+}
+
 // Keep appending to the current row until its right edge is full. Then search
 // free rows below, followed by earlier rows, without enlarging the workspace.
 // A workspace is a number (square) or { width, height }.

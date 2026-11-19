@@ -70,6 +70,7 @@ export function createArrows({ viewport, world, camera, objects, saved, checkpoi
       if (next) for (const model of next) Object.assign(arrows.find(a => a.id === model.id), model);
     } else if (part === 'middle') {
       const geometry = arrowGeometry(arrow, objects());
+      springs.delete(arrow.id);
       arrow.bend = (point.x - geometry.midpoint.x) * geometry.normal.x + (point.y - geometry.midpoint.y) * geometry.normal.y;
       if (Math.abs(arrow.bend) * camera.scale < 3) arrow.bend = 0;
     } else if (part === 'move') {
@@ -117,7 +118,29 @@ export function createArrows({ viewport, world, camera, objects, saved, checkpoi
     if ((field === 'width' && ![2, 4, 6, 8, 10].includes(value)) || (['startStyle', 'endStyle'].includes(field) && !['line', 'arrow'].includes(value)) || (field === 'pattern' && !['solid', 'dashed'].includes(value))) return;
     const before = checkpoint();for (const arrow of selected()) arrow[field] = value;commit(before);schedule();
   });
-  document.querySelector('#arrow-straight').onclick = () => { if (!chosen.size) return;const before = checkpoint();for (const arrow of selected()) arrow.bend = 0;commit(before);schedule(); };
+  // Reset to straight saves bend 0 at once, then draws the line springing back
+  // like a plucked string: it overshoots past straight and settles.
+  // Tuned in dev/prototypes/arrow-straighten.jsx (visualDuration .2s, bounce .6).
+  const springs = new Map();
+  const shown = arrow => springs.has(arrow.id) ? { ...arrow, bend: springs.get(arrow.id).value } : arrow;
+  function pluck(arrow) {
+    if (Math.abs(arrow.bend) < .01 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // A bigger bend rings a little longer, like a harder pluck.
+    const visualDuration = .2 * (.8 + Math.min(Math.abs(arrow.bend) / 300, 1) * .4), bounce = .6;
+    const stiffness = (2 * Math.PI / (visualDuration * 1.2)) ** 2, damping = 2 * (1 - bounce) * Math.sqrt(stiffness);
+    springs.set(arrow.id, { value: arrow.bend, velocity: 0, stiffness, damping, time: performance.now() });
+    if (springs.size === 1) requestAnimationFrame(step);
+  }
+  function step(now) {
+    for (const [id, s] of springs) {
+      let dt = Math.min((now - s.time) / 1000, .064);s.time = now;
+      while (dt > 0) { const h = Math.min(dt, 1 / 240);s.velocity += (-s.stiffness * s.value - s.damping * s.velocity) * h;s.value += s.velocity * h;dt -= h; }
+      if (Math.abs(s.value) < .05 && Math.abs(s.velocity) < 1) springs.delete(id);
+    }
+    schedule();
+    if (springs.size) requestAnimationFrame(step);
+  }
+  document.querySelector('#arrow-straight').onclick = () => { if (!chosen.size) return;const before = checkpoint();for (const arrow of selected()) { pluck(arrow);arrow.bend = 0; }commit(before);schedule(); };
   function render() {
     const all = objects(), targets = selected();
     for (const arrow of arrows) for (const name of ['start', 'end']) {
@@ -127,7 +150,7 @@ export function createArrows({ viewport, world, camera, objects, saved, checkpoi
     const focusedId = document.activeElement?.dataset?.arrowId, focusedNode = document.activeElement?.dataset?.arrowNode;
     const contents = [];
     for (const arrow of arrows) {
-      const geometry = arrowGeometry(arrow, all), active = chosen.has(arrow.id);
+      const geometry = arrowGeometry(shown(arrow), all), active = chosen.has(arrow.id);
       const svg = svgElement('svg', { class: 'arrow-object', 'data-object-id': arrow.id, width: 20000, height: 11250 });svg.style.zIndex = rank(arrow.id);
       const defs = svgElement('defs'), length = 6 + arrow.width * 2, headSize = length + arrow.width * 2;
       for (const end of ['start', 'end']) {
@@ -165,7 +188,7 @@ export function createArrows({ viewport, world, camera, objects, saved, checkpoi
     if (toolbar.hidden) fields.close();
     if (!targets.length) return;
     if (targets.length === 1 && !screenSelectionCount()) {
-      const arrow = targets[0], geometry = arrowGeometry(arrow, all);
+      const arrow = targets[0], geometry = arrowGeometry(shown(arrow), all);
       for (const name of ['start', 'middle', 'end']) {
         const p = screenPoint(geometry[name]), button = document.createElement('button');button.type = 'button';button.className = 'smart-handle arrow-node';button.dataset.arrowNode = name;
         button.setAttribute('aria-label', name === 'middle' ? 'Bend arrow symmetrically' : `Move arrow ${name}`);button.style.left = `${p.x}px`;button.style.top = `${p.y}px`;

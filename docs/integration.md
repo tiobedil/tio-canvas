@@ -69,7 +69,8 @@ const screens = await copyCanvas({ root, config: 'dev/canvas/screens.js', target
 ```
 
 This writes the canvas, your screens and components as `project.js`, one script
-per component, only the thumbnails of screens and components that exist, and a
+per component (what they share, React above all, sits once in
+`components/chunks/`), only the thumbnails of screens and components that exist, and a
 `noindex` tag. Do not link to it from a public page.
 
 ### 4. Thumbnails
@@ -77,7 +78,8 @@ per component, only the thumbnails of screens and components that exist, and a
 The Add pages panel shows a small picture of each page and each component (about
 1 KB, 96px on the short side; a component's file is `component-<id>.webp`). The dev server makes a missing one by itself the first time the
 canvas asks for it, so a page you add to `screens.js` gets its thumbnail on the
-next load. Pass the request to the host before you serve a file under `/canvas`:
+next load. A component's picture is also made again once its source file is newer
+than the picture; a page's stays until you refresh it with `tio-canvas thumbnails`. Pass the request to the host before you serve a file under `/canvas`:
 
 ```js
 await canvas.ensureThumbnail(pathname, `http://${request.headers.host}`);
@@ -96,6 +98,30 @@ npx tio-canvas thumbnails --check          # fails when a screen has no thumbnai
 ```
 
 Options: `--config <file>`, `--out <dir>`.
+
+### 5. Prototypes
+
+A prototype is a throwaway page for trying an idea: a layout, an interaction, a
+motion. It lives on the canvas, next to the pages it changes, so it is compared
+in place and never opened on its own. Coding agents in a project that uses the
+canvas follow these rules; copy them into the project's `AGENTS.md` (or
+`CLAUDE.md`) so every agent sees them:
+
+```md
+## Prototypes (tio-canvas)
+
+- Every prototype is a screen on the canvas. Never start a separate server, port
+  or standalone page for it, and never hand the user a URL outside /canvas.
+- Put its files in the project's prototype folder (create `dev/prototypes/` if
+  there is none), served by the project's own dev server in development only.
+- List it in `dev/canvas/screens.js` with `kind: 'prototype'`, a stable `id`,
+  a clear `title`, and a free spot (x, y) that overlaps no other screen.
+- Put tuning controls (for example DialKit sliders) inside the prototype page,
+  so they work in its canvas frame.
+- Before saying it is ready, open /canvas and check the screen loads. Tell the
+  user if the dev server must restart to pick up the new screen.
+- Never link a prototype from a public page or ship it in the production build.
+```
 
 ## Components
 
@@ -137,6 +163,18 @@ export const componentExclude = ['src/components/legacy'];         // files or f
   the list and the dials are read again.
 - A component you list by hand (below) is never listed twice, and the scan leaves
   it as you wrote it.
+- **Ids stay put.** A found component's id is its name in kebab case (`Button` is
+  `button`). When two found components share a name, both take their folder path
+  instead (`forms-button`, and `components-button` for the one at the top of the
+  scanned folder), so adding a file never hands an id to another component.
+- **Frames of a missing component are kept.** The canvas keeps a frame's place and
+  props under its component's id. When that id is no longer found (a renamed or
+  deleted file, a folder no longer scanned), the frame is kept aside, the Components
+  tab says so, and the frame comes back as soon as the id is found again. The same
+  dialog can let those frames go.
+- **An empty tab says where it looked.** The development server tells the canvas
+  which component folders exist and how many files they hold (or why the search
+  failed), and the empty Components tab shows it.
 
 When something cannot be settled, the Components tab shows one notice, "N things
 to check in your components", with a button that opens a prompt for your coding
@@ -215,8 +253,14 @@ export const componentPreview = {
   theme(dark, document) {                  // optional: how your site turns dark
     document.documentElement.classList.toggle('dark', dark);
   },
+  wrapper: '../../src/canvas-providers.tsx', // optional: wraps every React component
 };
 ```
+
+`wrapper` is a path, like `module`, so the config still imports nothing. Its
+default export receives the component as `children` and wraps it in what your app
+provides (theme, router, translations, a store). A component that throws when it
+is drawn is listed with the other things to check, and its prompt points here.
 
 Without `theme`, the frame's theme button sets `color-scheme`, toggles the
 `dark` class and sets `data-theme="dark" | "light"` on `<html>`.

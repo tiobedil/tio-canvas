@@ -105,7 +105,8 @@ body[data-gesture] .ui-dial-panel, body[data-space] .ui-dial-panel { pointer-eve
    diagonal edges smoother than its vector rasteriser does at 24px. */
 #layers-title .layers-logo { width: 24px; height: 24px; flex: none; background: currentColor; mask: url(/canvas/tio-logo.png) center / 100% 100% no-repeat; -webkit-mask: url(/canvas/tio-logo.png) center / 100% 100% no-repeat; }
 #layers-more { position: relative; }
-#layers-more .ui-badge { position: absolute; top: 0; right: 0; translate: 50% -50%; box-shadow: 0 0 0 2px var(--canvas-panel); }
+#add { position: relative; }
+#add .ui-badge, #layers-more .ui-badge { position: absolute; top: 0; right: 0; translate: 50% -50%; box-shadow: 0 0 0 2px var(--canvas-panel); }
 .layers-drawer ol { position: relative; margin: 0; padding: var(--canvas-padding); border-top: var(--canvas-hairline) solid var(--canvas-line); list-style: none; overflow: auto; min-height: 0; flex: 1; overscroll-behavior: contain; }
 .layers-drawer ol[hidden],.layers-drawer[data-empty] :is(ol,#layers-toggle) { display: none; }
 .layers-drawer li { position: relative; }
@@ -179,9 +180,13 @@ body[data-fullscreen] :is(#selection,#layers,nav,#canvas-contact,#canvas-status)
 /* Change log, install and update: the content blocks inside the dialog body. */
 .changelog-entry h3 { display: flex; align-items: baseline; gap: var(--canvas-padding); }
 .changelog-entry time { color: var(--canvas-muted); font-weight: 400; font-variant-numeric: tabular-nums; }
-.changelog-more { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); margin-top: var(--canvas-layers-heading-inset); padding-top: var(--canvas-layers-heading-inset); border-top: var(--canvas-hairline) solid var(--canvas-line); color: var(--canvas-muted); }
-.changelog-items { display: grid; grid-template-columns: 4.5rem minmax(0,1fr); column-gap: var(--canvas-gap); row-gap: var(--canvas-padding); margin: 0; padding: 0; list-style: none; }
-.changelog-items li { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: baseline; text-wrap: pretty; }
+.changelog-entry + .changelog-entry { margin-top: 24px; padding-top: 24px; }
+.changelog-entry h3 { margin-bottom: 14px; font-size: 1.15em; }
+.changelog-group + .changelog-group { margin-top: var(--canvas-layers-heading-inset); }
+.changelog-group { padding-left: 12px; }
+.changelog-group h4 { margin: 0 0 6px; color: var(--canvas-muted); font-size: inherit; font-weight: 500; }
+.changelog-items { display: grid; row-gap: var(--canvas-menu-gap); margin: 0; padding-left: 1.6em; }
+.changelog-items li { text-wrap: pretty; }
 .install-head { display: flex; align-items: center; justify-content: space-between; gap: var(--canvas-gap); }
 .install-head h3 { margin: 0; }
 .issue-list { margin: 0; padding-left: 1.4em; display: grid; gap: var(--canvas-menu-gap); }

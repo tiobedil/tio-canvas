@@ -9,7 +9,7 @@ function defaultTheme(dark, doc) {
   doc.documentElement.dataset.theme = dark ? "dark" : "light";
 }
 
-export function startComponent({ id, config, definition: found, exports, react }) {
+export function startComponent({ id, config, definition: found, exports, react, Wrapper = null }) {
   // A component the project lists is read from its config (it may carry a render function); one the scan found is passed in.
   const definition = (config.components ?? []).find(component => component.id === id) ?? found;
   const preview = config.componentPreview ?? {};
@@ -30,8 +30,11 @@ export function startComponent({ id, config, definition: found, exports, react }
     box.setAttribute("role", "alert");
     box.style.cssText = "margin:0;padding:16px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#b42318;";
     box.textContent = `${definition.title} could not be drawn.\n\n${error?.stack ?? error}`;
-    reactRoot?.unmount(); reactRoot = null;
-    root.replaceChildren(box);
+    const show = () => { reactRoot?.unmount(); reactRoot = null; root.replaceChildren(box); };
+    // React reports a failed render while it is still rendering; it can only be unmounted after.
+    if (reactRoot) setTimeout(show); else show();
+    // The canvas lists it with the other things to check, so it is seen without opening every frame.
+    if (parent !== window) parent.postMessage({ type: "tio-canvas:component-error", id, message: String(error?.message ?? error).slice(0, 500) }, location.origin);
   }
 
   function draw() {
@@ -42,9 +45,12 @@ export function startComponent({ id, config, definition: found, exports, react }
       if (definition.render) output = definition.render(exports, props, react?.createElement);
       else if (typeof exports[name] !== "function") throw new Error(`"${definition.module}" has no export "${name}". Set "export" on the component, or give it a render function.`);
       else output = react ? react.createElement(exports[name], props) : exports[name](props);
+      if (Wrapper && react && output !== null && typeof output === "object" && !(output instanceof Node)) output = react.createElement(Wrapper, null, output);
       if (output instanceof Node) { reactRoot?.unmount(); reactRoot = null; root.replaceChildren(output); }
       else if (react && output !== null && typeof output === "object") (reactRoot ??= react.createRoot(root)).render(output);
       else root.textContent = output == null ? "" : String(output);
+      // React reports a failed render on its own (window error); a drawing that held clears the notice.
+      if (parent !== window) setTimeout(() => { if (!root.querySelector('[role="alert"]')) parent.postMessage({ type: "tio-canvas:component-drawn", id }, location.origin); }, 300);
     } catch (error) { fail(error); }
   }
 

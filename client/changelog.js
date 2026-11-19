@@ -1,4 +1,4 @@
-import { h, Section, Tag, Button } from './ui/index.js';
+import { h, Section, Button, DialogFooter } from './ui/index.js';
 
 // What changed for the person using the canvas, newest first. Only user-visible
 // changes belong here: new things you can do, things that work differently,
@@ -13,8 +13,28 @@ import { h, Section, Tag, Button } from './ui/index.js';
 export const entries = [
   {
     unreleased: true,
-    summary: '',
-    items: [],
+    summary: 'Component frames are safer: a renamed or deleted component no longer takes its frames with it, and a new component with the same name never takes over existing frames. Components that fail to draw are listed with their error, can be wrapped in your app\'s providers, and new components show up while the canvas is open, marked New. The Change log groups each release by kind.',
+    items: [
+      { type: 'improved', text: 'A component frame\'s controls switch to dark or light with the frame, from its own theme button or the canvas theme.' },
+      { type: 'improved', text: 'Search results mark the matching letters in the accent colour instead of a highlight box.' },
+      { type: 'improved', text: 'Reset to straight springs a curved arrow back like a plucked string, with a quick bounce past straight before it settles.' },
+      { type: 'improved', text: 'Resizing a screen snaps its edges to the edges and centres of other objects, with the same guide lines as moving.' },
+      { type: 'improved', text: 'With several screens selected, a screen\'s theme or orientation button changes all of them at once.' },
+      { type: 'improved', text: 'The Change log groups each release by kind (Feature, Improved, Fixed, Faster), with a heading and a bullet list for each, instead of a label on every line.' },
+      { type: 'fixed', text: 'Select menus in a component frame\'s controls no longer squeeze their options when the frame is small or zoomed out.' },
+      { type: 'improved', text: 'An option too long for its select menu ends in an ellipsis, and hovering it shows the full text.' },
+      { type: 'fixed', text: 'A component frame whose component was renamed, moved or deleted is no longer lost: it waits with its place and settings, comes back once the component is found again, and the Components tab lets you remove it.' },
+      { type: 'fixed', text: 'Adding a second component with the same name no longer moves your existing frames over to the new one.' },
+      { type: 'improved', text: 'An empty Components tab now says which folders it searched, or why the search failed.' },
+      { type: 'improved', text: 'A component\'s picture in Add pages is redrawn after you change the component.' },
+      { type: 'new', text: 'A component that cannot be drawn is now listed in the Components tab\'s things to check, with the error, so you see it without opening every frame.' },
+      { type: 'new', text: 'Components that need your app\'s providers (theme, router, translations) can now be drawn: point componentPreview.wrapper at one file that wraps them.' },
+      { type: 'fixed', text: 'A React component that throws while drawing now shows its error in the frame, instead of an empty frame.' },
+      { type: 'new', text: 'Components added or removed while the canvas is open are noticed when you come back to its tab: a dot on the Add button and a Reload button in the Components tab.' },
+      { type: 'new', text: 'Components found since your last visit are marked New in the Components tab, until you have seen them once.' },
+      { type: 'faster', text: 'A published canvas loads React once for all its component frames, instead of once per component, so each frame opens with a file under a few kilobytes.' },
+      { type: 'faster', text: 'A canvas with many component frames opens faster: the frames share one search of your project instead of each searching again.' },
+    ],
   },
   {
     version: '0.4.1',
@@ -103,7 +123,19 @@ const formatDate = value => {
 const RELEASES_URL = 'https://github.com/tiobedil/tio-canvas/releases';
 // The dialog lists the newest releases only; the rest is on GitHub.
 const SHOWN_RELEASES = 7;
-const tagHues = { new: 150, improved: 250, fixed: 60, faster: 330 };
+// Each release lists its items grouped by type, in this order, under the type as a heading.
+// The GitHub release notes use the same grouping (scripts/release-notes.mjs).
+const typeOrder = ['new', 'improved', 'fixed', 'faster'];
+
+export const groupByType = items => {
+  const types = [...typeOrder, ...new Set(items.map(item => item.type).filter(type => !typeOrder.includes(type)))];
+  return types.map(type => [type, items.filter(item => item.type === type)]).filter(([, group]) => group.length);
+};
+
+/** The bar under the list, linking to every release on GitHub. */
+export const ChangelogFooter = () => DialogFooter({},
+  h('p', {}, 'Older releases are on GitHub.'),
+  Button({ as: 'a', href: RELEASES_URL, target: '_blank', rel: 'noopener noreferrer', dataset: { align: 'end' } }, 'View all releases'));
 
 export function renderChangelog(body, list = entries) {
   body.replaceChildren();
@@ -114,10 +146,8 @@ export function renderChangelog(body, list = entries) {
     const title = [entry.unreleased ? 'Unreleased' : entry.version];
     if (entry.date) title.push(h('time', { dateTime: entry.date }, formatDate(entry.date)));
     body.append(Section({ title, className: 'changelog-entry' },
-      h('ul', { class: 'changelog-items' }, ...entry.items.map(item =>
-        h('li', {}, Tag({ hue: tagHues[item.type] }, labels[item.type] ?? item.type), h('span', {}, item.text))))));
+      ...groupByType(entry.items).map(([type, items]) => h('div', { class: 'changelog-group' },
+        h('h4', {}, labels[type] ?? type),
+        h('ul', { class: 'changelog-items' }, ...items.map(item => h('li', {}, item.text)))))));
   }
-  body.append(h('div', { class: 'changelog-more' },
-    h('span', {}, 'Older releases are on GitHub.'),
-    Button({ as: 'a', size: 'sm', href: RELEASES_URL, target: '_blank', rel: 'noopener noreferrer' }, 'View all releases')));
 }

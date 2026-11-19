@@ -4,7 +4,7 @@ import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolveProject, loadProject } from "./project.js";
 import { componentFrames } from "./server.js";
-import { bundleComponent } from "./component-bundle.js";
+import { bundleComponents } from "./component-bundle.js";
 
 const CLIENT = fileURLToPath(new URL("../client", import.meta.url));
 
@@ -17,15 +17,16 @@ const CLIENT = fileURLToPath(new URL("../client", import.meta.url));
  */
 export async function copyCanvas({ target, ...options }) {
   const project = resolveProject(options);
-  const { screens, components, storageKey } = await loadProject(project);
+  const { screens, components, storageKey, componentWrapper } = await loadProject(project);
   const keep = new Set([...screens, ...componentFrames(components)].map((screen) => `${screen.id}.webp`));
   await cp(CLIENT, target, { recursive: true });
   // The canvas page needs what a component is called and which dials it has; its
   // render function travels inside the component's own script instead.
   await writeFile(path.join(target, "project.js"), `export const screens = ${JSON.stringify(screens)};\nexport const components = ${JSON.stringify(components)};\nexport const storageKey = ${JSON.stringify(storageKey)};\n`);
-  if (components.length) await mkdir(path.join(target, "components"), { recursive: true });
-  for (const component of components) {
-    await writeFile(path.join(target, "components", `${component.id}.js`), await bundleComponent(project, component.id, { production: true }));
+  // One pass for all of them: what they share (React above all) ships once, in components/chunks/.
+  for (const file of await bundleComponents(project, { components, wrapper: componentWrapper })) {
+    await mkdir(path.dirname(path.join(target, "components", file.path)), { recursive: true });
+    await writeFile(path.join(target, "components", file.path), file.text);
   }
   await mkdir(path.join(target, "thumbnails"), { recursive: true });
   if (existsSync(project.thumbnailsDir)) {

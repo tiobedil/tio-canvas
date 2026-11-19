@@ -15,15 +15,16 @@ import { arrangeScreens, arrangeShortcut } from './arrange.js';
 import { Spotlight } from './ui/index.js';
 import { emptyPages, emptyComponents } from './pages-empty.js';
 import { renderComponentIssues, issuesBanner } from './component-issues.js';
+import { createSeen, watchComponents, changesText } from './component-refresh.js';
 import { groupSpacing, spaceGroup } from './spacing.js';
 import { createFullscreen } from './fullscreen.js';
 import { createLayerDrawer } from './layers.js';
 import { layerShortcut, reorderLayers, dropLayers } from './layer-order.js';
 import { createScreenLoader } from './screen-loader.js';
-import { screens, components, componentIssues, presets, screenKinds, storageKey } from './screens.js';
+import { screens, components, componentIssues as scanIssues, componentScan, presets, screenKinds, storageKey } from './screens.js';
 import { componentSourceId, componentThumbnailId, normalizeControls, componentProps } from './registry.js';
 import { createDialFloat } from './dial-float.js';
-import { bounds, intersects, snapRect, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
+import { bounds, intersects, snapRect, snapEdges, duplicateOffset, addedPagePositions, pixelRect } from './geometry.js';
 import { createHistory, historyShortcut } from './history.js';
 import { createArrows } from './arrows.js';
 import { createTexts } from './text.js';
@@ -61,7 +62,8 @@ const smartHandles=createSmartHandles({selection,viewport,onDrag:startReorder});
 const contact=document.createElement('div');contact.id='canvas-contact';contact.hidden=true;contact.setAttribute('aria-hidden','true');document.body.append(contact);
 let contactState=null;
 // A screen's theme is its own: it sets the frame's colour scheme, which is what the page inside sees as prefers-color-scheme. It is not saved.
-function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';if(entry.dials)postComponent(entry);}
+// A component frame's dials take the frame's theme, so they match what the frame shows.
+function applyScreenTheme(entry){if(entry.iframe)entry.iframe.style.colorScheme=entry.dark?'dark':'light';if(entry.dials){entry.dials.dataset.theme=entry.dark?'dark':'light';postComponent(entry);}}
 // What a component frame draws: its props and its theme. The frame asks for them when it is ready (component-ready).
 function postComponent(entry,target=entry.iframe?.contentWindow){target?.postMessage({type:'tio-canvas:component',props:entry.model.props,dark:entry.dark===true,reserve:dialReserve(entry)},location.origin);}
 // The open dials cover the right of the frame. The component is centred in what is left: the frame page keeps this much room free on its right.
@@ -105,10 +107,17 @@ function createEntry(definition, loadSaved = true) {
   const orientation=action('orientation','portrait');
   element.append(title,orientation,theme,refresh,fullscreen,more); world.append(element);
   const entry = { model, element, title, orientation, theme, more, refresh, fullscreen, iframe: null, visible: false };
+  // With several screens selected, a screen's theme or orientation button sets every selected screen to the same result.
+  const targets=()=>selectedEntries.size>1&&selectedEntries.has(entry)?[...selectedEntries]:[entry];
   orientation.addEventListener('click',()=>{
     stop();const before=history.checkpoint();
-    [model.width,model.height]=[model.height,model.width];
-    model.x=clamp(model.x,0,extent.width-model.width);model.y=clamp(model.y,0,extent.height-model.height);
+    const landscape=model.height>model.width;
+    for(const target of targets()){
+      const m=target.model;
+      if(!['phone','tablet'].includes(presets[m.preset]?.device)||(m.width>m.height)===landscape)continue;
+      [m.width,m.height]=[m.height,m.width];
+      m.x=clamp(m.x,0,extent.width-m.width);m.y=clamp(m.y,0,extent.height-m.height);
+    }
     updateSelection();schedule();commitEdit(before);
   });
   fullscreen.addEventListener('click',()=>preview.enter(entry));
@@ -118,8 +127,8 @@ function createEntry(definition, loadSaved = true) {
   more.addEventListener('pointerenter',()=>expand(true));more.addEventListener('click',()=>expand(true));
   for(const b of actions)b.addEventListener('pointerleave',event=>{if(!actions.includes(event.relatedTarget))expand(false);});
   theme.addEventListener('click',()=>{
-    entry.dark=!entry.dark;theme.setAttribute('aria-pressed',String(entry.dark));
-    applyScreenTheme(entry);
+    const dark=!entry.dark;
+    for(const target of targets()){target.dark=dark;target.theme.setAttribute('aria-pressed',String(dark));applyScreenTheme(target);}
   });
   title.title = model.title;
   refresh.addEventListener('click',()=>{
@@ -170,12 +179,30 @@ if (Array.isArray(saved.instances) && Array.isArray(saved.removedSources)) for (
   const lowest = firstCopy.get(instance.sourceId);
   if (!lowest || instance.number < lowest.number) firstCopy.set(instance.sourceId, instance);
 }
+// A component frame whose component is no longer found (renamed, moved, deleted) is
+// kept aside with its place and props, never dropped: it comes back by itself once
+// the component is found again, and until then the Components tab says so.
+let orphans = [];
 if (Array.isArray(saved.instances)) for (const instance of saved.instances.slice(0, 200)) {
   const source = sources.find(screen => screen.id === instance?.sourceId);
+  if (!source && typeof instance?.sourceId === 'string' && instance.sourceId.startsWith(componentSourceId('')) && typeof instance.id === 'string' && saved.screens?.[instance.id]) { orphans.push({ instance, state: saved.screens[instance.id] }); continue; }
   if (!source || typeof instance.id !== 'string' || instance.id.length > 100 || entries.some(entry => entry.model.id === instance.id) || !Number.isInteger(instance.number) || instance.number < 0 || instance.number > 100000) continue;
   const number = firstCopy.get(source.id) === instance ? 0 : instance.number;
   entries.push(createEntry({ ...source, id: instance.id, sourceId: source.id, number, title: titleFor(source, number) }));
 }
+function missingIssues() {
+  const bySource = new Map();
+  for (const { instance } of orphans) {
+    const id = instance.sourceId.slice(componentSourceId('').length);
+    const issue = bySource.get(id) ?? { kind: 'missing-component', id, title: typeof instance.title === 'string' ? instance.title : id, count: 0 };
+    issue.count++; bySource.set(id, issue);
+  }
+  return [...bySource.values()];
+}
+// Components that failed to draw in a frame on this page, by id: { title, message }.
+const renderErrors = new Map();
+let componentIssues = [...missingIssues(), ...scanIssues];
+function refreshIssues(){componentIssues=[...missingIssues(),...[...renderErrors].map(([id,error])=>({kind:'render-error',id,...error})),...scanIssues];}
 if (Array.isArray(saved.removedSources)) for (const id of saved.removedSources) {
   const index = entries.findIndex(entry => entry.model.id === id && !entry.model.sourceId);
   if (index >= 0) entries.splice(index,1)[0].element.remove();
@@ -328,7 +355,7 @@ function beginRename(entry, title=entry.title) {
 }
 function save() {
     syncObjectOrder();
-    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number})), screens: Object.fromEntries(entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name,props:m.props,dialsMinimized:m.dialsMinimized||undefined }])) })); } catch {}
+    try { localStorage.setItem(key, JSON.stringify({ version: 1, camera, objectOrder, arrows:arrowTool?.capture()??[], texts:textTool?.capture()??[], order:entries.map(e=>e.model.id),layersCollapsed, removedSources: screens.filter(source => !entries.some(entry => entry.model.id === source.id)).map(source => source.id), instances: [...entries.filter(entry => entry.model.sourceId).map(({model:m}) => ({id:m.id,sourceId:m.sourceId,number:m.number,title:isComponent(m)?sources.find(source=>source.id===m.sourceId)?.title:undefined})), ...orphans.map(orphan => orphan.instance)], screens: Object.fromEntries([...entries.map(({model:m}) => [m.id, { x:m.x,y:m.y,width:m.width,height:m.height,preset:m.preset,name:m.name,props:m.props,dialsMinimized:m.dialsMinimized||undefined }]), ...orphans.map(orphan => [orphan.instance.id, orphan.state])]) })); } catch {}
 }
 function persist() {
   clearTimeout(saveTimer); saveTimer = setTimeout(save, 150);
@@ -685,6 +712,17 @@ function applyMove(event) {
     if (g.kind.includes('s')) m.height=Math.round(clamp(base.height+y,160,Math.min(3840,Math.floor(extent.height-base.y))));
     if (g.kind.includes('w')) { m.width=Math.round(clamp(base.width-x,160,Math.min(3840,Math.floor(base.x+base.width)))); m.x=base.x+base.width-m.width; }
     if (g.kind.includes('n')) { m.height=Math.round(clamp(base.height-y,160,Math.min(3840,Math.floor(base.y+base.height)))); m.y=base.y+base.height-m.height; }
+    // Same magnetic edges as moving: a dragged edge lines up with other objects' edges and centres.
+    const others=[...entries.filter(entry=>entry!==g.entry).map(entry=>entry.model),...(textTool?.objects()??[])];
+    const snap=snapEdges(m,{x:g.kind.includes('w')?'min':g.kind.includes('e')?'max':null,y:g.kind.includes('n')?'min':g.kind.includes('s')?'max':null},others,6/camera.scale);
+    const lines=[];
+    for(const [axis,size] of [['x','width'],['y','height']]){
+      const length=Math.round(snap[size]),far=m[axis]+m[size];
+      if(snap[size]===m[size]||length<160||length>3840||snap[axis]<0||snap[axis]+length>extent[size])continue;
+      m[size]=length;m[axis]=snap[axis]===m[axis]?m[axis]:far-length;
+      lines.push(...snap.guides.filter(line=>line.axis===axis));
+    }
+    drawGuides(lines);
     $('#width').value=m.width;$('#height').value=m.height;
   }
   schedule();
@@ -838,6 +876,12 @@ window.addEventListener('message',event=>{
   if(event.origin!==location.origin) return;
   if(event.data?.type==='tio-canvas:ready'){loader.ready(event.source);return;}
   // A component frame asks for its props as soon as its script runs, which is before a refreshed frame takes over.
+  if(event.data?.type==='tio-canvas:component-error' || event.data?.type==='tio-canvas:component-drawn'){
+    const component=components.find(item=>item.id===event.data.id);if(!component)return;
+    if(event.data.type==='tio-canvas:component-drawn'){if(!renderErrors.delete(component.id))return;}
+    else renderErrors.set(component.id,{title:component.title,module:component.module,message:String(event.data.message??'').slice(0,500)});
+    refreshIssues();return;
+  }
   if(event.data?.type==='tio-canvas:component-ready'){
     const owner=entries.find(item=>item.dials && (item.iframe?.contentWindow===event.source || item.pending?.contentWindow===event.source));
     if(owner)postComponent(owner,event.source);
@@ -937,6 +981,9 @@ function duplicateSelection() {
 }
 const sourceCount=()=>entries.filter(entry=>entry.model.sourceId).length;
 // Pages and components are added from one panel, each in its own tab.
+const seenComponents=createSeen(storageKey,componentSources.map(source=>source.id));
+let componentChanges=null;
+watchComponents(components.map(component=>component.id),changes=>{componentChanges=changes;$('#add .ui-badge').hidden=false;});
 const componentGroups=[...new Set(componentSources.map(source=>source.group))];
 const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeholder:'Search',trigger:$('#add'),
   tabs:[
@@ -951,14 +998,16 @@ const addPanel=Spotlight({id:'add-pages',label:'Add pages and components',placeh
       items:componentSources.map(source=>({id:source.id,group:source.group,title:source.title})),
       thumbnail:item=>`/canvas/thumbnails/${encodeURIComponent(componentThumbnailId(item.id.slice('component:'.length)))}.webp`,
       count:id=>entries.filter(entry=>sourceOf(entry)===id).length,
-      empty:emptyComponents(),
+      empty:emptyComponents(componentScan),
       // What the scan could not settle: one notice, one prompt that covers all of it.
-      banner:componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),()=>renderComponentIssues($('#component-issues .issues-body'),componentIssues));}}:null},
+      isNew:id=>seenComponents.isNew(id),
+      // A component added or removed while the page was open wins over the other notices: nothing else is right until a reload.
+      banner:()=>componentChanges?{text:changesText(componentChanges),action:'Reload',onAction(){save();location.reload();}}:componentIssues.length?{text:issuesBanner(componentIssues),action:'Fix with a prompt',onAction(){addPanel.close();openGuide($('#component-issues'),renderIssues);}}:null},
   ],
   remaining:()=>200-sourceCount(),
   enabled:()=>!document.body.hasAttribute('data-fullscreen')&&!document.querySelector('dialog[open]')&&!document.documentElement.hasAttribute('data-device-blocked'),
   onOpen(){closeContext();stop();clearContact();delete document.body.dataset.space;},
-  onClose(){viewport.focus({preventScroll:true});},
+  onClose(){seenComponents.markAll();viewport.focus({preventScroll:true});},
   onAdd(ids){
     const added=ids.map(id=>sources.find(source=>source.id===id)).filter(Boolean);
     if(sourceCount()+added.length>200)return false;
@@ -1006,6 +1055,13 @@ document.addEventListener('contextmenu',event=>{
   event.preventDefault();openContext(entry,event.clientX,event.clientY);
 });
 // Opening a dialog hands the canvas back its keys: stop any gesture, hide the touch contact.
+// Frames of a missing component can also be let go, from the same dialog.
+function renderIssues(){
+  renderComponentIssues($('#component-issues .issues-body'),componentIssues,orphans.length?{count:orphans.length,onForget(){
+    orphans=[];refreshIssues();save();
+    if(componentIssues.length)renderIssues();else $('#component-issues').close();
+  }}:null);
+}
 function openGuide(dialog,render){closeContext();stop();clearContact();delete document.body.dataset.space;render?.();openDialog(dialog);}
 $('#shortcuts-open').onclick=()=>openGuide($('#shortcuts'));
 $('#changelog-open').onclick=()=>openGuide($('#changelog'),()=>renderChangelog($('#changelog .changelog-body')));
@@ -1044,6 +1100,8 @@ $('#theme').onclick=()=>{
   clearTimeout(themeTimer);themeTimer=setTimeout(()=>root.removeAttribute('data-theming'),300);
   const dark=document.documentElement.toggleAttribute('data-dark');
   setThemeLabel(dark);
+  // Component frames and their dials follow the canvas theme; a frame's own toggle can still flip it after.
+  for(const entry of entries)if(entry.dials){entry.dark=dark;entry.theme.setAttribute('aria-pressed',String(dark));applyScreenTheme(entry);}
   try{localStorage.setItem(themeKey,dark?'dark':'light');localStorage.setItem('canvas:theme',dark?'dark':'light');}catch{}
 };
 const moreMenu=$('#layers-menu'),moreButton=$('#layers-more');

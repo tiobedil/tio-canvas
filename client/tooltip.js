@@ -2,6 +2,7 @@
 //   data-tooltip           the text
 //   data-shortcut          "mod+shift+z": drawn after the text, platform-aware
 //   data-tooltip-disabled  the text shown instead while the control is disabled
+// Without any of those, text cut short by an ellipsis shows in full.
 // A control with a native title has it moved here (the native one would double up),
 // and an icon-only control falls back to its aria-label.
 const DELAY = 500;    // first tooltip: what design tools use, long enough not to flicker
@@ -36,6 +37,13 @@ function resolve(node) {
   return el;
 }
 
+// Text cut short by an ellipsis (.ui-truncate, or a select's field label) is shown in full.
+function clippedText(el) {
+  const clipped = [el, ...el.querySelectorAll('.ui-truncate,[data-field-label]')]
+    .find(node => node.matches('.ui-truncate,[data-field-label]') && node.scrollWidth > node.clientWidth);
+  return clipped?.textContent.trim() ?? '';
+}
+
 function read(el) {
   const title = el.getAttribute('title');
   if (title) {
@@ -49,6 +57,7 @@ function read(el) {
   else {
     text = el.dataset.tooltip || (!el.textContent.trim() ? el.getAttribute('aria-label') || '' : '');
     shortcut = el.dataset.shortcut || '';
+    if (!text) text = clippedText(el);
   }
   return text ? { text, shortcut } : null;
 }

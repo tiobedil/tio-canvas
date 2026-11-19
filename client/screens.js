@@ -9,6 +9,8 @@ const { screens, storageKey } = project;
 const components = [...(project.components ?? []), ...(project.autoComponents ?? [])];
 // What the scan could not settle (see component-issues.js); only a development server sends any.
 const componentIssues = project.componentIssues ?? [];
+// Where the scan looked ({ folders, files }) or why it failed ({ error }); null from a build.
+const componentScan = project.componentScan ?? null;
 validateScreens(screens);
 validateComponents(components);
-export { screens, components, componentIssues, screenKinds, presets, storageKey };
+export { screens, components, componentIssues, componentScan, screenKinds, presets, storageKey };
