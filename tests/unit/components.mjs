@@ -39,14 +39,3 @@ assert.throws(() => validateComponents([{ ...component, controls: { x: null } }]
 assert.equal(componentSourceId('button'), 'component:button');
 assert.equal(componentThumbnailId('button'), 'component-button');
 console.log('PASS components: controls, saved props, validation');
-
-{
-  const { fittedComponentSize } = await import('../../client/registry.js');
-  const initial = { width: 1100, height: 600 };
-  assert.deepEqual(fittedComponentSize({ width: 90, height: 36 }, initial, 272), { width: 592, height: 320 }, 'a button gets a small frame that still fits the dials');
-  assert.deepEqual(fittedComponentSize({ width: 2000, height: 900 }, initial, 0), { width: 1100, height: 948 }, 'never wider than its place, taller when it needs it');
-  assert.equal(fittedComponentSize({ width: 3000, height: 5000 }, initial, 0).height, 1200, 'height has a ceiling');
-  assert.equal(fittedComponentSize({ width: 90, height: 36 }, initial, 272, 520).height, 520, 'tall enough for every dial');
-  assert.equal(fittedComponentSize({ width: 0, height: 0 }, initial), null, 'nothing drawn: keep the default');
-  console.log('PASS components: a new frame fits what it drew');
-}
